@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Colorado Heritage Website"
+description = "An editable recreation of the Colorado Heritage Education School System website, with a polished public-facing site and an in-page editor for updating content and rearranging sections."
+version = "1.0.0"
+id = "artifacts/colorado-heritage"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23647
+
+[services.development]
+run = "pnpm --filter @workspace/colorado-heritage run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/colorado-heritage", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/colorado-heritage/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23647"
+BASE_PATH = "/"
