@@ -7,6 +7,7 @@ const plain=value=>String(value||"").replace(/!\[[^\]]*\]\([^)]+\)/g,"").replace
 export function canonicalPath(requested,content={}) {
   let path;
   try{path=decodeURI(requested).replace(/\/+$/,"")||"/";}catch{return requested;}
+  if(path==="/tuition")return "/admissions/tuition";
   if(/^\/(?:news\/(?:category|tag)|new-events)(?:\/|$)/.test(path))return path.startsWith("/news")?"/news":"/parents/calendar";
   const person=path.match(/^\/about\/(?:faculty|staff)\/([^/]+)$/);
   if(person)return `/about/our-people/${person[1]}`;

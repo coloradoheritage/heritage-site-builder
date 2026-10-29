@@ -230,6 +230,7 @@ export const SITE_PLAN_VERSION = 6;
 function repairImportedContent(input: Content): Content {
   const content=structuredClone(input);
   content.redirects ||= {};
+  content.redirects["/tuition"]="/admissions/tuition";
   const enrollmentForms=[
     {label:"New Independent School family",url:"/documents/new-family-enrollment-in-the-chess-independent-school.pdf"},
     {label:"Returning Independent School family",url:"/documents/returning-family-enrollment-in-the-chess-independent-school-ds5b.pdf"},

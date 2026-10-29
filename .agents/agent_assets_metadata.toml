@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "yxz0EGdvOSwgGc0muRq6w"
+uri = "file://generated-artifacts/chess-school-review.html"
+type = "html"
+title = "CHESS school review checklist"
+description = "School information and assets deliberately left unconfirmed for your review in /admin. No publishing performed."
+logical_id = "f44677ee-e705-432c-962a-4a282b16dcce"
+content_hash = "sha256:d292b48326f96900fda7e1d74b2a08f7330d19095797f6b19cfb2e4436969258"
+size = 7726
+mtime_ms = 1793294824342
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:1444917c-845d-40f1-9875-2dddb05f4885/f44677ee-e705-432c-962a-4a282b16dcce/9476aade-b2f4-41b0-b78b-f425ac6229af"
+storage_version_token = "1793296678712275"
+content_type = "text/html"
