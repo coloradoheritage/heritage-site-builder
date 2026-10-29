@@ -92,6 +92,7 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
   if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
   const heroImage = path === "/gallery" ? null : markdown.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/m);
   if (heroImage) markdown = markdown.replace(heroImage[0], "");
+  if (path === "/donate") return <DonationPage page={page} markdown={markdown} heroImage={heroImage} />;
   const docUrl = useDocUrl();
   const resourceUrl = page.externalUrl || docUrl(page.documentPath);
   const isProgram = path.startsWith("/programs/");
@@ -131,6 +132,35 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
     {isParents ? <PraxiBox /> : isProgram || isTuition || path.startsWith("/admissions") || path.startsWith("/about")
       ? <VisitBand title={isProgram ? `See the ${fixText(page.label)} in person` : "Come see CHESS for yourself"} text="Schedule a visit with our office to ask questions and see the school." />
       : null}
+  </article>;
+}
+
+function DonationPage({ page, markdown, heroImage }: { page: CmsPage; markdown: string; heroImage: RegExpMatchArray | null }) {
+  const normalized = markdown
+    .replace(/^\s*(\d+)\.\s+(#{1,6})\s+/gm, "$2 $1. ")
+    .replace(/^(#{1,6})\s+(\d+)\\?\.\s+/gm, "$1 $2. ")
+    .replace(/^\s*\*\s+\*\s+\*\s*$/gm, "---");
+  const sections = normalized.split(/^\s*---\s*$/m).map((part) => part.trim()).filter(Boolean);
+  const intro = sections.shift() ?? "";
+  return <article className="cb-page cb-page-wide cb-donate-page" data-testid="page-donate">
+    <header className="cb-page-head">
+      <h1>{fixText(page.label)}</h1>
+      {page.description && <p>{fixText(page.description)}</p>}
+    </header>
+    <section className="cb-donate-intro" aria-label="Ways to support Colorado Heritage">
+      <div className="cb-donate-intro-copy">
+        <Eyebrow>Give to CHESS</Eyebrow>
+        <MarkdownContent markdown={intro} />
+      </div>
+      {heroImage && <figure className="cb-donate-photo">
+        <SiteImage src={heroImage[2]} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : "Colorado Heritage community gathering"} loading="lazy" />
+      </figure>}
+    </section>
+    <div className="cb-donation-grid">
+      {sections.map((section, i) => <section className={`cb-donation-card${i === 0 ? " is-featured" : ""}`} key={i}>
+        <MarkdownContent markdown={section} />
+      </section>)}
+    </div>
   </article>;
 }
 
