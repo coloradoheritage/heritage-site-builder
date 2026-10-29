@@ -6,9 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './cmsArticle';
+export * from './cmsDocument';
+export * from './cmsNavigation';
+export * from './cmsPage';
+export * from './cmsStaff';
 export * from './editorAccessResponse';
 export * from './healthStatus';
 export * from './homepageContentResponse';
 export * from './homepageContentState';
 export * from './homepageContentStateCopy';
 export * from './homepageSection';
+export * from './photoUploadRequest';
+export * from './siteContentState';
+export * from './uploadSitePhoto200';

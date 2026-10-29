@@ -21,7 +21,7 @@ function editorEmails(): Set<string> {
   );
 }
 
-async function hasEditorAccess(req: Request): Promise<boolean> {
+export async function hasEditorAccess(req: Request): Promise<boolean> {
   const auth = getAuth(req);
   if (!auth.userId) return false;
 

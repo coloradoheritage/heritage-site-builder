@@ -11,6 +11,58 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /site-content:
+    get:
+      operationId: getSiteContent
+      summary: Get all public website content
+      responses:
+        "200":
+          description: Website content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContentState"
+    put:
+      operationId: saveSiteContent
+      summary: Save website content as an approved editor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteContentState"
+      responses:
+        "200":
+          description: Saved website content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContentState"
+        "409":
+          description: Content changed since it was loaded
+  /media/upload:
+    post:
+      operationId: uploadSitePhoto
+      summary: Upload a compressed photo as an approved editor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhotoUploadRequest"
+      responses:
+        "200":
+          description: Stored image
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, alt]
+                properties:
+                  url:
+                    type: string
+                  alt:
+                    type: string
   /healthz:
     get:
       operationId: healthCheck
@@ -74,6 +126,82 @@ paths:
           description: Editor access required
 components:
   schemas:
+    PhotoUploadRequest:
+      type: object
+      required: [data, alt]
+      properties:
+        data: { type: string }
+        alt: { type: string }
+    CmsPage:
+      type: object
+      required: [path, label, title, description, markdown, kind]
+      properties:
+        path: { type: string }
+        label: { type: string }
+        title: { type: string }
+        description: { type: string }
+        markdown: { type: string }
+        kind: { type: string }
+        documentPath: { type: string }
+        externalUrl: { type: string }
+    CmsStaff:
+      type: object
+      required: [slug, name, role, photo, alt, bio]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        role: { type: string }
+        photo: { type: string }
+        alt: { type: string }
+        bio: { type: string }
+    CmsArticle:
+      type: object
+      required: [path, title, date, markdown, archived]
+      properties:
+        path: { type: string }
+        title: { type: string }
+        date: { type: string }
+        markdown: { type: string }
+        archived: { type: boolean }
+    CmsDocument:
+      type: object
+      required: [id, title, url]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        url: { type: string }
+    CmsNavigation:
+      type: object
+      required: [label, path, children]
+      properties:
+        label: { type: string }
+        path: { type: string }
+        children:
+          type: array
+          items: { type: string }
+    SiteContentState:
+      type: object
+      required: [revision, pages, staff, events, news, documents, navigation]
+      properties:
+        revision: { type: integer }
+        pages:
+          type: array
+          items: { $ref: "#/components/schemas/CmsPage" }
+        staff:
+          type: array
+          items: { $ref: "#/components/schemas/CmsStaff" }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/CmsArticle" }
+        news:
+          type: array
+          items: { $ref: "#/components/schemas/CmsArticle" }
+        documents:
+          type: array
+          items: { $ref: "#/components/schemas/CmsDocument" }
+        navigation:
+          type: array
+          items: { $ref: "#/components/schemas/CmsNavigation" }
     HealthStatus:
       type: object
       properties:

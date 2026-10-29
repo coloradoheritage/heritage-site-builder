@@ -5,6 +5,61 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface PhotoUploadRequest {
+  data: string;
+  alt: string;
+}
+
+export interface CmsPage {
+  path: string;
+  label: string;
+  title: string;
+  description: string;
+  markdown: string;
+  kind: string;
+  documentPath?: string;
+  externalUrl?: string;
+}
+
+export interface CmsStaff {
+  slug: string;
+  name: string;
+  role: string;
+  photo: string;
+  alt: string;
+  bio: string;
+}
+
+export interface CmsArticle {
+  path: string;
+  title: string;
+  date: string;
+  markdown: string;
+  archived: boolean;
+}
+
+export interface CmsDocument {
+  id: string;
+  title: string;
+  url: string;
+}
+
+export interface CmsNavigation {
+  label: string;
+  path: string;
+  children: string[];
+}
+
+export interface SiteContentState {
+  revision: number;
+  pages: CmsPage[];
+  staff: CmsStaff[];
+  events: CmsArticle[];
+  news: CmsArticle[];
+  documents: CmsDocument[];
+  navigation: CmsNavigation[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -38,4 +93,9 @@ export interface HomepageContentResponse {
 export interface EditorAccessResponse {
   allowed: boolean;
 }
+
+export type UploadSitePhoto200 = {
+  url: string;
+  alt: string;
+};
 

@@ -1,11 +1,11 @@
 ---
-name: CHESS homepage editor access
-description: Durable access-control requirement for the Colorado Heritage homepage editor.
+name: CHESS website editor access
+description: Durable access-control requirement for the Colorado Heritage website editor.
 ---
 
-The homepage editor is intended for selected, explicitly approved staff accounts, not all school accounts. Keep authorization enforced by the API and keep the allowlist in environment configuration rather than exposing it in the public client.
+The website editor is intended for selected, explicitly approved staff accounts, not all school accounts. Keep authorization enforced by the API and keep the allowlist in environment configuration rather than exposing it in the public client.
 
-**Why:** The user selected selected-staff access as the policy for the separate admin subdomain.
+**Why:** The user selected selected-staff access for the editor and explicitly required the same allowlist for the full-site CMS.
 
 **How to apply:** Preserve server-side allowlist enforcement for future editor changes. Require a deliberate change in approved staff scope before broadening access.
 
@@ -14,3 +14,9 @@ When a verified Clerk session does not provide a usable email claim, resolve the
 **Why:** A production session can authenticate successfully while its email claim does not match the configured staff allowlist; a trusted server-side lookup fixes that without widening editor access.
 
 **How to apply:** Use this fallback for server-side checks guarded by `CHESS_EDITOR_EMAILS`; keep the allowlist as the authority.
+
+Programmatic Clerk editor tests must target `/admin/sign-in`, not the public root.
+
+**Why:** Clerk is mounted only for admin routes. A testing-helper ticket aimed at the public homepage left the browser signed out; the same helper worked when aimed at the admin sign-in route.
+
+**How to apply:** Specify the admin sign-in route in future browser-test plans. Do not broaden the staff allowlist to compensate for a testing session that was never established.

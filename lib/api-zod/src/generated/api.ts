@@ -9,6 +9,166 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Get all public website content
+ */
+export const GetSiteContentResponse = zod.object({
+  "revision": zod.number().int(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "markdown": zod.string(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "photo": zod.string(),
+  "alt": zod.string(),
+  "bio": zod.string()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+})
+
+
+/**
+ * @summary Save website content as an approved editor
+ */
+export const SaveSiteContentBody = zod.object({
+  "revision": zod.number().int(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "markdown": zod.string(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "photo": zod.string(),
+  "alt": zod.string(),
+  "bio": zod.string()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+})
+
+export const SaveSiteContentResponse = zod.object({
+  "revision": zod.number().int(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "markdown": zod.string(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "photo": zod.string(),
+  "alt": zod.string(),
+  "bio": zod.string()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+})
+
+
+/**
+ * @summary Upload a compressed photo as an approved editor
+ */
+export const UploadSitePhotoBody = zod.object({
+  "data": zod.string(),
+  "alt": zod.string()
+})
+
+export const UploadSitePhotoResponse = zod.object({
+  "url": zod.string(),
+  "alt": zod.string()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

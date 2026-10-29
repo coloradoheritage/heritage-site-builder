@@ -12,10 +12,12 @@ import {
 } from '@workspace/api-client-react';
 import { Redirect, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
 import { PublicSiteFooter, PublicSiteHeader, PublicSitePages } from './components/public-site';
+import { EditorHome, SiteManager, PhotoUploader } from './components/site-manager';
+import { fixText, usePageMeta } from './lib/cms';
 import { legacyRouteAliases } from './data/siteSitemap';
 import {
   ArrowRight, ArrowUpRight, BookOpen, Eye, EyeOff, GraduationCap,
-  HeartHandshake, Move, Pencil, RotateCcw, Save,
+  HeartHandshake, MapPin, Move, Pencil, RotateCcw, Save, X,
 } from 'lucide-react';
 
 type SectionId = 'donation' | 'hero' | 'programs' | 'mission' | 'anniversary' | 'listen' | 'stories' | 'closing';
@@ -36,6 +38,8 @@ const initialCopy: Copy = {
     subtitle: 'A Private Christian School',
     history: 'Serving Homeschooling Families Since 1991',
     image: '/images/colorado-family.jpg',
+    audience: 'Christ-centered K-12 classes and homeschool support for families in Greeley, CO',
+    applyButton: 'Schedule a Visit / Apply',
     primaryButton: 'Explore our programs',
     secondaryButton: 'Our mission',
   },
@@ -123,7 +127,7 @@ const sectionFields: Record<SectionId, { key: string; label: string; multiline?:
   ],
   hero: [
     { key: 'eyebrow', label: 'Tagline' }, { key: 'title', label: 'Main heading', multiline: true },
-    { key: 'subtitle', label: 'School description' }, { key: 'history', label: 'Since statement' },
+    { key: 'subtitle', label: 'School description' }, { key: 'audience', label: 'Who we serve (grades and city)', multiline: true }, { key: 'applyButton', label: 'Visit / apply button' }, { key: 'history', label: 'Since statement' },
     { key: 'image', label: 'Photo URL', image: true }, { key: 'primaryButton', label: 'Primary button' },
     { key: 'secondaryButton', label: 'Secondary button' },
   ],
@@ -182,7 +186,7 @@ function hydrateSite(content: HomepageContentState | null | undefined): SiteStat
   const copy = Object.fromEntries(
     Object.entries(initialCopy).map(([section, fields]) => [
       section,
-      { ...fields, ...(savedCopy[section as SectionId] ?? {}) },
+      Object.fromEntries(Object.entries({ ...fields, ...(savedCopy[section as SectionId] ?? {}) }).map(([k, v]) => [k, fixText(v)])),
     ]),
   ) as Copy;
   return {
@@ -221,7 +225,7 @@ function HomepageApp({
         setSite(hydrateSite(response.content));
         queryClient.setQueryData(getGetHomepageContentQueryKey(), response);
         setIsSaved(true);
-        setToast('Changes are live on the public website.');
+        setToast('Saved. Visitors now see the updated homepage content (no code was published).');
       },
       onError: () => {
         setIsSaved(false);
@@ -249,6 +253,7 @@ function HomepageApp({
   }, [toast]);
 
   const copy = site.copy;
+  usePageMeta(adminMode ? 'Homepage editor | Colorado Heritage' : 'Colorado Heritage Education School System | Christian K-12 School, Greeley, CO', 'A private Christian K-12 school in Greeley, CO serving homeschooling families since 1991 with an Independent School, Academy classes, and a High School Diploma Program.', '/');
   const updateCopy = (id: SectionId, key: string, value: string) => {
     setSite((current) => ({ ...current, copy: { ...current.copy, [id]: { ...current.copy[id], [key]: value } } }));
     setIsSaved(false);
@@ -285,13 +290,8 @@ function HomepageApp({
   const clickSection = (id: SectionId) => editing ? setSelected(id) : undefined;
   const sectionHint = (id: SectionId) => editing && selected === id ? <span className="edit-hint">Selected section</span> : null;
 
-  const renderDonation = () => (
-    <section id="donation" className={`donation ${sectionClass('donation')}`} onClick={() => clickSection('donation')}>
-      {sectionHint('donation')}
-      <p>{copy.donation.notice}</p>
-      <a className="button" href={donateUrl} onClick={(e) => editing && e.preventDefault()}>{copy.donation.button}</a>
-    </section>
-  );
+  // Announcements and donation copy now live in the single slim SiteNotice above the header.
+  const renderDonation = () => <></>;
   const renderHero = () => (
     <section id="home" className={`hero ${sectionClass('hero')}`} style={{ '--hero-image': `url("${imageUrl(copy.hero.image)}")` } as CSSProperties} onClick={() => clickSection('hero')}>
       {sectionHint('hero')}
@@ -299,11 +299,13 @@ function HomepageApp({
         <div className="eyebrow">{copy.hero.eyebrow}</div>
         <h1>{copy.hero.title}</h1>
         <p className="hero-sub">{copy.hero.subtitle}<br />{copy.hero.history}</p>
+        <p className="hero-audience"><MapPin size={15} aria-hidden="true" />{copy.hero.audience}</p>
         <div className="hero-actions">
-          <a className="button gold" href={publicPath('/programs')} onClick={(e) => editing && e.preventDefault()}>{copy.hero.primaryButton}<ArrowRight size={15} /></a>
+          <a className="button gold hero-apply" href={publicPath('/families/apply')} data-testid="link-hero-apply" onClick={(e) => editing && e.preventDefault()}>{copy.hero.applyButton}<ArrowRight size={15} /></a>
+          <a className="button light" href={publicPath('/programs')} onClick={(e) => editing && e.preventDefault()}>{copy.hero.primaryButton}<ArrowRight size={15} /></a>
           <a className="button light" href={publicPath('/about/our-purpose')} onClick={(e) => editing && e.preventDefault()}>{copy.hero.secondaryButton}</a>
         </div>
-        <div className="hero-note">Serving homeschooling families since 1991</div>
+        <div className="hero-note">Grades K-12 · Greeley, Colorado · Since 1991</div>
       </div>
     </section>
   );
@@ -335,7 +337,7 @@ function HomepageApp({
     <section id="mission" className={`section ${sectionClass('mission')}`} onClick={() => clickSection('mission')}>
       {sectionHint('mission')}
       <div className="container split">
-        <div className="image-frame"><img src={imageUrl(copy.mission.image)} alt="A student learning at home" /></div>
+        <div className="image-frame"><img src={imageUrl(copy.mission.image)} alt={copy.mission.imageAlt || "A student learning at home"} /></div>
         <div className="mission-copy">
           <div className="section-kicker">{copy.mission.kicker}</div>
           <h2 className="section-title">{copy.mission.title}</h2>
@@ -360,7 +362,7 @@ function HomepageApp({
       {sectionHint('listen')}
       <div className="container">
         <div className="listen-panel">
-          <div className="listen-image"><img src={imageUrl(copy.listen.image)} alt="A teacher sharing a thoughtful lesson with families" /></div>
+          <div className="listen-image"><img src={imageUrl(copy.listen.image)} alt={copy.listen.imageAlt || "A teacher sharing a thoughtful lesson with families"} /></div>
           <div className="listen-copy">
             <div className="listen-label">{copy.listen.kicker}</div>
             <h2>{copy.listen.title}</h2>
@@ -419,7 +421,7 @@ function HomepageApp({
       {multiline
         ? <textarea id={`edit-${selected}-${key}`} data-testid={`editor-field-${key}`} value={copy[selected][key] ?? ''} onChange={(e) => updateCopy(selected, key, e.target.value)} />
         : <input id={`edit-${selected}-${key}`} data-testid={`editor-field-${key}`} type="text" value={copy[selected][key] ?? ''} onChange={(e) => updateCopy(selected, key, e.target.value)} placeholder={image ? '/images/your-photo.jpg' : ''} />}
-      {image && <span style={{ display: 'block', fontSize: 10, color: '#6b7685', marginTop: 4 }}>Paste a local image path or a trusted image URL.</span>}
+      {image && <PhotoUploader label="Upload a resized photo" defaultAlt={copy[selected][`${key}Alt`] || ''} onUploaded={(url, alt) => { updateCopy(selected, key, url); updateCopy(selected, `${key}Alt`, alt); }} />}
     </div>
   ));
 
@@ -427,16 +429,16 @@ function HomepageApp({
     <div className={`site chess-public ${editing ? 'is-editing' : ''}`}>
       {contentQuery.isError && !adminMode && <div className="content-warning" role="alert">The latest saved homepage could not be loaded. This view may not include recent edits.</div>}
       {!editing && <>
-        <div className="announcement">{copy.donation.officeHours}<br />{copy.donation.enrollment}<br />{copy.donation.blogNotice}</div>
+        <SiteNotice copy={copy.donation} editing={editing} onSelect={() => clickSection('donation')} />
         <PublicSiteHeader />
       </>}
 
       {editing && <div className="editor-bar">
-        <div className="editor-bar-left"><span className="editor-dot" /><div><div className="editor-title">CHESS Website Editor</div><div className="editor-sub">Preview first, then publish changes to the public site.</div></div></div>
+        <div className="editor-bar-left"><span className="editor-dot" /><div><div className="editor-title">CHESS Website Editor</div><div className="editor-sub">Saving updates homepage content only. It does not publish website code.</div></div></div>
         <div className="editor-actions">
-          <span className="saved-pill">{saveMutation.isPending ? 'Publishing…' : isSaved ? 'All changes saved' : 'Unsaved changes'}</span>
+          <span className="saved-pill">{saveMutation.isPending ? 'Saving…' : isSaved ? 'All changes saved' : 'Unsaved changes'}</span>
           <button type="button" data-testid="reset-site" onClick={reset} disabled={saveMutation.isPending}><RotateCcw size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Reset</button>
-          <button type="button" data-testid="save-site" className="primary" onClick={save} disabled={saveMutation.isPending}><Save size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Save &amp; publish</button>
+          <button type="button" data-testid="save-site" className="primary" onClick={save} disabled={saveMutation.isPending}><Save size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Save content</button>
           <button type="button" data-testid="preview-site" onClick={() => setEditing(false)}><Eye size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Preview site</button>
           {adminMode && publicSiteUrl && <a className="editor-public-link" href={publicSiteUrl} target="_blank" rel="noreferrer">Open public site <ArrowUpRight size={13} /></a>}
           {onSignOut && <button type="button" onClick={onSignOut}>Sign out</button>}
@@ -472,7 +474,7 @@ function HomepageApp({
           </div>
         </aside>
         <main className="editor-preview" aria-label="Homepage preview">
-          <div className="announcement">{copy.donation.officeHours}<br />{copy.donation.enrollment}<br />{copy.donation.blogNotice}</div>
+          <SiteNotice copy={copy.donation} editing={editing} onSelect={() => clickSection('donation')} />
           <PublicSiteHeader editing />
           {visibleOrder.map((id) => <div key={id}>{renderSection[id]()}</div>)}
           <PublicSiteFooter editing />
@@ -485,6 +487,24 @@ function HomepageApp({
         {adminMode && <button className="edit-launch" type="button" data-testid="open-editor" onClick={() => setEditing(true)}><Pencil size={15} /> Back to editor</button>}
       </>}
       {toast && <div className="toast-note" role="status">{toast}</div>}
+    </div>
+  );
+}
+
+function SiteNotice({ copy, editing, onSelect }: { copy: Copy['donation']; editing: boolean; onSelect: () => void }) {
+  const [dismissed, setDismissed] = useState(() => !editing && typeof window !== 'undefined' && window.sessionStorage.getItem('chess-notice-dismissed') === '1');
+  const [expanded, setExpanded] = useState(false);
+  if (dismissed) return null;
+  const items = [copy.enrollment, copy.officeHours, copy.blogNotice].filter(Boolean);
+  return (
+    <div className={`site-notice ${expanded ? 'is-expanded' : ''}`} role="region" aria-label="School notice" onClick={() => editing && onSelect()}>
+      <div className="site-notice-inner">
+        <span className="site-notice-label">Notice</span>
+        <p className="site-notice-text">{items[0]}{expanded && items.slice(1).map((t) => <span key={t}><br />{t}</span>)}{expanded && copy.notice && <span><br />{copy.notice.charAt(0) + copy.notice.slice(1).toLowerCase()}</span>}</p>
+        {(items.length > 1 || copy.notice) && <button type="button" className="site-notice-more" onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }} aria-expanded={expanded}>{expanded ? 'Less' : 'More'}</button>}
+        <a className="site-notice-donate" href={donateUrl} onClick={(e) => editing && e.preventDefault()}>{copy.button}</a>
+        {!editing && <button type="button" className="site-notice-close" aria-label="Dismiss notice" data-testid="button-dismiss-notice" onClick={() => { window.sessionStorage.setItem('chess-notice-dismissed', '1'); setDismissed(true); }}><X size={15} /></button>}
+      </div>
     </div>
   );
 }
@@ -627,7 +647,26 @@ function AdminGate({ basePath, publicSiteUrl }: { basePath: string; publicSiteUr
     );
   }
 
-  return <HomepageApp adminMode publicSiteUrl={publicSiteUrl} onSignOut={() => signOut({ redirectUrl: publicSiteUrl })} />;
+  return <EditorChooser publicSiteUrl={publicSiteUrl} onSignOut={() => signOut({ redirectUrl: publicSiteUrl })} />;
+}
+
+function EditorChooser({ publicSiteUrl, onSignOut }: { publicSiteUrl: string; onSignOut: () => void }) {
+  const [tool, setToolState] = useState<'home' | 'homepage' | 'site'>(() => {
+    const t = new URLSearchParams(window.location.search).get('tool');
+    return t === 'homepage' || t === 'site' ? t : 'home';
+  });
+  const setTool = (next: 'home' | 'homepage' | 'site') => {
+    const url = new URL(window.location.href);
+    if (next === 'home') url.searchParams.delete('tool'); else url.searchParams.set('tool', next);
+    window.history.replaceState(null, '', url.toString());
+    setToolState(next);
+  };
+  if (tool === 'homepage') return <>
+    <button type="button" className="cms-back-chip" onClick={() => setTool('home')}>Editor home</button>
+    <HomepageApp adminMode publicSiteUrl={publicSiteUrl} onSignOut={onSignOut} />
+  </>;
+  if (tool === 'site') return <SiteManager onBack={() => setTool('home')} onSignOut={onSignOut} publicSiteUrl={publicSiteUrl} />;
+  return <EditorHome onChoose={setTool} onSignOut={onSignOut} publicSiteUrl={publicSiteUrl} />;
 }
 
 function SignInPage({ basePath, publicSiteUrl }: { basePath: string; publicSiteUrl: string }) {

@@ -1,0 +1,75 @@
+{
+  "donation": {
+    "officeHours": "School year office hours begin Monday, August 31. Please see our Contact Us page for more details.",
+    "enrollment": "Independent School (IS) enrollment is now open. See our Independent School page for details and options.",
+    "blogNotice": "See our latest Blog under “About Us”.",
+    "notice": "*WE ARE ACCEPTING PLEDGE DONATIONS FOR OUR FALL 2026 SCHOLARSHIP JOG-A-THON! PLEASE SEE OUR DONATION PAGE BELOW OR IN OUR SIDE MENU. THANK YOU!",
+    "button": "Donation Page"
+  },
+  "hero": {
+    "eyebrow": "\"Pursuing the Knowledge of God.\"",
+    "title": "Colorado Heritage Education School System",
+    "subtitle": "A Private Christian School",
+    "history": "Serving Homeschooling Families Since 1991",
+    "image": "/images/colorado-family.jpg",
+    "audience": "Christ-centered K-12 classes and homeschool support for families in Greeley, CO",
+    "applyButton": "Schedule a Visit / Apply",
+    "primaryButton": "Explore our programs",
+    "secondaryButton": "Our mission"
+  },
+  "programs": {
+    "kicker": "How we partner with you",
+    "title": "Here is how we partner with you:",
+    "intro": "",
+    "p1Title": "Independent School",
+    "p1Body": "The Colorado Heritage Independent School, a private Christian school, provides homeschooling families “umbrella school” services (record keeping, etc.). Homeschooling families who are not enrolled in an independent school must report their records to a public school district. Students enrolled in our Independent School are considered private school students, and as such, submit records to Colorado Heritage. We also provide curriculum and scheduling advice, as well as encouragement, to families who are pursuing the noble pursuit of educating at home.",
+    "p1Link": "Learn More",
+    "p2Title": "Academy",
+    "p2Body": "For over 30 years, Colorado Heritage has provided quality Christ-centered K - 12 classes, meeting the academic needs of homeschooling families. Our elementary and junior high classes are varied, stimulating, and fulfilling. Many of our high school Diploma Program students take our challenging high school classes, crafting a robust 4-year plan. Our Academy also offers great fellowship opportunities with like-minded homeschoolers.",
+    "p2Link": "Learn more",
+    "p3Title": "High School Diploma Program",
+    "p3Body": "Our Diploma Program provides home-educated high school students with a 4-year high school plan that challenges and encourages them both academically and spiritually. Many of our Diploma Program students pursue much of their course work through our Academy along with classes taken at home. Upon successfully completing our Diploma Program, students will receive a private Christian school transcript and have the option of participating in our graduation ceremony. Colleges and other institutions highly esteem our high school graduates. Four diploma levels are available to pursue: Diploma, Honors, High Honors, and Highest Honors.",
+    "p3Link": "Learn More"
+  },
+  "mission": {
+    "kicker": "Colorado Heritage Education School System",
+    "title": "Thankful for God’s provision and faithfulness.",
+    "body": "Colorado Heritage Education School System is thankful for God’s provision and faithfulness to us over the past 30+ years as we have worked to serve the needs of home educators here in Colorado, across the United States, and around the world.",
+    "quote": "“Pursuing the Knowledge of God.”",
+    "image": "/images/student-study.jpg",
+    "link": "Learn more about CHESS"
+  },
+  "anniversary": {
+    "title": "Colorado Heritage, Established 1991",
+    "body": "Celebrating 35 years",
+    "button": "Donation Page"
+  },
+  "listen": {
+    "kicker": "Listen and Learn",
+    "title": "Why is Christian Education so Important?",
+    "body": "Listen to Pastor Baxter Ong give the introduction to our Parents’ Night Out Panel Discussion. Since 1991, we have remained deeply committed to helping families guard their children’s academic and spiritual paths.",
+    "image": "/images/pastor-talk.jpg",
+    "button": "Listen and Learn"
+  },
+  "stories": {
+    "kicker": "From the CHESS blog",
+    "title": "Blog",
+    "date1": "August 12, 2026",
+    "post1": "Thy Word is a Lamp unto My feet, and a Light unto My Path",
+    "date2": "March 27, 2026",
+    "post2": "Why CHRISTIAN Education? (And, Happy 35th Birthday to CHESS!!)",
+    "date3": "July 14, 2025",
+    "post3": "Who Stole the Lost Tools of Learning?",
+    "date4": "June 28, 2024",
+    "post4": "Do You Love Jesus?",
+    "date5": "October 30, 2023",
+    "post5": "Prepare in the Nest",
+    "button": "Visit the blog"
+  },
+  "closing": {
+    "kicker": "Colorado Heritage",
+    "title": "Serving Homeschooling Families Since 1991",
+    "body": "Home educators here in Colorado, across the United States, and around the world.",
+    "button": "Donation Page"
+  }
+}

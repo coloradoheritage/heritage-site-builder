@@ -1,27 +1,24 @@
 kind = "web"
 previewPath = "/"
 title = "Colorado Heritage Website"
-description = "An editable recreation of the Colorado Heritage Education School System website, with a polished public-facing site and an in-page editor for updating content and rearranging sections."
+description = "The Colorado Heritage school website with a selected-staff content editor and server-rendered public pages."
 version = "1.0.0"
 id = "artifacts/colorado-heritage"
 router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
+paths = ["/"]
 localPort = 23647
 
 [services.development]
 run = "pnpm --filter @workspace/colorado-heritage run dev"
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/colorado-heritage", "run", "build" ]
-serve = "static"
-publicDir = "artifacts/colorado-heritage/dist/public"
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/colorado-heritage", "run", "build"]
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+[services.production.run]
+args = ["node", "artifacts/colorado-heritage/server.mjs"]
 
 [services.env]
 PORT = "23647"
