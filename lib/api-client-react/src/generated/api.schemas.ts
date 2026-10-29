@@ -25,6 +25,8 @@ export interface CmsStaff {
   slug: string;
   name: string;
   role: string;
+  /** Include this person in the Administrative Staff directory. */
+  administrative?: boolean;
   photo: string;
   alt: string;
   bio: string;

@@ -2,11 +2,12 @@ import { marked } from "marked";
 import sanitizeHtml from "sanitize-html";
 import routes from "./seo-routes.json" with { type: "json" };
 import initialHome from "./seo-home.json" with { type: "json" };
+import { administrativeStaff, cleanFilenameCaptions, isAdministrative, staffProfilePath } from "./directory-helpers.mjs";
 
 export const siteOrigin = "https://heritage-site-builder.replit.app";
 const apiOrigin = process.env.SITE_API_ORIGIN || "http://127.0.0.1:8080";
 const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[char]));
-const html = markdown => sanitizeHtml(marked.parse(markdown || ""), {
+const html = markdown => sanitizeHtml(marked.parse(cleanFilenameCaptions(markdown)), {
   allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
   allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, img:["src","alt","width","height","loading"], a:["href","title","rel"] },
   allowedSchemes: ["http","https","mailto","tel"],
@@ -22,13 +23,14 @@ export async function loadContent() {
   return response.json();
 }
 export function renderSitemap(content) {
-  const paths = ["/", ...content.pages.map(page=>page.path), ...content.staff.map(person=>`/about/faculty/${person.slug}`), ...content.news.map(item=>item.path), ...content.events.map(item=>item.path)];
+  const paths = ["/", ...content.pages.map(page=>page.path), ...content.staff.map(staffProfilePath), ...content.news.map(item=>item.path), ...content.events.map(item=>item.path)];
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${[...new Set(paths)].map(path=>`<url><loc>${esc(siteOrigin+path)}</loc></url>`).join("")}</urlset>`;
 }
 export async function renderPage(template, requestedPath, content) {
-  const path = canonicalPath(requestedPath);
+  let path = canonicalPath(requestedPath);
   const page = content.pages.find(page=>page.path===path);
-  const staff = content.staff.find(person=>`/about/faculty/${person.slug}`===path);
+  const staff = content.staff.find(person=>[`/about/faculty/${person.slug}`, `/about/staff/${person.slug}`].includes(path));
+  if (staff) path = staffProfilePath(staff);
   const article = [...content.news,...content.events].find(item=>item.path===path);
   const isAdmin = /^\/admin(?:\/|$)/.test(path);
   const found = path==="/" || page || staff || article || isAdmin;
@@ -61,13 +63,14 @@ export async function renderPage(template, requestedPath, content) {
       body += `<section><h2>Christian education. Faithful partnership.</h2><p>Colorado Heritage Education School System partners with homeschooling families through our Independent School, K–12 Academy and High School Diploma programs.</p>${content.pages.filter(p=>p.path.startsWith("/programs/")&&p.path.split("/").length===3).map(p=>`<h2><a href="${esc(p.path)}">${esc(p.label)}</a></h2><p>${esc(p.description)}</p>`).join("")}<p>Serving families since 1991.</p></section>`;
     }
   } else if (staff) {
-    body=`<h1>${esc(staff.name)}</h1><p>${esc(staff.role)}</p>${staff.photo?`<img src="${esc(staff.photo)}" alt="${esc(staff.alt)}" width="300" height="300">`:""}${html(staff.bio)}`;
+    body=`<h1>${esc(staff.name)}</h1><p>${esc(staff.role)}</p>${staff.photo?`<img src="${esc(staff.photo)}" alt="${esc(staff.alt || staff.name)}" width="300" height="300">`:""}${html(staff.bio)}<p><a href="/about/${isAdministrative(staff) ? "staff" : "faculty"}">All ${isAdministrative(staff) ? "staff" : "faculty"}</a></p>`;
   } else if (article) {
     body=`<h1>${esc(article.title)}</h1><time>${esc(article.date)}</time>${article.archived?"<p>Archived school event. This is not an upcoming event.</p>":""}${html(article.markdown)}`;
   } else if (page) {
     body=`<h1>${esc(page.label)}</h1><p>${esc(page.description)}</p>`;
-    if (path==="/about/faculty") {
-      body+=content.staff.map(person=>`<article><a href="/about/faculty/${esc(person.slug)}">${person.photo?`<img src="${esc(person.photo)}" alt="${esc(person.alt)}" width="300" height="300">`:""}<h2>${esc(person.name)}</h2></a><p>${esc(person.role)}</p></article>`).join("");
+    if (path==="/about/faculty" || path==="/about/staff") {
+      const people = path==="/about/staff" ? administrativeStaff(content.staff) : content.staff;
+      body+=people.map(person=>`<article><a href="${esc(staffProfilePath(person))}">${person.photo?`<img src="${esc(person.photo)}" alt="${esc(person.alt || person.name)}" width="300" height="300">`:""}<h2>${esc(person.name)}</h2></a><p>${esc(person.role)}</p></article>`).join("");
     } else {
       body+=page.kind==="protected"&&(!page.markdown.trim()||page.markdown.trim()==="Colorado Heritage — Secure")
         ? '<p>This resource is intended for current CHESS families. Contact the CHESS office for help accessing the current resource.</p><a href="/contact">Contact the school office</a>'

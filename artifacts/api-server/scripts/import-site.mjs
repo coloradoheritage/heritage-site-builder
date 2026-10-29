@@ -4,6 +4,7 @@ import ts from "typescript";
 import { Client } from "@replit/object-storage";
 import sharp from "sharp";
 import { createHash } from "node:crypto";
+import { isAdministrative } from "../../colorado-heritage/directory-helpers.mjs";
 
 const root = path.resolve(import.meta.dirname, "../../..");
 const web = path.join(root, "artifacts/colorado-heritage");
@@ -104,6 +105,10 @@ for (const page of pages) {
     if (!documents.some(doc => doc.url === link[2])) documents.push({ id: link[2], title: link[1], url: link[2] });
   }
 }
+staff.forEach(person => { person.administrative = isAdministrative(person); });
+// Directory biographies are stored on the staff records, not duplicated on the listing.
+const administrativePage = pages.find(page => page.path === "/about/staff");
+if (administrativePage) administrativePage.markdown = "";
 let content = { revision:1, pages, staff, events, news, documents, navigation };
 const storage = new Client({ bucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID });
 const urls = [...new Set(JSON.stringify(content).match(/https?:\/\/[^"\\\s)]+squarespace[^"\\\s)]*|https?:\/\/(?:images|static\d*)\.squarespace[^"\\\s)]*/g) ?? [])];

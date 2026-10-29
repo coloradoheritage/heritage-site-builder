@@ -27,6 +27,7 @@ export const GetSiteContentResponse = zod.object({
   "slug": zod.string(),
   "name": zod.string(),
   "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
   "photo": zod.string(),
   "alt": zod.string(),
   "bio": zod.string()
@@ -77,6 +78,7 @@ export const SaveSiteContentBody = zod.object({
   "slug": zod.string(),
   "name": zod.string(),
   "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
   "photo": zod.string(),
   "alt": zod.string(),
   "bio": zod.string()
@@ -123,6 +125,7 @@ export const SaveSiteContentResponse = zod.object({
   "slug": zod.string(),
   "name": zod.string(),
   "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
   "photo": zod.string(),
   "alt": zod.string(),
   "bio": zod.string()

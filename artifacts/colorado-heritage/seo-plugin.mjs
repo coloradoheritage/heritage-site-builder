@@ -4,7 +4,7 @@ export default function seoPlugin(){return {name:"chess-server-render",configure
   server.middlewares.use(async(req,res,next)=>{
     const url=new URL(req.url,"http://internal");
     if(url.pathname==="/index.html"){res.writeHead(301,{Location:"/"+url.search});res.end();return;}
-    if(url.pathname.startsWith("/api/")||url.pathname.startsWith("/@")||url.pathname.startsWith("/src/")||url.pathname.startsWith("/node_modules/")||url.searchParams.has("html-proxy"))return next();
+    if(url.pathname.startsWith("/api/")||url.pathname.startsWith("/@")||url.pathname.startsWith("/src/")||url.pathname.startsWith("/node_modules/")||url.pathname==="/directory-helpers.mjs"||url.searchParams.has("html-proxy"))return next();
     try {
       if(url.pathname==="/sitemap.xml"){res.setHeader("Content-Type","application/xml");res.end(renderSitemap(await loadContent()));return;}
       if(url.pathname==="/robots.txt"){res.setHeader("Content-Type","text/plain");res.end(`User-agent: *\nDisallow: /admin\nSitemap: ${siteOrigin}/sitemap.xml\n`);return;}

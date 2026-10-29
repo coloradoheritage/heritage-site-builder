@@ -23,3 +23,6 @@ timeoutMs = 20000
 
 [userenv.shared]
 CHESS_EDITOR_EMAILS = "office@coloradoheritage.org,nelsonnoah@coloradoheritage.org"
+
+[nix]
+channel = "stable-25_05"

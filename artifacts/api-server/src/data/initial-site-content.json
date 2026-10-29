@@ -250,7 +250,7 @@
       "label": "Administrative Staff",
       "title": "Administrative Staff | Colorado Heritage",
       "description": "Meet the Colorado Heritage administrative team.",
-      "markdown": "![BURLAP.jpg](/api/media/files/6573b5282af4bff857211303b8081d400e5fd61aa189465c00f8558b4ede4bd4.webp)\n\nAdministrative Staff\n\n### Our Administrative Staff\n\n![](/api/media/files/5ef21e1fdf5c4649aa27cc328b1c157bfa025307395cce772fef208cc60bbce4.webp)\n\n**Principal** **\\- Mrs. Mary Brown**. Colorado Heritage began new leadership under Mrs. Mary Brown in May 2019. Christian education has fallen upon hard times in our country, and very few people have the firmness to navigate the treacherous waters with courage and endurance. Mrs. Brown holds firmly to Biblical truth, while keeping the academic care and spiritual well-being of our students as her utmost priorities. She has taught at Colorado Heritage for many years, is a veteran homeschool mom of four, (graduating her four children from Colorado Heritage in 2014, 2020, 2021, and 2024!) and has a passion to serve the needs of the homeschool community through God’s wisdom, grace, and power.\n\n![](/api/media/files/88ec729b5c47b6906e2fc4cf2d1f11d45e60108f7cf9f5aaff82ebf2d72a023d.webp)\n\n**Admissions Coordinator for Independent School and Academy, Diploma Program Registrar -** **Mrs. Amy Kearns**. Amy’s gift for detail and dedication to bless our **Independent School** families by keeping their Independent School files up-to-date, helping families stay accountable to state homeschool laws, and in maintaining great order and efficiency at Colorado Heritage is invaluable. Amy also efficiently coordinates many aspects of our **Academy** admissions, helping this crucial component of Colorado Heritage to run smoothly. Amy is a veteran homeschooling mom and understands the blessings and challenges of taking up the great and noble work of educating at home.\n\n![](/api/media/files/e5300ee46b73e51f334f13819e535f00b902036a008e0a4c4a5e15382c4bdebe.webp)\n\n**Receptionist/Office Assistant, Signe Clausen.** As a former student of CHESS, I am proud to work here now after graduating with a family diploma. Seeing the school from the staff’s point of view has deepened my gratitude to the teachers who I learned from. I’m happy that I can give back with this job to help keep CHESS running smoothly. The money I earn here is put towards the online college-alternative I attend, the Author’s Conservatory, where I am working to earn a certificate in fiction writing. Writing is my passion in life, a God-given calling that I aim to bless others with. But I’m grateful to have the opportunity to bless others with my job here, too.",
+      "markdown": "",
       "kind": "content"
     },
     {
@@ -354,6 +354,7 @@
   "staff": [
     {
       "slug": "signe-clausen",
+      "administrative": true,
       "name": "Signe Clausen",
       "role": "Receptionist / Office Assistant",
       "photo": "/api/media/files/e5300ee46b73e51f334f13819e535f00b902036a008e0a4c4a5e15382c4bdebe.webp",
@@ -362,6 +363,7 @@
     },
     {
       "slug": "mrs-mary-brown",
+      "administrative": true,
       "name": "Mrs. Mary Brown",
       "role": "Principal",
       "photo": "/api/media/files/5ef21e1fdf5c4649aa27cc328b1c157bfa025307395cce772fef208cc60bbce4.webp",
@@ -394,6 +396,7 @@
     },
     {
       "slug": "mrs-amy-kearns",
+      "administrative": true,
       "name": "Mrs. Amy Kearns",
       "role": "Admissions Coordinator & Diploma Program Registrar; Mathematics",
       "photo": "/api/media/files/2dbc9f5f66504564754d2756e5e4b290615888712882b220e47b2d956a3f739d.webp",

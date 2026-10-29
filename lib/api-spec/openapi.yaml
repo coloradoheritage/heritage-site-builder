@@ -151,6 +151,9 @@ components:
         slug: { type: string }
         name: { type: string }
         role: { type: string }
+        administrative:
+          type: boolean
+          description: Include this person in the Administrative Staff directory.
         photo: { type: string }
         alt: { type: string }
         bio: { type: string }

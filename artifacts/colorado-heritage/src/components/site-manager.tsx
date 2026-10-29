@@ -9,6 +9,7 @@ import { DocumentsContext, MarkdownContent, resolveDocument } from "./public-sit
 import { compressImage, fixText, mediaUrl, publicAsset, publicPath } from "../lib/cms";
 import "./public-site.css";
 import "./cms.css";
+import { isAdministrative, staffProfilePath } from "../../directory-helpers.mjs";
 
 type Tab = "pages" | "staff" | "events" | "news" | "documents" | "menu";
 const TABS: { id: Tab; label: string }[] = [
@@ -195,7 +196,7 @@ function StaffEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
   const set = (patch: Partial<CmsStaff>) => update((d) => ({ ...d, staff: d.staff.map((s, i) => (i === sel ? { ...s, ...patch } : s)) }));
   const add = () => { update((d) => ({ ...d, staff: [...d.staff, { slug: `new-teacher-${d.staff.length + 1}`, name: "New teacher", role: "Teacher", photo: "", alt: "", bio: "" }] })); setSel(draft.staff.length); };
   const remove = () => {
-    if (!person || !window.confirm(`Remove ${person.name} from the faculty page?`)) return;
+    if (!person || !window.confirm(`Remove ${person.name} from the faculty and staff directories?`)) return;
     update((d) => ({ ...d, staff: d.staff.filter((_, i) => i !== sel) })); setSel(Math.max(0, sel - 1));
   };
   return <div className="cms-split">
@@ -207,13 +208,14 @@ function StaffEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
         <div className="cms-grid2">
           <Field label="Name"><input value={person.name} onChange={(e) => set({ name: e.target.value })} onBlur={() => !person.slug && set({ slug: slugify(person.name) })} /></Field>
           <Field label="Role"><input value={person.role} onChange={(e) => set({ role: e.target.value })} /></Field>
-          <Field label="Link name (slug)" hint={`Bio page: /about/faculty/${person.slug}`}><input value={person.slug} onChange={(e) => set({ slug: slugify(e.target.value) })} /></Field>
+          <Field label="Link name (slug)" hint={`Bio page: ${staffProfilePath(person)}`}><input value={person.slug} onChange={(e) => set({ slug: slugify(e.target.value) })} /></Field>
           <Field label="Photo description (alt text)" hint={person.photo ? "Required when a photo is set." : undefined}><input value={person.alt} onChange={(e) => set({ alt: e.target.value })} aria-invalid={Boolean(person.photo && !person.alt.trim())} /></Field>
         </div>
       </div>
+      <label className="cms-check"><input type="checkbox" checked={isAdministrative(person)} onChange={(e) => set({ administrative: e.target.checked })} /> Include in Administrative Staff</label>
       <PhotoUploader key={person.slug} label="Upload a square portrait (cropped to 600 px)" square defaultAlt={person.alt || `Portrait of ${person.name}`} onUploaded={(url, alt) => set({ photo: url, alt })} />
       {person.photo && <button type="button" className="cms-btn" onClick={() => set({ photo: "", alt: "" })}>Remove photo</button>}
-      <EditablePreview documents={draft.documents} eyebrow={person.role} title={person.name} markdown={person.bio} onTitle={(name) => set({ name })} onMarkdown={(bio) => set({ bio })} publicUrl={publicPath(`/about/faculty/${person.slug}`)} />
+      <EditablePreview documents={draft.documents} eyebrow={person.role} title={person.name} markdown={person.bio} onTitle={(name) => set({ name })} onMarkdown={(bio) => set({ bio })} publicUrl={publicPath(staffProfilePath(person))} />
       <button type="button" className="cms-btn cms-btn-danger" onClick={remove}><Trash2 size={14} /> Remove this person</button>
     </div> : <div className="cms-empty"><strong>No faculty profiles yet.</strong><p>Add your first teacher.</p></div>}
   </div>;

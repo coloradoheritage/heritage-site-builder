@@ -9,6 +9,7 @@ import {
 } from "../lib/cms";
 import "./public-site.css";
 import "./cms.css";
+import { administrativeStaff, cleanFilenameCaptions, isAdministrative, isFilenameCaption, staffProfilePath } from "../../directory-helpers.mjs";
 
 /** Documents keyed by their original (immutable) link; url holds the current editable destination. */
 export const DocumentsContext = createContext<CmsDocument[]>([]);
@@ -66,7 +67,7 @@ function inlineMarkdown(value: string, keyPrefix: string): ReactNode[] {
 }
 
 export function MarkdownContent({ markdown }: { markdown: string }) {
-  const cleaned = fixText(markdown)
+  const cleaned = fixText(cleanFilenameCaptions(markdown))
     .replace(/\r/g, "")
     .split("\n")
     .filter((line) => !/^(School year office hours begin|o Independent School|o See our latest Blog|0items|\$0|Click below to view the Colorado Heritage You Tube Channel|0 Likes|Share)/.test(line.trim()))
@@ -182,7 +183,7 @@ function SitemapPage({ content }: { content: SiteContentState }) {
         ? <a href={page.externalUrl} target="_blank" rel="noopener noreferrer" data-testid={`sitemap-link-${testId(page.path)}`}>{fixText(page.label)} <ArrowUpRight size={12} aria-hidden="true" /></a>
         : <Link href={page.path} data-testid={`sitemap-link-${testId(page.path)}`}>{fixText(page.label)}</Link>}</li>)}</ul>
     </section>)}
-      {content.staff.length > 0 && <section className="chess-sitemap-group"><h2>Faculty &amp; staff</h2><ul>{content.staff.map((s) => <li key={s.slug}><Link href={`/about/faculty/${s.slug}`}>{s.name}</Link></li>)}</ul></section>}
+      {content.staff.length > 0 && <section className="chess-sitemap-group"><h2>Faculty &amp; staff</h2><ul>{content.staff.map((s) => <li key={s.slug}><Link href={staffProfilePath(s)}>{s.name}</Link></li>)}</ul></section>}
     </div>
     <div className="chess-sitemap-archives">
       {[{ label: "News & blog", type: "news" as const, entries: content.news }, { label: "Events", type: "events" as const, entries: content.events }].map((group) => {
@@ -236,7 +237,7 @@ export function FacultyGrid({ staff }: { staff: CmsStaff[] }) {
   if (!staff.length) return <div className="cms-empty"><strong>Faculty profiles are coming soon.</strong><p>Contact the office to learn about our teachers.</p></div>;
   return <ul className="cms-faculty-grid" data-testid="faculty-grid">
     {staff.map((person) => <li key={person.slug}>
-      <Link href={`/about/faculty/${person.slug}`} className="cms-faculty-card" data-testid={`faculty-card-${person.slug}`}>
+      <Link href={staffProfilePath(person)} className="cms-faculty-card" data-testid={`faculty-card-${person.slug}`}>
         <span className="cms-faculty-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || person.name} loading="lazy" /> : <Initials name={person.name} />}</span>
         <strong>{person.name}</strong>
         <small>{fixText(person.role)}</small>
@@ -246,8 +247,10 @@ export function FacultyGrid({ staff }: { staff: CmsStaff[] }) {
 }
 
 function StaffBio({ person }: { person: CmsStaff }) {
+  const administrative = isAdministrative(person);
+  const directoryPath = administrative ? "/about/staff" : "/about/faculty";
   return <article className="chess-content-page cms-bio">
-    <nav className="cms-crumbs" aria-label="Breadcrumb"><Link href="/about">About</Link><span>/</span><Link href="/about/faculty">Our Faculty</Link></nav>
+    <nav className="cms-crumbs" aria-label="Breadcrumb"><Link href="/about">About</Link><span>/</span><Link href={directoryPath}>{administrative ? "Administrative Staff" : "Our Faculty"}</Link></nav>
     <div className="cms-bio-layout">
       <div className="cms-faculty-photo cms-bio-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || person.name} /> : <Initials name={person.name} />}</div>
       <div>
@@ -256,7 +259,7 @@ function StaffBio({ person }: { person: CmsStaff }) {
         {person.bio ? <MarkdownContent markdown={person.bio} /> : <p className="cms-muted">A full biography is coming soon.</p>}
       </div>
     </div>
-    <div className="chess-bottom-nav"><Link href="/about/faculty" data-testid="link-back-faculty">All faculty <ArrowRight size={15} aria-hidden="true" /></Link></div>
+    <div className="chess-bottom-nav"><Link href={directoryPath} data-testid={administrative ? "link-back-staff" : "link-back-faculty"}>{administrative ? "All staff" : "All faculty"} <ArrowRight size={15} aria-hidden="true" /></Link></div>
   </article>;
 }
 
@@ -285,14 +288,15 @@ function CalendarPage({ page }: { page: CmsPage }) {
 }
 
 function ContentPage({ page, content }: { page: CmsPage; content: SiteContentState }) {
-  const isFaculty = page.path === "/about/faculty";
-  let markdown = stripSourceTitle(page.markdown);
+  const isAdministrativeDirectory = page.path === "/about/staff";
+  const isFaculty = page.path === "/about/faculty" || isAdministrativeDirectory;
+  let markdown = cleanFilenameCaptions(stripSourceTitle(page.markdown));
   if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
   const heroImage = isFaculty ? null : markdown.match(/!\[([^\]]*)\]\(([^)]+)\)/);
   if (heroImage) markdown = markdown.replace(heroImage[0], "");
   if (isFaculty) {
     // Imported biographies now live on the individual profile pages, not twice on the directory.
-    markdown = /^###\s+\**(?:Miss|Mrs?\.|Pastor)/im.test(markdown) ? "" : markdown.replace(/!\[[^\]]*\]\([^)]+\)/g, "");
+    markdown = /^###\s+\**(?:Miss|Mrs?\.|Pastor)|\*\*(?:Principal|Admissions Coordinator|Receptionist)/im.test(markdown) ? "" : markdown.replace(/!\[[^\]]*\]\([^)]+\)/g, "");
   }
   const docUrl = useDocUrl();
   const resourceUrl = page.externalUrl || docUrl(page.documentPath);
@@ -300,10 +304,10 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentSta
     <header className="chess-page-intro chess-content-heading">
       <span className="chess-eyebrow">{page.path.split("/").filter(Boolean).slice(0, -1).join(" / ") || "Colorado Heritage"}</span>
       <h1>{fixText(page.label)}</h1>
-      {heroImage && <figure className="chess-page-image"><img src={mediaUrl(heroImage[2])} alt={heroImage[1] || `${page.label} at Colorado Heritage`} /><figcaption>{fixText(heroImage[1] || page.label)}</figcaption></figure>}
+      {heroImage && <figure className="chess-page-image"><img src={mediaUrl(heroImage[2])} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : `${page.label} at Colorado Heritage`} />{heroImage[1] && !isFilenameCaption(heroImage[1]) && <figcaption>{fixText(heroImage[1])}</figcaption>}</figure>}
       {(!markdown || isFaculty) && <p>{fixText(page.description)}</p>}
     </header>
-    {isFaculty && <FacultyGrid staff={content.staff} />}
+    {isFaculty && <FacultyGrid staff={isAdministrativeDirectory ? administrativeStaff(content.staff) : content.staff} />}
     {page.kind === "protected" && !markdown.trim()
       ? <section className="chess-content-placeholder"><p>This resource is intended for current CHESS families. Contact the CHESS office for help accessing the current resource.</p><Link className="chess-read-link" href="/contact" data-testid="link-protected-resource-contact">Contact the CHESS office <ArrowRight size={15} aria-hidden="true" /></Link></section>
       : markdown.trim()
@@ -361,7 +365,7 @@ export function PublicSitePages() {
   else if (resolved?.type === "index") { title = resolved.kind === "news" ? "News & Blog | Colorado Heritage" : "Calendar & Events | Colorado Heritage"; }
   else if (resolved?.type === "sitemap") { title = "Website Sitemap | Colorado Heritage"; }
   else if (resolved?.type === "missing") { title = "Page not found | Colorado Heritage"; }
-  usePageMeta(title, description, path);
+  usePageMeta(title, description, resolved?.type === "staff" ? staffProfilePath(resolved.person) : path);
 
   if (query.isPending) return <main className="chess-public chess-main"><PageSkeleton /></main>;
   if (query.isError || !query.data || !resolved) return <main className="chess-public chess-main"><LoadError onRetry={() => query.refetch()} /></main>;
