@@ -14,6 +14,14 @@ export async function storePhoto(bytes: Buffer): Promise<string> {
     quality -= 10;
     output = await sharp(output).webp({ quality }).toBuffer();
   }
+  // Detailed backgrounds can remain large even at low quality; reduce dimensions
+  // without cropping rather than returning an oversized or face-trimmed image.
+  while (output.length > 110_000) {
+    const metadata = await sharp(output).metadata();
+    const size = Math.floor(Math.max(metadata.width ?? 0, metadata.height ?? 0) * 0.85);
+    if (size < 600) break;
+    output = await sharp(output).resize(size, size, { fit: "inside" }).webp({ quality: 50 }).toBuffer();
+  }
   const key = `${createHash("sha256").update(output).digest("hex")}.webp`;
   const result = await mediaStorage.uploadFromBytes(`website/${key}`, output, { compress: false });
   if (!result.ok) throw new Error("Photo storage is unavailable");

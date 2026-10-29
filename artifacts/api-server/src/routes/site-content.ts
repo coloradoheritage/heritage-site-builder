@@ -6,17 +6,18 @@ import { and, eq, sql } from "drizzle-orm";
 import { hasEditorAccess } from "./homepage";
 import initialContent from "../data/initial-site-content.json";
 import { mediaStorage, storePhoto } from "../lib/site-media";
+import { restoreImportedPortraits } from "../lib/portrait-content";
 
 const router: IRouter = Router();
 
 export async function getSiteContent() {
   const [existing] = await db.select().from(siteContentTable).where(eq(siteContentTable.id, 1));
-  if (existing) return { ...existing.content, revision: existing.revision };
+  if (existing) return { ...restoreImportedPortraits(existing.content), revision: existing.revision };
   // Only initialize an empty database; never overwrite staff edits on restart.
   await db.insert(siteContentTable).values({ id: 1, revision: 1, content: initialContent })
     .onConflictDoNothing();
   const [record] = await db.select().from(siteContentTable).where(eq(siteContentTable.id, 1));
-  return { ...record.content, revision: record.revision };
+  return { ...restoreImportedPortraits(record.content), revision: record.revision };
 }
 
 router.get("/site-content", async (_req, res) => {

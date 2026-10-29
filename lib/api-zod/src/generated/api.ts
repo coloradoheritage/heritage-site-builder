@@ -11,6 +11,14 @@ import * as zod from 'zod';
 /**
  * @summary Get all public website content
  */
+export const getSiteContentResponseStaffItemPhotoPositionXMin = 0;
+export const getSiteContentResponseStaffItemPhotoPositionXMax = 100;
+
+export const getSiteContentResponseStaffItemPhotoPositionYMin = 0;
+export const getSiteContentResponseStaffItemPhotoPositionYMax = 100;
+
+
+
 export const GetSiteContentResponse = zod.object({
   "revision": zod.number().int(),
   "pages": zod.array(zod.object({
@@ -29,6 +37,8 @@ export const GetSiteContentResponse = zod.object({
   "role": zod.string(),
   "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
   "photo": zod.string(),
+  "photoPositionX": zod.number().min(getSiteContentResponseStaffItemPhotoPositionXMin).max(getSiteContentResponseStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(getSiteContentResponseStaffItemPhotoPositionYMin).max(getSiteContentResponseStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
   "alt": zod.string(),
   "bio": zod.string()
 })),
@@ -62,6 +72,14 @@ export const GetSiteContentResponse = zod.object({
 /**
  * @summary Save website content as an approved editor
  */
+export const saveSiteContentBodyStaffItemPhotoPositionXMin = 0;
+export const saveSiteContentBodyStaffItemPhotoPositionXMax = 100;
+
+export const saveSiteContentBodyStaffItemPhotoPositionYMin = 0;
+export const saveSiteContentBodyStaffItemPhotoPositionYMax = 100;
+
+
+
 export const SaveSiteContentBody = zod.object({
   "revision": zod.number().int(),
   "pages": zod.array(zod.object({
@@ -80,6 +98,8 @@ export const SaveSiteContentBody = zod.object({
   "role": zod.string(),
   "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
   "photo": zod.string(),
+  "photoPositionX": zod.number().min(saveSiteContentBodyStaffItemPhotoPositionXMin).max(saveSiteContentBodyStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(saveSiteContentBodyStaffItemPhotoPositionYMin).max(saveSiteContentBodyStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
   "alt": zod.string(),
   "bio": zod.string()
 })),
@@ -109,6 +129,14 @@ export const SaveSiteContentBody = zod.object({
 }))
 })
 
+export const saveSiteContentResponseStaffItemPhotoPositionXMin = 0;
+export const saveSiteContentResponseStaffItemPhotoPositionXMax = 100;
+
+export const saveSiteContentResponseStaffItemPhotoPositionYMin = 0;
+export const saveSiteContentResponseStaffItemPhotoPositionYMax = 100;
+
+
+
 export const SaveSiteContentResponse = zod.object({
   "revision": zod.number().int(),
   "pages": zod.array(zod.object({
@@ -127,6 +155,8 @@ export const SaveSiteContentResponse = zod.object({
   "role": zod.string(),
   "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
   "photo": zod.string(),
+  "photoPositionX": zod.number().min(saveSiteContentResponseStaffItemPhotoPositionXMin).max(saveSiteContentResponseStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(saveSiteContentResponseStaffItemPhotoPositionYMin).max(saveSiteContentResponseStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
   "alt": zod.string(),
   "bio": zod.string()
 })),

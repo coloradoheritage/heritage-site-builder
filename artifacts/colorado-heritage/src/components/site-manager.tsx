@@ -9,7 +9,7 @@ import { DocumentsContext, MarkdownContent, resolveDocument } from "./public-sit
 import { compressImage, fixText, mediaUrl, publicAsset, publicPath } from "../lib/cms";
 import "./public-site.css";
 import "./cms.css";
-import { isAdministrative, staffProfilePath } from "../../directory-helpers.mjs";
+import { isAdministrative, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
 
 type Tab = "pages" | "staff" | "events" | "news" | "documents" | "menu";
 const TABS: { id: Tab; label: string }[] = [
@@ -112,7 +112,7 @@ function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDes
   </div></DocumentsContext.Provider>;
 }
 
-export function PhotoUploader({ label, square, onUploaded, defaultAlt = "" }: { label: string; square?: boolean; onUploaded: (url: string, alt: string) => void; defaultAlt?: string }) {
+export function PhotoUploader({ label, portrait, onUploaded, defaultAlt = "" }: { label: string; portrait?: boolean; onUploaded: (url: string, alt: string) => void; defaultAlt?: string }) {
   const upload = useUploadSitePhoto();
   const [alt, setAlt] = useState(defaultAlt);
   const [file, setFile] = useState<File | null>(null);
@@ -123,7 +123,8 @@ export function PhotoUploader({ label, square, onUploaded, defaultAlt = "" }: { 
     if (!alt.trim()) return setStatus({ kind: "error", text: "Describe the photo (alt text) before uploading. It is required for accessibility." });
     try {
       setStatus({ kind: "busy", text: "Resizing and uploading…" });
-      const img = await compressImage(file, square ? { maxSize: 600, square: true, targetBytes: 100 * 1024 } : { maxSize: 1200, targetBytes: 450 * 1024 });
+      // Retain the full portrait so the saved focal point can adjust its square display later.
+      const img = await compressImage(file, portrait ? { maxSize: 1200, targetBytes: 100 * 1024 } : { maxSize: 1200, targetBytes: 450 * 1024 });
       const res = await upload.mutateAsync({ data: { data: img.dataUrl, alt: alt.trim() } });
       onUploaded(res.url, res.alt || alt.trim());
       setStatus({ kind: "ok", text: `Uploaded (${img.width}x${img.height}, ${Math.round(img.bytes / 1024)} KB). Remember to save your changes.` });
@@ -204,7 +205,7 @@ function StaffEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
       onMove={(a, b) => { update((d) => ({ ...d, staff: move(d.staff, a, b) })); if (a === sel) setSel(b); }} onAdd={add} />
     {person ? <div className="cms-editor">
       <div className="cms-staff-head">
-        <div className="cms-faculty-photo cms-staff-thumb">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt} /> : <span className="cms-initials">{person.name.slice(0, 1)}</span>}</div>
+        <div className="cms-faculty-photo cms-staff-thumb">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt} style={{ objectPosition: portraitPosition(person) }} /> : <span className="cms-initials">{person.name.slice(0, 1)}</span>}</div>
         <div className="cms-grid2">
           <Field label="Name"><input value={person.name} onChange={(e) => set({ name: e.target.value })} onBlur={() => !person.slug && set({ slug: slugify(person.name) })} /></Field>
           <Field label="Role"><input value={person.role} onChange={(e) => set({ role: e.target.value })} /></Field>
@@ -213,7 +214,15 @@ function StaffEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
         </div>
       </div>
       <label className="cms-check"><input type="checkbox" checked={isAdministrative(person)} onChange={(e) => set({ administrative: e.target.checked })} /> Include in Administrative Staff</label>
-      <PhotoUploader key={person.slug} label="Upload a square portrait (cropped to 600 px)" square defaultAlt={person.alt || `Portrait of ${person.name}`} onUploaded={(url, alt) => set({ photo: url, alt })} />
+      <PhotoUploader key={person.slug} label="Upload a portrait (full image preserved)" portrait defaultAlt={person.alt || `Portrait of ${person.name}`} onUploaded={(url, alt) => set({ photo: url, alt, photoPositionX: 50, photoPositionY: 0 })} />
+      {person.photo && <fieldset>
+        <legend>Photo framing</legend>
+        <p className="cms-muted">Adjust which part of the full photo appears in the square. This applies to directory cards and the bio page.</p>
+        <div className="cms-faculty-photo cms-focal-preview"><img src={mediaUrl(person.photo)} alt={person.alt || person.name} style={{ objectPosition: portraitPosition(person) }} /></div>
+        <Field label={`Horizontal position: ${person.photoPositionX ?? 50}%`} hint="0% = left · 50% = center · 100% = right"><input aria-label="Horizontal photo position" type="range" min="0" max="100" step="1" value={person.photoPositionX ?? 50} onChange={(e) => set({ photoPositionX: Number(e.target.value) })} /></Field>
+        <Field label={`Vertical position: ${person.photoPositionY ?? 0}%`} hint="0% = top · 100% = bottom. Start at the top to keep faces visible."><input aria-label="Vertical photo position" type="range" min="0" max="100" step="1" value={person.photoPositionY ?? 0} onChange={(e) => set({ photoPositionY: Number(e.target.value) })} /></Field>
+        <button type="button" className="cms-btn" onClick={() => set({ photoPositionX: 50, photoPositionY: 0 })}>Reset to top-centered</button>
+      </fieldset>}
       {person.photo && <button type="button" className="cms-btn" onClick={() => set({ photo: "", alt: "" })}>Remove photo</button>}
       <EditablePreview documents={draft.documents} eyebrow={person.role} title={person.name} markdown={person.bio} onTitle={(name) => set({ name })} onMarkdown={(bio) => set({ bio })} publicUrl={publicPath(staffProfilePath(person))} />
       <button type="button" className="cms-btn cms-btn-danger" onClick={remove}><Trash2 size={14} /> Remove this person</button>

@@ -12,6 +12,11 @@ export function staffProfilePath(person) {
   return `/about/${isAdministrative(person) ? "staff" : "faculty"}/${person.slug}`;
 }
 
+export function portraitPosition(person) {
+  const percent = (value, fallback) => Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : fallback;
+  return `${percent(person.photoPositionX, 50)}% ${percent(person.photoPositionY, 0)}%`;
+}
+
 export function administrativeStaff(staff) {
   return staff.map((person, index) => ({ person, index }))
     .filter(({ person }) => isAdministrative(person))

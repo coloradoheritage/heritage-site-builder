@@ -124,7 +124,7 @@ export function usePageMeta(title: string, description: string, path: string) {
 /** Resize + compress an image file to a webp data URL. */
 export async function compressImage(
   file: File,
-  opts: { maxSize: number; square?: boolean; targetBytes: number },
+  opts: { maxSize: number; targetBytes: number },
 ): Promise<{ dataUrl: string; bytes: number; width: number; height: number }> {
   // Some mobile file pickers and automated upload tools provide an empty MIME type.
   // The browser decoder and server re-encoder still validate the actual image bytes.
@@ -139,13 +139,7 @@ export async function compressImage(
       el.onerror = () => reject(new Error("That image could not be read. Try a different file."));
       el.src = bitmapUrl;
     });
-    let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-    if (opts.square) {
-      const side = Math.min(sw, sh);
-      sx = (sw - side) / 2;
-      sy = Math.max(0, (sh - side) * 0.3);
-      sw = side; sh = side;
-    }
+    const sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
     const scale = Math.min(1, opts.maxSize / Math.max(sw, sh));
     const width = Math.round(sw * scale);
     const height = Math.round(sh * scale);

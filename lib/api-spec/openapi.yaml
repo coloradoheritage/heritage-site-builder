@@ -155,6 +155,16 @@ components:
           type: boolean
           description: Include this person in the Administrative Staff directory.
         photo: { type: string }
+        photoPositionX:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Horizontal photo position in percent; defaults to 50.
+        photoPositionY:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Vertical photo position in percent; defaults to 0 to keep faces near the top visible.
         alt: { type: string }
         bio: { type: string }
     CmsArticle:

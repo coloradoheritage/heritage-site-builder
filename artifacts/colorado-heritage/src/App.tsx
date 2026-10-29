@@ -15,6 +15,7 @@ import { PublicSiteFooter, PublicSiteHeader, PublicSitePages } from './component
 import { EditorHome, SiteManager, PhotoUploader } from './components/site-manager';
 import { fixText, usePageMeta } from './lib/cms';
 import { legacyRouteAliases } from './data/siteSitemap';
+import { RouteScroll } from './components/route-scroll';
 import {
   ArrowRight, ArrowUpRight, BookOpen, Eye, EyeOff, GraduationCap,
   HeartHandshake, MapPin, Move, Pencil, RotateCcw, Save, X,
@@ -806,6 +807,7 @@ function App() {
     const publicSiteUrl = new URL(appBasePath || '/', window.location.origin).toString();
     return (
       <WouterRouter base={adminBasePath}>
+        <RouteScroll />
         <ClerkAdminApp basePath={adminBasePath} publicSiteUrl={publicSiteUrl} />
       </WouterRouter>
     );
@@ -814,6 +816,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <WouterRouter base={appBasePath}>
+        <RouteScroll />
         <PublicWebsite />
       </WouterRouter>
     </QueryClientProvider>

@@ -137,7 +137,7 @@ for (let index=0; index<imageUrls.length; index++) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const bytes = Buffer.from(await response.arrayBuffer());
     let image = sharp(bytes, { limitInputPixels: 60_000_000 }).rotate();
-    image = isPortrait ? image.resize(600,600,{fit:"cover",position:"attention"}) : image.resize(1400,1400,{fit:"inside",withoutEnlargement:true});
+    image = isPortrait ? image.resize(1200,1200,{fit:"inside",withoutEnlargement:true}) : image.resize(1400,1400,{fit:"inside",withoutEnlargement:true});
     let output = await image.webp({quality:78}).toBuffer();
     let quality=68;
     while (isPortrait && output.length>105000 && quality>=35) { output=await sharp(output).webp({quality}).toBuffer(); quality-=10; }

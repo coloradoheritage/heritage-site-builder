@@ -13,6 +13,18 @@ export interface CmsStaff {
   /** Include this person in the Administrative Staff directory. */
   administrative?: boolean;
   photo: string;
+  /**
+     * Horizontal photo position in percent; defaults to 50.
+     * @minimum 0
+     * @maximum 100
+     */
+  photoPositionX?: number;
+  /**
+     * Vertical photo position in percent; defaults to 0 to keep faces near the top visible.
+     * @minimum 0
+     * @maximum 100
+     */
+  photoPositionY?: number;
   alt: string;
   bio: string;
 }

@@ -9,7 +9,7 @@ import {
 } from "../lib/cms";
 import "./public-site.css";
 import "./cms.css";
-import { administrativeStaff, cleanFilenameCaptions, isAdministrative, isFilenameCaption, staffProfilePath } from "../../directory-helpers.mjs";
+import { administrativeStaff, cleanFilenameCaptions, isAdministrative, isFilenameCaption, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
 
 /** Documents keyed by their original (immutable) link; url holds the current editable destination. */
 export const DocumentsContext = createContext<CmsDocument[]>([]);
@@ -238,7 +238,7 @@ export function FacultyGrid({ staff }: { staff: CmsStaff[] }) {
   return <ul className="cms-faculty-grid" data-testid="faculty-grid">
     {staff.map((person) => <li key={person.slug}>
       <Link href={staffProfilePath(person)} className="cms-faculty-card" data-testid={`faculty-card-${person.slug}`}>
-        <span className="cms-faculty-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || person.name} loading="lazy" /> : <Initials name={person.name} />}</span>
+        <span className="cms-faculty-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || person.name} style={{ objectPosition: portraitPosition(person) }} loading="lazy" /> : <Initials name={person.name} />}</span>
         <strong>{person.name}</strong>
         <small>{fixText(person.role)}</small>
       </Link>
@@ -252,7 +252,7 @@ function StaffBio({ person }: { person: CmsStaff }) {
   return <article className="chess-content-page cms-bio">
     <nav className="cms-crumbs" aria-label="Breadcrumb"><Link href="/about">About</Link><span>/</span><Link href={directoryPath}>{administrative ? "Administrative Staff" : "Our Faculty"}</Link></nav>
     <div className="cms-bio-layout">
-      <div className="cms-faculty-photo cms-bio-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || person.name} /> : <Initials name={person.name} />}</div>
+      <div className="cms-faculty-photo cms-bio-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || person.name} style={{ objectPosition: portraitPosition(person) }} /> : <Initials name={person.name} />}</div>
       <div>
         <span className="chess-eyebrow">{fixText(person.role)}</span>
         <h1 className="cms-bio-name">{person.name}</h1>
