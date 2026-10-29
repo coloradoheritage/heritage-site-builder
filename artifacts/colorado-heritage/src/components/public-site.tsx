@@ -92,7 +92,7 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
   if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
   const heroImage = path === "/gallery" ? null : markdown.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/m);
   if (heroImage) markdown = markdown.replace(heroImage[0], "");
-  if (path === "/donate") return <DonationPage page={page} markdown={markdown} heroImage={heroImage} />;
+  if (path === "/donate") return <DonationPage page={page} markdown={markdown} />;
   const docUrl = useDocUrl();
   const resourceUrl = page.externalUrl || docUrl(page.documentPath);
   const isProgram = path.startsWith("/programs/");
@@ -135,32 +135,56 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
   </article>;
 }
 
-function DonationPage({ page, markdown, heroImage }: { page: CmsPage; markdown: string; heroImage: RegExpMatchArray | null }) {
+function DonationPage({ page, markdown }: { page: CmsPage; markdown: string }) {
   const normalized = markdown
     .replace(/^\s*(\d+)\.\s+(#{1,6})\s+/gm, "$2 $1. ")
     .replace(/^(#{1,6})\s+(\d+)\\?\.\s+/gm, "$1 $2. ")
     .replace(/^\s*\*\s+\*\s+\*\s*$/gm, "---");
   const sections = normalized.split(/^\s*---\s*$/m).map((part) => part.trim()).filter(Boolean);
   const intro = sections.shift() ?? "";
+  const [scholarship = "", general = "", jogathon = "", cashCheck = ""] = sections;
+  const headingLine = (section: string) => section.match(/^#{1,6}\s+.+$/m)?.[0] ?? "";
+  const removeHeading = (section: string) => section.replace(/^#{1,6}\s+.+\n?/m, "");
+  const cardDetails = (section: string) => removeHeading(section)
+    .replace(/\*\*Please note:\*\*[\s\S]*?(?=\n\n|$)/g, "")
+    .replace(/^\s*Donate to .+$/gim, "")
+    .trim();
+  const scholarshipItems = scholarship.split("\n").filter((line) => /^\s*-\s+/.test(line));
+  const scholarshipRemainder = cardDetails(scholarship).split("\n").filter((line) => !/^\s*-\s+/.test(line)).join("\n").trim();
+  const cardFeeNote = "Online card donations are subject to a card service fee. To ensure your full gift goes to CHESS, give by cash or check.";
+  const cashContent = removeHeading(cashCheck)
+    .replace("https://coloradoheritage.squarespace.com/contact-us", "/contact")
+    .replace(/\n{3,}/g, "\n\n");
   return <article className="cb-page cb-page-wide cb-donate-page" data-testid="page-donate">
     <header className="cb-page-head">
       <h1>{fixText(page.label)}</h1>
       {page.description && <p>{fixText(page.description)}</p>}
     </header>
-    <section className="cb-donate-intro" aria-label="Ways to support Colorado Heritage">
-      <div className="cb-donate-intro-copy">
-        <Eyebrow>Give to CHESS</Eyebrow>
-        <MarkdownContent markdown={intro} />
-      </div>
-      {heroImage && <figure className="cb-donate-photo">
-        <SiteImage src={heroImage[2]} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : "Colorado Heritage community gathering"} loading="lazy" />
-      </figure>}
-    </section>
-    <div className="cb-donation-grid">
-      {sections.map((section, i) => <section className={`cb-donation-card${i === 0 ? " is-featured" : ""}`} key={i}>
-        <MarkdownContent markdown={section} />
-      </section>)}
+    <div className="cb-donate-intro">
+      <Eyebrow>Give to CHESS</Eyebrow>
+      <MarkdownContent markdown={intro} />
     </div>
+    <section className="cb-donation-feature" aria-label="Scholarship fund">
+      <div className="cb-donation-heading"><MarkdownContent markdown={headingLine(scholarship)} /></div>
+      <p className="cb-donation-summary">Help cover class and student-support costs:</p>
+      {scholarshipItems.length > 0 && <MarkdownContent className="chess-prose cb-donation-amounts" markdown={scholarshipItems.join("\n")} />}
+      {scholarshipRemainder && <MarkdownContent className="chess-prose cb-donation-extra" markdown={scholarshipRemainder} />}
+    </section>
+    <div className="cb-donation-options">
+      <section className="cb-donation-option">
+        <MarkdownContent markdown={headingLine(general)} />
+        <p>Support general school operating expenses.</p>
+      </section>
+      <section className="cb-donation-option">
+        <MarkdownContent markdown={headingLine(jogathon)} />
+        <MarkdownContent markdown={cardDetails(jogathon)} />
+      </section>
+    </div>
+    <aside className="cb-donation-giving">
+      <h2>Other ways to give</h2>
+      <p>{cardFeeNote}</p>
+      {cashContent && <MarkdownContent markdown={cashContent} />}
+    </aside>
   </article>;
 }
 
