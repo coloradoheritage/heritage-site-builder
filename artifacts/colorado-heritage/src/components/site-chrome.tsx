@@ -218,6 +218,9 @@ export function PublicSiteFooter({ editing = false }: { editing?: boolean }) {
         </section>)}
       </div>
       <div className="cb-footer-tagline"><Tagline onDark /></div>
+      <div className="cb-footer-disclaimer" data-testid="footer-disclaimer">
+        Colorado Heritage Education School System admits students of any race, color, national and ethnic origin to all the rights, privileges, programs, and activities generally accorded or made available to students at Colorado Heritage. It does not discriminate on the basis of race, color, national and ethnic origin in administration of its educational policies, admissions policies, scholarship and loan programs, and athletic and other school-administered programs. Colorado Heritage Education School System is a 501 (c) (3) charitable organization.
+      </div>
       <div className="cb-footer-bottom">
         <span>© {new Date().getFullYear()} Colorado Heritage Education School System</span>
         <a href={PRAXI_PARENT_PORTAL} target="_blank" rel="noopener noreferrer">Praxi Parent Portal</a>

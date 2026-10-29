@@ -59,7 +59,7 @@
 .cms-focal-preview { width: 260px; max-width: 100%; margin: 12px 0; }
 .cms-faculty-card:hover .cms-faculty-photo img { transform: scale(1.04); }
 .cms-faculty-card strong { font-family: "Merriweather", serif; font-weight: 400; font-size: 17px; }
-.cms-faculty-card small { color: #8a7440; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.cms-faculty-card small { color: #4a5568; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
 .cms-faculty-card:hover strong { text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #b49a5a; }
 .cms-initials { position: absolute; inset: 0; display: grid; place-items: center; color: #ddca8f; font-family: "EB Garamond", serif; font-size: 44px; letter-spacing: .06em; }
 .cms-more { margin-top: 24px; border-top: 1px solid #ded8ca; padding-top: 16px; }
