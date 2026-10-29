@@ -140,7 +140,17 @@ export function PhotoUploader({ label, onUploaded, defaultAlt = "" }: { label: s
 export function HomeEditor({ draft, update }: { draft: SiteContentState; update: Update }) {
   const d = draft as SiteContentExt;
   const home = d.home;
-  const set = (patch: Partial<CmsPage>) => update((x) => ({ ...x, home: { ...(x.home ?? { path: "/", label: "", title: "", description: "", markdown: "", kind: "home" }), ...patch } }));
+  const set = (patch: Partial<CmsPage>) => update((x) => {
+    const current = x.home ?? { path: "/", label: "", title: "", description: "", markdown: "", kind: "home" };
+    const next = { ...current, ...patch };
+    if (typeof patch.markdown === "string" && next.blocks && typeof next.blocks === "object" && Array.isArray((next.blocks as { content?: unknown }).content)) {
+      const payload = next.blocks as { content: Array<{ type: string; props: Record<string, unknown> }>; [key: string]: unknown };
+      if (payload.content.some((block) => block.type === "LegacyMarkdown")) {
+        next.blocks = { ...payload, content: payload.content.map((block) => block.type === "LegacyMarkdown" ? { ...block, props: { ...block.props, markdown: patch.markdown } } : block) };
+      }
+    }
+    return { ...x, home: next };
+  });
   if (!home) return <div className="cms-empty-state"><h2>No home page yet</h2><p>Create the home page record to start editing.</p>
     <button type="button" className="cms-btn cms-btn-primary" onClick={() => set({ label: "A Christ-Centered Education, With Your Family at the Center", title: "Christian Homeschool Partnership in Greeley, CO | CHESS" })}><Plus size={14} /> Create home page</button></div>;
   return <div className="cms-split">
@@ -159,10 +169,8 @@ export function HomeEditor({ draft, update }: { draft: SiteContentState; update:
       </div>
       <PhotoUploader label="Replace hero photo" defaultAlt={d.homeImageAlt ?? ""} onUploaded={(url, alt) => update((x) => ({ ...x, homeImage: url, homeImageAlt: alt }))} />
       <div className="cms-field">
-        <span>Home page sections</span>
-        <small>Click in the page text and edit it directly. Use the buttons to add headings, lists, and links.</small>
-        <VisualBodyEditor markdown={home.markdown} onMarkdown={(markdown) => set({ markdown })} testId="input-home-markdown" ariaLabel="Home page sections" />
-        <PhotoUploader label="Add a photo to the end of these sections" onUploaded={(url, alt) => set({ markdown: `${home.markdown}\n\n![${alt}](${url})\n` })} />
+        <span>Homepage sections</span>
+        <small>Edit section text, add photos, and arrange content in the Visual editor tab.</small>
       </div>
     </div>
     <div className="cms-live-preview" onClickCapture={(e) => { if ((e.target as Element).closest("a")) e.preventDefault(); }} aria-label="Home page preview">

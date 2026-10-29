@@ -33,6 +33,10 @@ import type {
   InquiryInput,
   InquiryRecord,
   PhotoUploadRequest,
+  SiteContentDraftInput,
+  SiteContentEditorState,
+  SiteContentPublishInput,
+  SiteContentRestoreInput,
   SiteContentState,
   SubmitInquiry201,
   UploadSitePhoto200
@@ -474,7 +478,7 @@ export const getSaveSiteContentUrl = () => {
 }
 
 /**
- * @summary Save website content as an approved editor
+ * @summary Save website content as an approved editor draft
  */
 export const saveSiteContent = async (siteContentState: NonReadonly<SiteContentState>, options?: Parameters<typeof customFetch>[1]): Promise<SiteContentState> => {
 
@@ -540,7 +544,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SaveSiteContentMutationVariables = {data: BodyType<NonReadonly<SiteContentState>>}
 
     /**
- * @summary Save website content as an approved editor
+ * @summary Save website content as an approved editor draft
  */
 export const useSaveSiteContent = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveSiteContent>>, TError,SaveSiteContentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -551,6 +555,371 @@ export const useSaveSiteContent = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getSaveSiteContentMutationOptions(options), queryClient);
+    }
+
+export const getGetSiteContentEditorUrl = () => {
+
+
+
+
+  return `/api/site-content/editor`
+}
+
+/**
+ * @summary Get published content, current draft, and version history
+ */
+export const getSiteContentEditor = async ( options?: Parameters<typeof customFetch>[1]): Promise<SiteContentEditorState> => {
+
+  return customFetch<SiteContentEditorState>(getGetSiteContentEditorUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSiteContentEditorQueryKey = () => {
+    return [
+    `/api/site-content/editor`
+    ] as const;
+    }
+
+
+export const getGetSiteContentEditorQueryOptions = <TData = Awaited<ReturnType<typeof getSiteContentEditor>>, TError = ErrorType<void>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSiteContentEditor>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSiteContentEditorQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSiteContentEditor>>> = ({ signal }) => getSiteContentEditor({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSiteContentEditor>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSiteContentEditorQueryResult = NonNullable<Awaited<ReturnType<typeof getSiteContentEditor>>>
+export type GetSiteContentEditorQueryError = ErrorType<void>
+
+
+export function useGetSiteContentEditor<TData = Awaited<ReturnType<typeof getSiteContentEditor>>, TError = ErrorType<void>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSiteContentEditor>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSiteContentEditor>>,
+          TError,
+          Awaited<ReturnType<typeof getSiteContentEditor>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSiteContentEditor<TData = Awaited<ReturnType<typeof getSiteContentEditor>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSiteContentEditor>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSiteContentEditor>>,
+          TError,
+          Awaited<ReturnType<typeof getSiteContentEditor>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSiteContentEditor<TData = Awaited<ReturnType<typeof getSiteContentEditor>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSiteContentEditor>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get published content, current draft, and version history
+ */
+
+export function useGetSiteContentEditor<TData = Awaited<ReturnType<typeof getSiteContentEditor>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSiteContentEditor>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSiteContentEditorQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveSiteContentDraftUrl = () => {
+
+
+
+
+  return `/api/site-content/draft`
+}
+
+/**
+ * @summary Save an approved editor draft
+ */
+export const saveSiteContentDraft = async (siteContentDraftInput: NonReadonly<SiteContentDraftInput>, options?: Parameters<typeof customFetch>[1]): Promise<SiteContentEditorState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SiteContentEditorState>(getSaveSiteContentDraftUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(siteContentDraftInput)
+  }
+);}
+
+
+
+
+
+export const getSaveSiteContentDraftMutationKey = () => ['saveSiteContentDraft'] as const;
+
+export const getSaveSiteContentDraftMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveSiteContentDraft>>, TError,SaveSiteContentDraftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveSiteContentDraft>>, TError,SaveSiteContentDraftMutationVariables, TContext> => {
+
+const mutationKey = getSaveSiteContentDraftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveSiteContentDraft>>, SaveSiteContentDraftMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveSiteContentDraft(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveSiteContentDraftMutationResult = NonNullable<Awaited<ReturnType<typeof saveSiteContentDraft>>>
+    export type SaveSiteContentDraftMutationBody = BodyType<NonReadonly<SiteContentDraftInput>>
+    export type SaveSiteContentDraftMutationError = ErrorType<void>
+    export type SaveSiteContentDraftMutationVariables = {data: BodyType<NonReadonly<SiteContentDraftInput>>}
+
+    /**
+ * @summary Save an approved editor draft
+ */
+export const useSaveSiteContentDraft = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveSiteContentDraft>>, TError,SaveSiteContentDraftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof saveSiteContentDraft>>,
+        TError,
+        SaveSiteContentDraftMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveSiteContentDraftMutationOptions(options), queryClient);
+    }
+
+export const getPublishSiteContentUrl = () => {
+
+
+
+
+  return `/api/site-content/publish`
+}
+
+/**
+ * @summary Publish the saved website draft
+ */
+export const publishSiteContent = async (siteContentPublishInput: SiteContentPublishInput, options?: Parameters<typeof customFetch>[1]): Promise<SiteContentEditorState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SiteContentEditorState>(getPublishSiteContentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(siteContentPublishInput)
+  }
+);}
+
+
+
+
+
+export const getPublishSiteContentMutationKey = () => ['publishSiteContent'] as const;
+
+export const getPublishSiteContentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishSiteContent>>, TError,PublishSiteContentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishSiteContent>>, TError,PublishSiteContentMutationVariables, TContext> => {
+
+const mutationKey = getPublishSiteContentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishSiteContent>>, PublishSiteContentMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  publishSiteContent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishSiteContentMutationResult = NonNullable<Awaited<ReturnType<typeof publishSiteContent>>>
+    export type PublishSiteContentMutationBody = BodyType<SiteContentPublishInput>
+    export type PublishSiteContentMutationError = ErrorType<void>
+    export type PublishSiteContentMutationVariables = {data: BodyType<SiteContentPublishInput>}
+
+    /**
+ * @summary Publish the saved website draft
+ */
+export const usePublishSiteContent = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishSiteContent>>, TError,PublishSiteContentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof publishSiteContent>>,
+        TError,
+        PublishSiteContentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPublishSiteContentMutationOptions(options), queryClient);
+    }
+
+export const getRestoreSiteContentVersionUrl = () => {
+
+
+
+
+  return `/api/site-content/restore`
+}
+
+/**
+ * @summary Restore a published version into the draft
+ */
+export const restoreSiteContentVersion = async (siteContentRestoreInput: SiteContentRestoreInput, options?: Parameters<typeof customFetch>[1]): Promise<SiteContentEditorState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SiteContentEditorState>(getRestoreSiteContentVersionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(siteContentRestoreInput)
+  }
+);}
+
+
+
+
+
+export const getRestoreSiteContentVersionMutationKey = () => ['restoreSiteContentVersion'] as const;
+
+export const getRestoreSiteContentVersionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreSiteContentVersion>>, TError,RestoreSiteContentVersionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof restoreSiteContentVersion>>, TError,RestoreSiteContentVersionMutationVariables, TContext> => {
+
+const mutationKey = getRestoreSiteContentVersionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreSiteContentVersion>>, RestoreSiteContentVersionMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  restoreSiteContentVersion(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RestoreSiteContentVersionMutationResult = NonNullable<Awaited<ReturnType<typeof restoreSiteContentVersion>>>
+    export type RestoreSiteContentVersionMutationBody = BodyType<SiteContentRestoreInput>
+    export type RestoreSiteContentVersionMutationError = ErrorType<void>
+    export type RestoreSiteContentVersionMutationVariables = {data: BodyType<SiteContentRestoreInput>}
+
+    /**
+ * @summary Restore a published version into the draft
+ */
+export const useRestoreSiteContentVersion = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreSiteContentVersion>>, TError,RestoreSiteContentVersionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof restoreSiteContentVersion>>,
+        TError,
+        RestoreSiteContentVersionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRestoreSiteContentVersionMutationOptions(options), queryClient);
     }
 
 export const getUploadSitePhotoUrl = () => {

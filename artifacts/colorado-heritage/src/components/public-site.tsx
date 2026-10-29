@@ -16,6 +16,7 @@ import { FaqAccordion, HomePage, SectionBody } from "./home-page";
 import { CalendarPage, ContactPage, FaqPage, NewsIndex, PeoplePage, VisitPage } from "./special-pages";
 import { SiteImage } from "./site-image";
 import { MobileActionBar, PraxiBox, QuietVisit, VisitBand } from "./site-chrome";
+import { PuckBlockRenderer } from "./puck-render";
 
 export { DocumentsContext, resolveDocument, MarkdownContent } from "./markdown";
 export { FacultyGrid } from "./faculty-grid";
@@ -74,7 +75,7 @@ function OverviewPage({ page, content }: { page: CmsPage; content: SiteContentEx
   const program = page.path === "/programs";
   return <article className="cb-page cb-page-wide">
     <header className="cb-page-head"><Eyebrow>{program ? "Programs" : "CHESS"}</Eyebrow><h1>{fixText(page.label)}</h1><p>{fixText(page.description)}</p></header>
-    {body.trim() && <div className="cb-prose-wrap"><SectionBody body={body} /></div>}
+    {page.blocks ? <PuckBlockRenderer blocks={page.blocks} legacyMarkdown={body} /> : body.trim() && <div className="cb-prose-wrap"><SectionBody body={body} /></div>}
     {children.length > 0 && <ul className="cb-overview-links">{children.map((child, i) => <li key={child.path}>
       <Link href={child.path} className="cb-overview-link" data-testid={`overview-link-${testId(child.path)}`}>
         <span className="cb-overview-num">{String(i + 1).padStart(2, "0")}</span>
@@ -118,7 +119,9 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
     {heroImage && <figure className="cb-page-image"><SiteImage src={heroImage[2]} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : ""} loading="lazy" /></figure>}
     {page.kind === "protected" && !markdown.trim()
       ? <PraxiBox />
-      : markdown.trim()
+      : page.blocks
+        ? <PuckBlockRenderer blocks={page.blocks} legacyMarkdown={markdown} />
+        : markdown.trim()
         ? <div className="cb-prose-wrap">
           <SectionBody body={firstChunk} />
           {midCta && (isTuition
@@ -197,7 +200,7 @@ function StaffBio({ person }: { person: CmsStaff }) {
       <div>
         <Eyebrow>{fixText(person.role)}</Eyebrow>
         <h1 className="cms-bio-name">{person.name}</h1>
-        {person.bio ? <MarkdownContent markdown={person.bio} /> : <p className="cb-muted">A full biography is coming soon.</p>}
+        {person.blocks ? <PuckBlockRenderer blocks={person.blocks} legacyMarkdown={person.bio} /> : person.bio ? <MarkdownContent markdown={person.bio} /> : <p className="cb-muted">A full biography is coming soon.</p>}
         <p><MoreLink href={`/about/our-people#${administrative ? "administration" : "faculty"}`} testId="link-back-people">All of our people</MoreLink></p>
       </div>
     </div>
@@ -215,7 +218,7 @@ function ArchiveDetail({ entry, kind }: { entry: CmsArticle; kind: "news" | "eve
       <h1>{fixText(entry.title)}</h1>
       {entry.date && <p className="cb-muted">{formatDate(entry.date)}</p>}
     </header>
-    <MarkdownContent markdown={body} />
+    {entry.blocks ? <PuckBlockRenderer blocks={entry.blocks} legacyMarkdown={body} /> : <MarkdownContent markdown={body} />}
     {kind === "news"
       ? <QuietVisit text="Curious about CHESS? Schedule a visit with our office." />
       : <p><MoreLink href="/parents/calendar">All upcoming events</MoreLink></p>}

@@ -68,6 +68,8 @@ export interface PhotoUploadRequest {
   alt: string;
 }
 
+export type CmsPageBlocks = { [key: string]: unknown };
+
 export interface CmsPage {
   path: string;
   label: string;
@@ -75,11 +77,16 @@ export interface CmsPage {
   description: string;
   metaDescription?: string;
   markdown: string;
+  blocks?: CmsPageBlocks;
   kind: string;
   documentPath?: string;
   externalUrl?: string;
   archived?: boolean;
+  showInMenu?: boolean;
+  menuOrder?: number;
 }
+
+export type CmsStaffBlocks = { [key: string]: unknown };
 
 export interface CmsStaff {
   slug: string;
@@ -105,13 +112,17 @@ export interface CmsStaff {
   photoPositionY?: number;
   alt: string;
   bio: string;
+  blocks?: CmsStaffBlocks;
 }
+
+export type CmsArticleBlocks = { [key: string]: unknown };
 
 export interface CmsArticle {
   path: string;
   title: string;
   date: string;
   markdown: string;
+  blocks?: CmsArticleBlocks;
   archived: boolean;
 }
 
@@ -145,6 +156,38 @@ export interface SiteContentState {
   news: CmsArticle[];
   documents: CmsDocument[];
   navigation: CmsNavigation[];
+}
+
+export interface SiteContentVersion {
+  id: number;
+  revision: number;
+  createdAt: string;
+  content: SiteContentState;
+}
+
+export interface SiteContentEditorState {
+  published: SiteContentState;
+  draft: SiteContentState;
+  draftBaseRevision: number;
+  versions: SiteContentVersion[];
+}
+
+export interface SiteContentDraftInput {
+  content: SiteContentState;
+  /** @minimum 1 */
+  expectedDraftRevision: number;
+}
+
+export interface SiteContentPublishInput {
+  /** @minimum 1 */
+  expectedDraftRevision: number;
+}
+
+export interface SiteContentRestoreInput {
+  /** @minimum 1 */
+  versionId: number;
+  /** @minimum 1 */
+  expectedDraftRevision: number;
 }
 
 export interface HealthStatus {

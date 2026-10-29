@@ -79,6 +79,15 @@
     "@clerk/react": "^6.18.3",
     "@clerk/themes": "^2.4.57",
     "@heroicons/react": "^2.2.0",
+    "@puckeditor/core": "^0.23.0",
+    "@tiptap/extension-color": "^3.32.1",
+    "@tiptap/extension-link": "^3.32.1",
+    "@tiptap/extension-text-align": "^3.32.1",
+    "@tiptap/extension-text-style": "^3.32.1",
+    "@tiptap/extension-underline": "^3.32.1",
+    "@tiptap/markdown": "^3.32.1",
+    "@tiptap/react": "^3.32.1",
+    "@tiptap/starter-kit": "^3.32.1",
     "marked": "^18.1.2",
     "sanitize-html": "^2.18.1"
   }

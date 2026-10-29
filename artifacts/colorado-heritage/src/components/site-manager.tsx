@@ -1,24 +1,26 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getGetSiteContentQueryKey, useGetSiteContent, useSaveSiteContent,
-  type CmsArticle, type CmsDocument, type CmsNavigation, type CmsPage, type CmsStaff, type SiteContentState,
+  getGetSiteContentQueryKey, useGetSiteContentEditor, useSaveSiteContentDraft, usePublishSiteContent, useRestoreSiteContentVersion,
+  type CmsArticle, type CmsDocument, type CmsPage, type CmsStaff, type SiteContentState, type SiteContentEditorState,
 } from "@workspace/api-client-react";
-import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, Check, Plus, RotateCw, Save, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, Check, Plus, RotateCw, Save, Send, Trash2, History } from "lucide-react";
 import { DocumentsContext, MarkdownContent, resolveDocument } from "./markdown";
-import { VisualBodyEditor } from "./rich-markdown-editor";
 import { AnnouncementsEditor, FaqEditor, HomeEditor, InquiriesInbox, MediaHealthBanner, PhotoUploader } from "./site-editors";
 export { PhotoUploader } from "./site-editors";
 import { fixText, mediaUrl, publicAsset, publicPath } from "../lib/cms";
 import "./public-site.css";
 import "./cms.css";
 import { isAdministrative, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
+import { isValidMountainInput, toMountainInput } from "./puck-time";
 
-type Tab = "home" | "faqs" | "announcements" | "inquiries" | "pages" | "staff" | "events" | "news" | "documents" | "menu";
+type Tab = "visual" | "home" | "faqs" | "announcements" | "inquiries" | "pages" | "staff" | "events" | "news" | "documents" | "menu";
+const VisualPageEditor = lazy(() => import("./puck-content").then((module) => ({ default: module.VisualPageEditor })));
 const TABS: { id: Tab; label: string }[] = [
+  { id: "visual", label: "Visual editor" },
   { id: "home", label: "Home page" }, { id: "announcements", label: "Announcements" }, { id: "faqs", label: "FAQs" }, { id: "inquiries", label: "Inquiries" },
   { id: "pages", label: "Pages" }, { id: "staff", label: "Faculty & staff" }, { id: "events", label: "Events" },
-  { id: "news", label: "News & blog" }, { id: "documents", label: "Documents" }, { id: "menu", label: "Menu" },
+  { id: "news", label: "News & blog" }, { id: "documents", label: "Documents" }, { id: "menu", label: "Menu links" },
 ];
 const PAGE_KINDS = ["content", "overview", "contact", "donate", "gallery", "video", "protected", "archive", "sitemap"];
 
@@ -32,12 +34,40 @@ function move<T>(list: T[], from: number, to: number): T[] {
 const slugify = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const errStatus = (e: unknown) => (typeof e === "object" && e && "status" in e ? Number((e as { status: unknown }).status) : 0);
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Unknown error");
+function syncLegacyMarkdown<T extends { blocks?: unknown }>(record: T, markdown: string) {
+  if (!record.blocks || typeof record.blocks !== "object" || !Array.isArray((record.blocks as { content?: unknown }).content)) return {};
+  const payload = record.blocks as { content: Array<{ type: string; props: Record<string, unknown> }>; [key: string]: unknown };
+  if (!payload.content.some((block) => block.type === "LegacyMarkdown")) return {};
+  return { blocks: { ...payload, content: payload.content.map((block) => block.type === "LegacyMarkdown" ? { ...block, props: { ...block.props, markdown, originalMarkdown: markdown, richTextEdited: false } } : block) } };
+}
 
 function validate(d: SiteContentState): string[] {
   const extra: string[] = [];
   (d.faqs ?? []).forEach((f, i) => { if (!f.question.trim() || !f.answer.trim()) extra.push(`FAQ ${i + 1} needs both a question and an answer.`); });
   (d.announcements ?? []).forEach((a, i) => { if (!a.title.trim()) extra.push(`Announcement ${i + 1} needs a title.`); if (a.startsAt && a.expiresAt && a.expiresAt <= a.startsAt) extra.push(`Announcement "${a.title}" expires before it starts.`); });
   return [...extra, ...validateBase(d)];
+}
+function blockImageIssues(record: { blocks?: unknown }, label: string): string[] {
+  if (!record.blocks || typeof record.blocks !== "object" || !Array.isArray((record.blocks as { content?: unknown }).content)) return [];
+  return (record.blocks as { content: Array<{ type?: string; props?: Record<string, unknown> }> }).content.flatMap((block, index) => {
+    const imageValue = block.type === "StaffCard" ? block.props?.photo : block.props?.image ?? block.props?.imageUrl;
+    const image = imageValue && typeof imageValue === "object" ? imageValue as { url?: string; alt?: string } : null;
+    const photoUrl = image?.url ?? imageValue;
+    const photoAlt = image?.alt ?? block.props?.alt;
+    const hasPhoto = (block.type === "PhotoWithText" || block.type === "StaffCard") && Boolean(photoUrl);
+    const missingAlt = hasPhoto && !String(photoAlt ?? "").trim();
+    const timing = block.type === "Announcement" ? {
+      rawStart: String(block.props?.startsAt ?? ""),
+      rawEnd: String(block.props?.expiresAt ?? ""),
+    } : null;
+    const start = timing ? toMountainInput(timing.rawStart) : "";
+    const end = timing ? toMountainInput(timing.rawEnd) : "";
+    const timingIssue = timing && ((timing.rawStart && (!start || !isValidMountainInput(start))) || (timing.rawEnd && (!end || !isValidMountainInput(end))) || (start && end && end <= start));
+    return [
+      ...(missingAlt ? [`${label} image block ${index + 1} needs a photo description (alt text).`] : []),
+      ...(timingIssue ? [`${label} announcement block ${index + 1} needs valid Mountain Time dates, with the end after the start.`] : []),
+    ];
+  });
 }
 function validateBase(d: SiteContentState): string[] {
   const issues: string[] = [];
@@ -47,7 +77,9 @@ function validateBase(d: SiteContentState): string[] {
     if (!p.label.trim()) issues.push(`Page ${p.path} needs a menu label.`);
     if (seen.has(p.path)) issues.push(`Two pages share the address ${p.path}.`);
     seen.add(p.path);
+    issues.push(...blockImageIssues(p, `Page "${p.label || i + 1}"`));
   });
+  if (d.home) issues.push(...blockImageIssues(d.home, "Home page"));
   const slugs = new Set<string>();
   d.staff.forEach((s) => {
     if (!s.name.trim()) issues.push("A faculty profile is missing a name.");
@@ -55,9 +87,11 @@ function validateBase(d: SiteContentState): string[] {
     if (slugs.has(s.slug)) issues.push(`Two faculty profiles share the link name "${s.slug}".`);
     slugs.add(s.slug);
     if (s.photo && !s.alt.trim()) issues.push(`${s.name || "A faculty profile"} has a photo without a description (alt text).`);
+    issues.push(...blockImageIssues(s, `Staff profile "${s.name}"`));
   });
   (["events", "news"] as const).forEach((k) => d[k].forEach((a) => {
     if (!a.title.trim() || !a.path.startsWith("/")) issues.push(`${k === "news" ? "A news story" : "An event"} needs a title and an address starting with /.`);
+    issues.push(...blockImageIssues(a, `${k === "news" ? "Story" : "Event"} "${a.title}"`));
   }));
   d.documents.forEach((doc) => { if (!doc.title.trim() || !doc.url.trim()) issues.push("Each document needs a title and a link."); });
   if (d.navigation.length > 6) issues.push("The main menu shows six items. Remove or move extra items below the sixth.");
@@ -92,12 +126,12 @@ function ListRail<T>({ items, selected, onSelect, render, onMove, onAdd, addLabe
   </div>;
 }
 
-/** Click-to-edit preview showing the page as visitors see it. */
-function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDescription, onMarkdown, publicUrl, documents = [] }: {
+/** Preview and quick page basics; full page text lives in the visual editor. */
+function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDescription, publicUrl, documents = [] }: {
   eyebrow: string; title: string; description?: string; markdown: string; documents?: CmsDocument[];
-  onTitle: (v: string) => void; onDescription?: (v: string) => void; onMarkdown: (v: string) => void; publicUrl?: string;
+  onTitle: (v: string) => void; onDescription?: (v: string) => void; publicUrl?: string;
 }) {
-  const [active, setActive] = useState<"title" | "description" | "body" | null>(null);
+  const [active, setActive] = useState<"title" | "description" | null>(null);
   return <DocumentsContext.Provider value={documents}><div className="cms-preview chess-public">
     <div className="cms-preview-bar"><span>Click the words below to edit them. Use the buttons for simple formatting.</span>{publicUrl && <a href={publicUrl} target="_blank" rel="noreferrer">Open public page <ArrowUpRight size={12} /></a>}</div>
     <article className="chess-content-page cms-preview-page">
@@ -110,11 +144,10 @@ function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDes
           ? <textarea autoFocus className="cms-inline-desc" value={description} onChange={(e) => onDescription(e.target.value)} onBlur={() => setActive(null)} aria-label="Summary" rows={2} />
           : <p className="cms-editable" tabIndex={0} onClick={() => setActive("description")} onKeyDown={(e) => e.key === "Enter" && setActive("description")}>{fixText(description || "") || "Add a short summary"}</p>)}
       </header>
-      {active === "body"
-        ? <VisualBodyEditor markdown={markdown} onMarkdown={onMarkdown} onDone={() => setActive(null)} />
-        : <div className="cms-editable cms-editable-body" tabIndex={0} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) e.preventDefault(); setActive("body"); }} onKeyDown={(e) => e.key === "Enter" && setActive("body")} data-testid="preview-edit-body">
-          {markdown.trim() ? <MarkdownContent markdown={markdown} /> : <p className="cms-muted">No body text yet. Click to write.</p>}
-        </div>}
+      <div className="cms-editable-body cms-body-readonly">
+        {markdown.trim() ? <MarkdownContent markdown={markdown} /> : <p className="cms-muted">No body text yet.</p>}
+        <p className="cms-preview-help">Edit page text in the Visual editor tab with the formatting toolbar.</p>
+      </div>
     </article>
   </div></DocumentsContext.Provider>;
 }
@@ -125,7 +158,48 @@ function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
   const [sel, setSel] = useState(0);
   const [filter, setFilter] = useState("");
   const page = draft.pages[sel];
-  const set = (patch: Partial<CmsPage>) => update((d) => ({ ...d, pages: d.pages.map((p, i) => (i === sel ? { ...p, ...patch } : p)) }));
+  const set = (patch: Partial<CmsPage>) => update((d) => {
+    const current = d.pages[sel];
+    if (!current) return d;
+    const nextPath = patch.path ?? current.path;
+    const pages = d.pages.map((p, i) => i === sel ? { ...p, ...patch, ...(typeof patch.markdown === "string" ? syncLegacyMarkdown(p, patch.markdown) : {}) } : p);
+    const redirects = { ...(d.redirects ?? {}) };
+    if (current.path !== nextPath) redirects[current.path] = nextPath;
+    let navigation = d.navigation.map((item) => ({
+      ...item,
+      children: item.children.map((child) => child === current.path ? nextPath : child),
+    }));
+    if (patch.showInMenu === false) navigation = navigation.map((item) => ({ ...item, children: item.children.filter((child) => child !== nextPath) }));
+    if (typeof patch.menuOrder === "number") {
+      const orderOf = (path: string) => pages.find((p) => p.path === path)?.menuOrder ?? Number.MAX_SAFE_INTEGER;
+      navigation = navigation.map((item) => {
+        const orderedPages = item.children.filter((child) => pages.some((p) => p.path === child)).sort((a, b) => orderOf(a) - orderOf(b));
+        let pageIndex = 0;
+        return { ...item, children: item.children.map((child) => pages.some((p) => p.path === child) ? orderedPages[pageIndex++] : child) };
+      });
+    }
+    return { ...d, pages, redirects, navigation };
+  });
+  const menuGroup = page ? draft.navigation.find((group) => group.children.includes(page.path))?.path ?? "" : "";
+  const autoRenameFromLabel = () => {
+    if (!page?.label.trim()) return;
+    const parent = page.path.slice(0, page.path.lastIndexOf("/") + 1);
+    const nextPath = `${parent}${slugify(page.label)}`.replace(/\/$/, "") || page.path;
+    if (nextPath !== page.path) set({ path: nextPath });
+  };
+  const setMenuGroup = (groupPath: string) => {
+    if (!page) return;
+    update((d) => {
+      const pages = d.pages.map((p, i) => i === sel ? { ...p, showInMenu: Boolean(groupPath), menuOrder: groupPath ? p.menuOrder ?? 0 : p.menuOrder } : p);
+      const navigation = d.navigation.map((group) => ({
+        ...group,
+        children: group.path === groupPath
+          ? [...group.children.filter((child) => child !== page.path), page.path]
+          : group.children.filter((child) => child !== page.path),
+      }));
+      return { ...d, pages, navigation };
+    });
+  };
   const add = () => {
     const base: CmsPage = { path: `/new-page-${draft.pages.length + 1}`, label: "New page", title: "New page | Colorado Heritage", description: "", markdown: "", kind: "content" };
     update((d) => ({ ...d, pages: [...d.pages, base] }));
@@ -145,21 +219,26 @@ function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
     </div>
     {page ? <div className="cms-editor">
       <EditablePreview documents={draft.documents} eyebrow={page.path} title={page.label} description={page.description} markdown={page.markdown}
-        onTitle={(label) => set({ label })} onDescription={(description) => set({ description })} onMarkdown={(markdown) => set({ markdown })}
+        onTitle={(label) => set({ label })} onDescription={(description) => set({ description })}
         publicUrl={publicPath(page.path)} />
       {page.documentPath && <p className="cms-muted">Attached document: {page.documentPath} currently opens {resolveDocument(page.documentPath, draft.documents)}. Change the destination on the Documents tab.</p>}
       <details className="cms-settings" open={false}>
         <summary>Page settings: address, browser title, kind, attachments</summary>
         <div className="cms-grid2">
-          <Field label="Web address" hint="Changing this breaks old links."><input value={page.path} onChange={(e) => set({ path: e.target.value })} /></Field>
-          <Field label="Menu label"><input value={page.label} onChange={(e) => set({ label: e.target.value })} /></Field>
+          <Field label="Web address" hint="The old address redirects to the new one when renamed."><input value={page.path} onChange={(e) => set({ path: e.target.value.startsWith("/") ? e.target.value : `/${e.target.value}` })} /></Field>
+          <Field label="Page name" hint="The web address updates after you finish editing."><input value={page.label} onChange={(e) => set({ label: e.target.value })} onBlur={autoRenameFromLabel} /></Field>
           <Field label="Browser and search title"><input value={page.title} onChange={(e) => set({ title: e.target.value })} /></Field>
+          <Field label="Search description" hint="A short description for search results."><textarea rows={2} maxLength={155} value={page.metaDescription ?? ""} onChange={(e) => set({ metaDescription: e.target.value || undefined })} /></Field>
           <Field label="Page type"><select value={page.kind} onChange={(e) => set({ kind: e.target.value })}>{[...new Set([...PAGE_KINDS, page.kind])].map((k) => <option key={k}>{k}</option>)}</select></Field>
           <Field label="Attached document (PDF path)" hint="For example /documents/school-calendar.pdf"><input value={page.documentPath ?? ""} onChange={(e) => set({ documentPath: e.target.value || undefined })} /></Field>
           <Field label="External link" hint="Opens another website from this page."><input value={page.externalUrl ?? ""} onChange={(e) => set({ externalUrl: e.target.value || undefined })} /></Field>
+           <Field label="Menu order"><input type="number" min="0" step="1" value={page.menuOrder ?? sel} onChange={(e) => set({ menuOrder: Number(e.target.value) })} /></Field>
+           <Field label="Fixed top-level group" hint="Pages appear beneath an existing group. New top-level groups cannot be created.">
+             <select value={menuGroup} onChange={(e) => setMenuGroup(e.target.value)}><option value="">Not in menu</option>{draft.navigation.slice(0, 6).map((group) => <option key={group.path} value={group.path}>{group.label}</option>)}</select>
+           </Field>
         </div>
+         <label className="cms-check"><input type="checkbox" checked={page.showInMenu !== false && Boolean(menuGroup)} onChange={(e) => e.target.checked ? setMenuGroup(menuGroup || draft.navigation[0]?.path || "") : setMenuGroup("")} /> Show this page under its fixed menu group</label>
         <Field label="Search summary (description)"><textarea rows={2} value={page.description} onChange={(e) => set({ description: e.target.value })} /></Field>
-        <PhotoUploader label="Add a photo to this page" onUploaded={(url, alt) => set({ markdown: `${page.markdown}\n\n![${alt}](${url})\n` })} />
         <button type="button" className="cms-btn cms-btn-danger" onClick={remove}><Trash2 size={14} /> Delete this page</button>
       </details>
     </div> : <div className="cms-empty"><strong>No pages yet.</strong><p>Add one to get started.</p></div>}
@@ -169,7 +248,7 @@ function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
 function StaffEditor({ draft, update }: { draft: SiteContentState; update: (fn: (d: SiteContentState) => SiteContentState) => void }) {
   const [sel, setSel] = useState(0);
   const person = draft.staff[sel];
-  const set = (patch: Partial<CmsStaff>) => update((d) => ({ ...d, staff: d.staff.map((s, i) => (i === sel ? { ...s, ...patch } : s)) }));
+  const set = (patch: Partial<CmsStaff>) => update((d) => ({ ...d, staff: d.staff.map((s, i) => (i === sel ? { ...s, ...patch, ...(typeof patch.bio === "string" ? syncLegacyMarkdown(s, patch.bio) : {}) } : s)) }));
   const add = () => { update((d) => ({ ...d, staff: [...d.staff, { slug: `new-teacher-${d.staff.length + 1}`, name: "New teacher", role: "Teacher", photo: "", alt: "", bio: "" }] })); setSel(draft.staff.length); };
   const remove = () => {
     if (!person || !window.confirm(`Remove ${person.name} from the faculty and staff directories?`)) return;
@@ -202,7 +281,7 @@ function StaffEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
         <button type="button" className="cms-btn" onClick={() => set({ photoPositionX: 50, photoPositionY: 0 })}>Reset to top-centered</button>
       </fieldset>}
       {person.photo && <button type="button" className="cms-btn" onClick={() => set({ photo: "", alt: "" })}>Remove photo</button>}
-      <EditablePreview documents={draft.documents} eyebrow={person.role} title={person.name} markdown={person.bio} onTitle={(name) => set({ name })} onMarkdown={(bio) => set({ bio })} publicUrl={publicPath(staffProfilePath(person))} />
+      <EditablePreview documents={draft.documents} eyebrow={person.role} title={person.name} markdown={person.bio} onTitle={(name) => set({ name })} publicUrl={publicPath(staffProfilePath(person))} />
       <button type="button" className="cms-btn cms-btn-danger" onClick={remove}><Trash2 size={14} /> Remove this person</button>
     </div> : <div className="cms-empty"><strong>No faculty profiles yet.</strong><p>Add your first teacher.</p></div>}
   </div>;
@@ -213,7 +292,7 @@ function ArticlesEditor({ kind, draft, update }: { kind: "news" | "events"; draf
   const list = draft[kind];
   const item = list[sel];
   const setList = (fn: (l: CmsArticle[]) => CmsArticle[]) => update((d) => ({ ...d, [kind]: fn(d[kind]) }));
-  const set = (patch: Partial<CmsArticle>) => setList((l) => l.map((a, i) => (i === sel ? { ...a, ...patch } : a)));
+  const set = (patch: Partial<CmsArticle>) => setList((l) => l.map((a, i) => (i === sel ? { ...a, ...patch, ...(typeof patch.markdown === "string" ? syncLegacyMarkdown(a, patch.markdown) : {}) } : a)));
   const add = () => {
     const today = new Date().toISOString().slice(0, 10);
     const [y, m, dd] = today.split("-");
@@ -231,8 +310,7 @@ function ArticlesEditor({ kind, draft, update }: { kind: "news" | "events"; draf
         <Field label="Web address"><input value={item.path} onChange={(e) => set({ path: e.target.value })} /></Field>
       </div>
       <label className="cms-check"><input type="checkbox" checked={item.archived} onChange={(e) => set({ archived: e.target.checked })} /> Archived: hide from public listings (still editable here, and its address still works)</label>
-      <EditablePreview documents={draft.documents} eyebrow={kind === "news" ? "News & Blog" : "Calendar & Events"} title={item.title} markdown={item.markdown} onTitle={(title) => set({ title })} onMarkdown={(markdown) => set({ markdown })} publicUrl={publicPath(item.path)} />
-      <PhotoUploader label="Add a photo" onUploaded={(url, alt) => set({ markdown: `${item.markdown}\n\n![${alt}](${url})\n` })} />
+      <EditablePreview documents={draft.documents} eyebrow={kind === "news" ? "News & Blog" : "Calendar & Events"} title={item.title} markdown={item.markdown} onTitle={(title) => set({ title })} publicUrl={publicPath(item.path)} />
       <button type="button" className="cms-btn cms-btn-danger" onClick={remove}><Trash2 size={14} /> Delete</button>
     </div> : <div className="cms-empty"><strong>Nothing here yet.</strong></div>}
   </div>;
@@ -258,62 +336,84 @@ function DocumentsEditor({ draft, update }: { draft: SiteContentState; update: (
 }
 
 function MenuEditor({ draft, update }: { draft: SiteContentState; update: (fn: (d: SiteContentState) => SiteContentState) => void }) {
-  const setNav = (fn: (l: CmsNavigation[]) => CmsNavigation[]) => update((d) => ({ ...d, navigation: fn(d.navigation) }));
-  const setItem = (i: number, patch: Partial<CmsNavigation>) => setNav((l) => l.map((n, j) => (j === i ? { ...n, ...patch } : n)));
   const labels = new Map(draft.pages.map((p) => [p.path, p.label]));
+  const updateGroup = (groupIndex: number, children: string[]) => update((d) => {
+    const group = d.navigation[groupIndex];
+    if (!group) return d;
+    const order = new Map(children.map((path, index) => [path, index]));
+    return {
+      ...d,
+      navigation: d.navigation.map((item, index) => index === groupIndex ? { ...item, children } : item),
+      pages: d.pages.map((page) => order.has(page.path) ? { ...page, menuOrder: order.get(page.path), showInMenu: true } : page),
+    };
+  });
+  const setVisible = (groupIndex: number, path: string, visible: boolean) => update((d) => ({
+    ...d,
+    pages: d.pages.map((page) => page.path === path ? { ...page, showInMenu: visible } : page),
+    navigation: d.navigation.map((group, index) => {
+      if (index === groupIndex && visible && !group.children.includes(path)) return { ...group, children: [...group.children, path] };
+      return { ...group, children: visible ? group.children : group.children.filter((child) => child !== path) };
+    }),
+  }));
+  const addPage = (groupIndex: number, path: string) => {
+    if (!path) return;
+    update((d) => ({
+      ...d,
+      pages: d.pages.map((page) => page.path === path ? { ...page, showInMenu: true, menuOrder: d.navigation[groupIndex]?.children.length ?? 0 } : page),
+      navigation: d.navigation.map((group, index) => ({ ...group, children: index === groupIndex ? [...group.children.filter((child) => child !== path), path] : group.children.filter((child) => child !== path) })),
+    }));
+  };
   return <div className="cms-menu">
-    <p className="cms-muted">The first six items appear in the main menu, followed by the Praxi Parent Portal and Donate buttons. Every page also stays listed on the sitemap.</p>
-    {draft.navigation.map((item, i) => <section className={`cms-menu-item ${i >= 6 ? "is-overflow" : ""}`} key={i}>
-      <header>
-        <span className="cms-menu-num">{i + 1}</span>
-        <Field label="Label"><input value={item.label} onChange={(e) => setItem(i, { label: e.target.value })} /></Field>
-        <Field label="Links to"><select value={item.path} onChange={(e) => setItem(i, { path: e.target.value })}>
-          {[...new Set([item.path, "/news", "/events", ...draft.pages.map((p) => p.path)])].map((p) => <option key={p} value={p}>{labels.get(p) ?? p} ({p})</option>)}
-        </select></Field>
-        <span className="cms-row-actions">
-          <button type="button" className="cms-btn" aria-label="Move up" onClick={() => setNav((l) => move(l, i, i - 1))}><ArrowUp size={13} /></button>
-          <button type="button" className="cms-btn" aria-label="Move down" onClick={() => setNav((l) => move(l, i, i + 1))}><ArrowDown size={13} /></button>
-          <button type="button" className="cms-btn cms-btn-danger" aria-label="Remove menu item" onClick={() => window.confirm(`Remove "${item.label}" from the menu? Its pages are not deleted.`) && setNav((l) => l.filter((_, j) => j !== i))}><Trash2 size={13} /></button>
-        </span>
-      </header>
-      {i >= 6 && <p className="cms-status cms-status-error">Not shown: only the first six items appear.</p>}
+    <p className="cms-muted">Manage page links inside the six existing top-level groups. Group names, destinations, and the rest of the school header stay locked. No seventh group can be added.</p>
+    {draft.navigation.slice(0, 6).map((item, i) => <section className="cms-menu-item" key={item.path}>
+      <header><span className="cms-menu-num">{i + 1}</span><div><h3>{item.label}</h3><small>{item.path} · fixed top-level group</small></div></header>
       <ol className="cms-menu-children">
-        {item.children.map((child, c) => <li key={child}>
-          <span>{fixText(labels.get(child) ?? child)} <small>{child}</small></span>
-          <span className="cms-row-actions">
-            <button type="button" aria-label="Move up" onClick={() => setItem(i, { children: move(item.children, c, c - 1) })}><ArrowUp size={12} /></button>
-            <button type="button" aria-label="Move down" onClick={() => setItem(i, { children: move(item.children, c, c + 1) })}><ArrowDown size={12} /></button>
-            <button type="button" aria-label="Remove" onClick={() => setItem(i, { children: item.children.filter((x) => x !== child) })}><Trash2 size={12} /></button>
-          </span>
-        </li>)}
+        {item.children.map((child, c) => {
+          const page = draft.pages.find((p) => p.path === child);
+          return <li key={child}>
+            <label className="cms-check"><input type="checkbox" checked={page ? page.showInMenu !== false : true} disabled={!page} onChange={(e) => setVisible(i, child, e.target.checked)} />{fixText(labels.get(child) ?? child)} <small>{child}{!page ? " · fixed link" : ""}</small></label>
+            <span className="cms-row-actions">
+              <button type="button" className="cms-btn" aria-label={`Move ${labels.get(child) ?? child} up`} disabled={c === 0} onClick={() => updateGroup(i, move(item.children, c, c - 1))}><ArrowUp size={12} /></button>
+              <button type="button" className="cms-btn" aria-label={`Move ${labels.get(child) ?? child} down`} disabled={c === item.children.length - 1} onClick={() => updateGroup(i, move(item.children, c, c + 1))}><ArrowDown size={12} /></button>
+            </span>
+          </li>;
+        })}
       </ol>
-      <select className="cms-add-child" value="" onChange={(e) => e.target.value && setItem(i, { children: [...item.children, e.target.value] })} aria-label={`Add a page under ${item.label}`}>
-        <option value="">Add a page to this dropdown…</option>
-        {[...new Set(["/events", "/news", ...draft.pages.map((p) => p.path)])].filter((p) => !item.children.includes(p)).map((p) => <option key={p} value={p}>{labels.get(p) ?? p} ({p})</option>)}
+      <select className="cms-add-child" value="" onChange={(e) => addPage(i, e.target.value)} aria-label={`Add a page under ${item.label}`}>
+        <option value="">Add a page to this group…</option>
+        {draft.pages.filter((page) => !draft.navigation.some((group) => group.children.includes(page.path))).map((page) => <option key={page.path} value={page.path}>{page.label} ({page.path})</option>)}
       </select>
     </section>)}
-    <button type="button" className="cms-btn cms-btn-add" onClick={() => setNav((l) => [...l, { label: "New item", path: "/", children: [] }])}><Plus size={14} /> Add menu item</button>
   </div>;
 }
 
 /* ---------------- Shell ---------------- */
 
 export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () => void; onSignOut?: () => void; publicSiteUrl: string }) {
-  const query = useGetSiteContent();
-  const save = useSaveSiteContent();
+  const query = useGetSiteContentEditor();
+  const save = useSaveSiteContentDraft();
+  const publish = usePublishSiteContent();
+  const restore = useRestoreSiteContentVersion();
   const qc = useQueryClient();
   const [draft, setDraft] = useState<SiteContentState | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [tab, setTab] = useState<Tab>(() => { const t = new URLSearchParams(window.location.search).get("tab"); return (TABS.some((x) => x.id === t) ? t : "home") as Tab; });
+  const [draftRevision, setDraftRevision] = useState(1);
+  const [tab, setTab] = useState<Tab>(() => { const t = new URLSearchParams(window.location.search).get("tab"); return (TABS.some((x) => x.id === t) ? t : "visual") as Tab; });
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error" | "conflict"; text: string } | null>(null);
   const initialized = useRef(false);
+  const currentDraft = useRef<SiteContentState | null>(null);
+  const revisionRef = useRef(1);
+  const changeCount = useRef(0);
 
   useEffect(() => {
-    if (query.data && !initialized.current) { initialized.current = true; setDraft(query.data); }
+    if (query.data && !initialized.current) {
+      initialized.current = true;
+      currentDraft.current = query.data.draft;
+      revisionRef.current = query.data.draft.revision || query.data.draftBaseRevision || 1;
+      setDraftRevision(revisionRef.current);
+      setDraft(query.data.draft);
+    }
   }, [query.data]);
-  useEffect(() => {
-    setDirty(Boolean(draft && query.data && JSON.stringify(draft) !== JSON.stringify(query.data)));
-  }, [draft, query.data]);
   useEffect(() => {
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
@@ -331,49 +431,125 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
   }, [dirty]);
 
   const issues = useMemo(() => (draft ? validate(draft) : []), [draft]);
-  const update = (fn: (d: SiteContentState) => SiteContentState) => { setDraft((d) => (d ? fn(d) : d)); setDirty(true); setFeedback(null); };
+  const update = (fn: (d: SiteContentState) => SiteContentState) => {
+    if (!currentDraft.current) return;
+    const next = fn(currentDraft.current);
+    currentDraft.current = next;
+    changeCount.current += 1;
+    setDraft(next);
+    setDirty(true);
+    setFeedback(null);
+  };
 
-  const doSave = async () => {
-    if (!draft) return;
-    if (issues.length) { setFeedback({ kind: "error", text: "Fix the items listed below before saving." }); return; }
+  const saveDraftNow = async (content: SiteContentState, explicit = false): Promise<boolean> => {
+    if (issues.length && explicit) { setFeedback({ kind: "error", text: "Fix the items listed below before saving." }); return false; }
+    if (issues.length) return false;
+    const changesAtRequest = changeCount.current;
+    if (!draft) return false;
     try {
-      const result = await save.mutateAsync({ data: draft });
-      setDraft(result);
-      qc.setQueryData(getGetSiteContentQueryKey(), result);
-      setDirty(false);
-      setFeedback({ kind: "ok", text: `Saved at ${new Date().toLocaleTimeString()} (revision ${result.revision}). Visitors now see this content.` });
+      const result = await save.mutateAsync({ data: { content, expectedDraftRevision: revisionRef.current } });
+      const response = result as SiteContentEditorState;
+      revisionRef.current = response.draft.revision || revisionRef.current + 1;
+      setDraftRevision(revisionRef.current);
+      if (changesAtRequest === changeCount.current) {
+        currentDraft.current = response.draft;
+        setDraft(response.draft);
+        setDirty(false);
+      }
+      qc.setQueryData(query.queryKey, response);
+      setFeedback({ kind: "ok", text: explicit ? "Draft saved. Visitors still see the published version." : "Draft saved automatically. Only staff can see these changes." });
+      return true;
     } catch (e) {
       const s = errStatus(e);
-      if (s === 409) setFeedback({ kind: "conflict", text: "Another editor saved changes while you were working. Reload to get their version, then redo your edits. Your unsaved changes will be lost on reload." });
+      if (s === 409) setFeedback({ kind: "conflict", text: "Another editor changed the draft. Reload the latest version before saving again." });
       else if (s === 401 || s === 403) setFeedback({ kind: "error", text: "Not saved: your session expired or your account is not approved. Sign in again." });
       else setFeedback({ kind: "error", text: `Not saved: ${errMsg(e)}. Your edits are still here; try again.` });
+      return false;
+    }
+  };
+  useEffect(() => {
+    if (!dirty || !draft || save.isPending) return;
+    const snapshot = draft;
+    const timer = window.setTimeout(() => { void saveDraftNow(snapshot); }, 900);
+    return () => window.clearTimeout(timer);
+  }, [draft, dirty, save.isPending]);
+
+  const doSave = () => { if (draft) void saveDraftNow(draft, true); };
+  const doPublish = async () => {
+    if (!draft) return;
+    if (issues.length) { setFeedback({ kind: "error", text: "Fix the items listed below before publishing." }); return; }
+    try {
+      const publishChangeCount = changeCount.current;
+      if (dirty && !await saveDraftNow(draft, true)) return;
+      if (changeCount.current !== publishChangeCount) {
+        setFeedback({ kind: "error", text: "New edits were made while saving. Save the latest draft before publishing." });
+        return;
+      }
+      const result = await publish.mutateAsync({ data: { expectedDraftRevision: revisionRef.current } });
+      const response = result as SiteContentEditorState;
+      currentDraft.current = response.draft;
+      revisionRef.current = response.draft.revision || revisionRef.current;
+      setDraftRevision(revisionRef.current);
+      setDraft(response.draft);
+      setDirty(false);
+      qc.setQueryData(query.queryKey, response);
+      qc.setQueryData(getGetSiteContentQueryKey(), response.published);
+      setFeedback({ kind: "ok", text: "Published. Families can now see the updated website." });
+    } catch (e) {
+      const s = errStatus(e);
+      setFeedback(s === 409
+        ? { kind: "conflict", text: "The draft changed before publishing. Reload the latest version and try again." }
+        : { kind: "error", text: `Could not publish: ${errMsg(e)}` });
+    }
+  };
+  const restoreVersion = async (versionId: number) => {
+    if (!window.confirm("Restore this version into the current draft? Your current draft will be replaced, but the published website will not change.")) return;
+    try {
+      const result = await restore.mutateAsync({ data: { versionId, expectedDraftRevision: revisionRef.current } });
+      const response = result as SiteContentEditorState;
+      currentDraft.current = response.draft;
+      revisionRef.current = response.draft.revision || revisionRef.current + 1;
+      setDraftRevision(revisionRef.current);
+      setDraft(response.draft);
+      setDirty(false);
+      qc.setQueryData(query.queryKey, response);
+      setFeedback({ kind: "ok", text: "Version restored to the private draft. Publish when you are ready." });
+    } catch (e) {
+      setFeedback({ kind: errStatus(e) === 409 ? "conflict" : "error", text: `Could not restore this version: ${errMsg(e)}` });
     }
   };
   const reload = async () => {
     if (dirty && feedback?.kind !== "conflict" && !window.confirm("Discard your unsaved changes and load the latest saved content?")) return;
     const res = await query.refetch();
-    if (res.data) { setDraft(res.data); setDirty(false); setFeedback({ kind: "ok", text: `Loaded the latest saved content (revision ${res.data.revision}).` }); }
+    if (res.data) {
+      currentDraft.current = res.data.draft;
+      revisionRef.current = res.data.draft.revision || res.data.draftBaseRevision || 1;
+      setDraftRevision(revisionRef.current);
+      setDraft(res.data.draft); setDirty(false);
+      setFeedback({ kind: "ok", text: `Loaded the latest private draft (revision ${revisionRef.current}).` });
+    }
     else setFeedback({ kind: "error", text: "Could not reload content. Check your connection." });
   };
 
   if (query.isPending || (!draft && !query.isError)) return <div className="admin-message"><p>Loading website content…</p></div>;
   if (query.isError || !draft) return <div className="admin-message" role="alert"><h1>Could not load the website content</h1><p>Nothing can be edited until the content loads.</p><button type="button" className="button" onClick={() => query.refetch()}>Try again</button></div>;
 
-  const counts: Record<Tab, number | string> = { home: "", faqs: draft.faqs?.length ?? 0, announcements: draft.announcements?.length ?? 0, inquiries: "", pages: draft.pages.length, staff: draft.staff.length, events: draft.events.length, news: draft.news.length, documents: draft.documents.length, menu: draft.navigation.length };
+  const counts: Record<Tab, number | string> = { visual: "", home: "", faqs: draft.faqs?.length ?? 0, announcements: draft.announcements?.length ?? 0, inquiries: "", pages: draft.pages.length, staff: draft.staff.length, events: draft.events.length, news: draft.news.length, documents: draft.documents.length, menu: "" };
   return <div className="cms-shell">
     <header className="cms-top">
       <div className="cms-top-id">
         <button type="button" className="cms-btn cms-btn-ghost" onClick={() => { if (!dirty || window.confirm("Leave without saving your changes?")) onBack(); }}><ArrowLeft size={14} /> Editor home</button>
-        <div><strong>Full-site manager</strong><small>Revision {draft.revision}{dirty ? " · unsaved changes" : " · all changes saved"}</small></div>
+        <div><strong>Colorado Heritage · Site editor</strong><small>Draft revision {draftRevision}{dirty ? " · changes pending" : " · draft saved"}</small></div>
       </div>
       <div className="cms-top-actions">
         <button type="button" className="cms-btn cms-btn-ghost" onClick={reload}><RotateCw size={14} /> Reload</button>
         <a className="cms-btn cms-btn-ghost" href={publicSiteUrl} target="_blank" rel="noreferrer">Public site <ArrowUpRight size={13} /></a>
-        <button type="button" className="cms-btn cms-btn-primary" onClick={doSave} disabled={save.isPending || !dirty} data-testid="button-save-site-content"><Save size={14} /> {save.isPending ? "Saving…" : "Save content"}</button>
+        <button type="button" className="cms-btn cms-btn-ghost" onClick={doSave} disabled={save.isPending || !dirty} data-testid="button-save-site-content"><Save size={14} /> {save.isPending ? "Saving…" : "Save draft"}</button>
+        <button type="button" className="cms-btn cms-btn-primary" onClick={() => void doPublish()} disabled={publish.isPending || save.isPending} data-testid="button-publish-site"><Send size={14} /> {publish.isPending ? "Publishing…" : "Publish"}</button>
         {onSignOut && <button type="button" className="cms-btn cms-btn-ghost" onClick={() => { if (!dirty || window.confirm("Sign out without saving your changes?")) onSignOut(); }}>Sign out</button>}
       </div>
     </header>
-    <p className="cms-explainer">Saving updates the words, photos, and menus visitors see right away. It does not publish or change the website's code or design.</p>
+    <p className="cms-explainer">Edits are saved privately as a draft. Families see changes only after you choose Publish. The school header, navigation, colors, fonts, and footer remain part of the site design.</p>
     {feedback && <div className={`cms-feedback cms-feedback-${feedback.kind}`} role={feedback.kind === "ok" ? "status" : "alert"}>
       {feedback.kind === "ok" ? <Check size={16} /> : <AlertTriangle size={16} />}<span>{feedback.text}</span>
       {feedback.kind === "conflict" && <button type="button" className="cms-btn" onClick={reload}>Reload latest</button>}
@@ -384,6 +560,10 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
       {TABS.map((t) => <button type="button" key={t.id} className={tab === t.id ? "is-active" : ""} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}>{t.label}<span>{counts[t.id]}</span></button>)}
     </nav>
     <main className="cms-body">
+      {tab === "visual" && <Suspense fallback={<div className="cms-puck-loading" aria-busy="true"><span /><span /><span /></div>}>
+        <VisualPageEditor draft={draft} update={update} renderPhotoUploader={(onUploaded) =>
+          <PhotoUploader label="Add an accessible photo block" onUploaded={onUploaded} defaultAlt="" />} />
+      </Suspense>}
       {tab === "home" && <HomeEditor draft={draft} update={update} />}
       {tab === "faqs" && <FaqEditor draft={draft} update={update} />}
       {tab === "announcements" && <AnnouncementsEditor draft={draft} update={update} />}
@@ -394,6 +574,13 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
       {tab === "news" && <ArticlesEditor key="news" kind="news" draft={draft} update={update} />}
       {tab === "documents" && <DocumentsEditor draft={draft} update={update} />}
       {tab === "menu" && <MenuEditor draft={draft} update={update} />}
+      <section className="cms-history" aria-labelledby="cms-history-title">
+        <div><History size={17} /><div><h2 id="cms-history-title">Version history</h2><p>Restore a prior saved version into your private draft. The public site will not change until you publish.</p></div></div>
+        <ol>{(query.data?.versions ?? []).map((version) => <li key={version.id}>
+          <span><strong>Revision {version.revision}</strong><small>{new Date(version.createdAt).toLocaleString()}</small></span>
+          <button type="button" className="cms-btn" disabled={restore.isPending} onClick={() => void restoreVersion(version.id)}>Restore to draft</button>
+        </li>)}</ol>
+      </section>
     </main>
   </div>;
 }
@@ -403,9 +590,9 @@ export function EditorHome({ onChoose, onSignOut, publicSiteUrl }: { onChoose: (
     <img src={publicAsset("/images/chess-seal.png")} alt="" />
     <span className="section-kicker">Colorado Heritage staff</span>
     <h1>What would you like to update?</h1>
-    <p>Saves change the content families see. They never publish or change the website's code.</p>
+    <p>Save Draft keeps changes private to staff. Families continue to see the published version until you choose Publish.</p>
     <div className="cms-home-choices">
-      {([["home", "Home page", "Headline, hero photo, and every home section, with a live preview."], ["announcements", "Announcements", "Timed notices in the bar above the menu."], ["faqs", "FAQs", "Questions parents ask, and which show on the home page."], ["inquiries", "Inquiries", "Questions families sent from the website."], ["pages", "All pages & people", "Every page, faculty profiles and photos, events, news, documents."]] as const).map(([id, title, text]) =>
+      {([["visual", "Edit any page", "Choose a page, staff profile, story, or event and edit it with familiar formatting tools."], ["home", "Homepage details", "Update the homepage headline, photo, and search settings."], ["announcements", "Announcements", "Timed notices in the bar above the menu."], ["faqs", "FAQs", "Questions parents ask, and which show on the home page."], ["inquiries", "Inquiries", "Questions families sent from the website."], ["pages", "Add or remove pages", "Create pages and manage profiles, events, news, and documents."], ["menu", "Menu links", "Arrange page links inside the six fixed navigation groups."]] as const).map(([id, title, text]) =>
         <button type="button" key={id} onClick={() => { const u = new URL(window.location.href); u.searchParams.set("tab", id); window.history.replaceState(null, "", u); onChoose("site"); }} data-testid={`choose-${id}`}><strong>{title}</strong><span>{text}</span></button>)}
     </div>
     <p className="cms-legacy-link"><button type="button" className="cms-btn cms-btn-ghost" onClick={() => onChoose("homepage")} data-testid="choose-homepage-editor">Legacy homepage tool (old design)</button></p>

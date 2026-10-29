@@ -13,6 +13,7 @@ import { Button, MoreLink, Reveal } from "./brand";
 import { MarkdownContent, inlineMarkdown, useResolvedHref } from "./markdown";
 import { SiteImage } from "./site-image";
 import { QuoteCards, splitTestimonials } from "./testimonials";
+import { PuckAdditionalRenderer } from "./puck-render";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -252,6 +253,8 @@ export function HomeHero({ content }: { content: SiteContentExt }) {
 export function HomePage({ content }: { content: SiteContentExt }) {
   return <div className="cb-home">
     <HomeHero content={content} />
-    <HomeSections content={content} />
+    {content.home?.blocks
+      ? <><HomeSections content={content} /><PuckAdditionalRenderer blocks={content.home.blocks} /></>
+      : <HomeSections content={content} />}
   </div>;
 }

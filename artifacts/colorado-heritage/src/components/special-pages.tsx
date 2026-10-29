@@ -14,6 +14,7 @@ import { FaqAccordion } from "./home-page";
 import { FacultyGrid } from "./faculty-grid";
 import { PraxiBox, QuietVisit, VisitBand } from "./site-chrome";
 import { PagePhoto } from "./site-image";
+import { PuckAdditionalRenderer } from "./puck-render";
 
 const PROGRAMS: InquiryInput["program"][] = ["Independent School", "Academy", "Diploma", "Not sure"];
 const PROGRAM_LABEL: Record<string, string> = { "Independent School": "Independent School", Academy: "K–12 Academy", Diploma: "High School Diploma Program", "Not sure": "Not sure yet" };
@@ -191,6 +192,7 @@ export function ContactPage({ page, content }: { page: CmsPage; content: SiteCon
   return <article className="cb-page" data-testid="page-contact">
     <header className="cb-page-head"><Eyebrow>Colorado Heritage Education School System</Eyebrow><h1>{fixText(page.label) || "Contact Us"}</h1>{page.description && <p>{fixText(page.description)}</p>}</header>
     {intro && <div className="cb-prose-wrap"><MarkdownContent markdown={intro} /></div>}
+    <PuckAdditionalRenderer blocks={page.blocks} />
     <div className="cb-contact-grid">
       <div className="cb-stack"><AddressCard /><HoursBlock hours={hours} closed={closed} /></div>
       <MapEmbed />
@@ -218,6 +220,7 @@ export function VisitPage({ page, content }: { page: CmsPage; content: SiteConte
   return <article className="cb-page" data-testid="page-visit">
     <header className="cb-page-head"><Eyebrow>Admissions</Eyebrow><h1>{fixText(page.label) || "Come Meet Us"}</h1>{page.description && <p>{fixText(page.description)}</p>}</header>
     {own.intro && <div className="cb-prose-wrap"><MarkdownContent markdown={own.intro} /></div>}
+    <PuckAdditionalRenderer blocks={page.blocks} />
     <section className="cb-page-section" aria-labelledby="h-book">
       <h2 id="h-book"><CalendarDaysIcon className="cb-h-icon" aria-hidden="true" />Book a time</h2>
       <BookingCards pages={[page, ...(contact ? [contact] : [])]} />
@@ -238,9 +241,16 @@ export function VisitPage({ page, content }: { page: CmsPage; content: SiteConte
 /* ---------- /faq ---------- */
 
 export function FaqPage({ content }: { content: SiteContentExt }) {
+  const page = content.pages.find((item) => item.path === "/faq");
+  const intro = stripSourceTitle(page?.markdown ?? "")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/^#{1,3}\s*Questions Parents Ask\s*\n?/im, "")
+    .trim();
   return <article className="cb-page" data-testid="page-faq">
-    <header className="cb-page-head"><Eyebrow>For parents</Eyebrow><h1>Frequently Asked Questions</h1><p>Plain answers about the Independent School, K–12 Academy classes, the High School Diploma Program, cost, and how to start.</p></header>
-    <PagePhoto markdown={content.pages.find(p => p.path === "/faq")?.markdown} />
+    <header className="cb-page-head"><Eyebrow>For parents</Eyebrow><h1>{fixText(page?.label || "Frequently Asked Questions")}</h1><p>{fixText(page?.description || "Plain answers about the Independent School, K–12 Academy classes, the High School Diploma Program, cost, and how to start.")}</p></header>
+    <PagePhoto markdown={page?.markdown} />
+    {intro && <div className="cb-prose-wrap"><MarkdownContent markdown={intro} /></div>}
+    <PuckAdditionalRenderer blocks={page?.blocks} />
     <section className="cb-page-section" aria-labelledby="h-faq"><h2 id="h-faq">Questions Parents Ask</h2><FaqAccordion faqs={content.faqs ?? []} /></section>
     <VisitBand title="Still have a question?" text="Call the office or schedule a visit. We would love to meet your family." />
   </article>;
@@ -268,6 +278,7 @@ export function PeoplePage({ page, content }: { page: CmsPage; content: SiteCont
   return <article className="cb-page cb-page-wide" data-testid="page-our-people">
     <header className="cb-page-head"><Eyebrow>About CHESS</Eyebrow><h1>{fixText(page.label) || "Our People"}</h1><p>{fixText(page.description)}</p></header>
     <section className="cb-page-section" id="administration" aria-labelledby="h-admin"><h2 id="h-admin">Administration</h2><FacultyGrid staff={admin} /></section>
+    <PuckAdditionalRenderer blocks={page.blocks} />
     <section className="cb-page-section" id="faculty" aria-labelledby="h-faculty"><h2 id="h-faculty">Faculty</h2><FacultyGrid staff={faculty} /></section>
     <section className="cb-page-section" id="board" aria-labelledby="h-board"><h2 id="h-board">Board</h2>
       {boardPeople.length > 0 && <FacultyGrid staff={boardPeople} />}
@@ -288,6 +299,7 @@ export function CalendarPage({ page, content }: { page: CmsPage; content: SiteCo
   return <article className="cb-page" data-testid="page-calendar">
     <header className="cb-page-head"><Eyebrow>Parents</Eyebrow><h1>{fixText(page.label) || "Calendar & Events"}</h1><p>{fixText(page.description)}</p></header>
     <PagePhoto markdown={page.markdown} />
+    <PuckAdditionalRenderer blocks={page.blocks} />
     {pdf && <div className="cb-btn-row"><Button href={pdf} testId="link-calendar-pdf"><ArrowDownTrayIcon className="cb-btn-icon" aria-hidden="true" /> Download the school calendar (PDF)</Button></div>}
     <section className="cb-page-section" aria-labelledby="h-upcoming">
       <h2 id="h-upcoming">Upcoming events</h2>

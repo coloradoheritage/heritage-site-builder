@@ -90,10 +90,13 @@ export const GetSiteContentResponse = zod.object({
   "description": zod.string(),
   "metaDescription": zod.string().optional(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "kind": zod.string(),
   "documentPath": zod.string().optional(),
   "externalUrl": zod.string().optional(),
-  "archived": zod.boolean().optional()
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
 }).optional(),
   "homeImage": zod.string().optional(),
   "homeImageAlt": zod.string().optional(),
@@ -132,10 +135,13 @@ export const GetSiteContentResponse = zod.object({
   "description": zod.string(),
   "metaDescription": zod.string().optional(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "kind": zod.string(),
   "documentPath": zod.string().optional(),
   "externalUrl": zod.string().optional(),
-  "archived": zod.boolean().optional()
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
 })),
   "staff": zod.array(zod.object({
   "slug": zod.string(),
@@ -149,13 +155,15 @@ export const GetSiteContentResponse = zod.object({
   "photoPositionX": zod.number().min(getSiteContentResponseStaffItemPhotoPositionXMin).max(getSiteContentResponseStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
   "photoPositionY": zod.number().min(getSiteContentResponseStaffItemPhotoPositionYMin).max(getSiteContentResponseStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
   "alt": zod.string(),
-  "bio": zod.string()
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
 })),
   "events": zod.array(zod.object({
   "path": zod.string(),
   "title": zod.string(),
   "date": zod.string(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "archived": zod.boolean()
 })),
   "news": zod.array(zod.object({
@@ -163,6 +171,7 @@ export const GetSiteContentResponse = zod.object({
   "title": zod.string(),
   "date": zod.string(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "archived": zod.boolean()
 })),
   "documents": zod.array(zod.object({
@@ -179,7 +188,7 @@ export const GetSiteContentResponse = zod.object({
 
 
 /**
- * @summary Save website content as an approved editor
+ * @summary Save website content as an approved editor draft
  */
 export const saveSiteContentBodyStaffItemPhotoPositionXMin = 0;
 export const saveSiteContentBodyStaffItemPhotoPositionXMax = 100;
@@ -200,10 +209,13 @@ export const SaveSiteContentBody = zod.object({
   "description": zod.string(),
   "metaDescription": zod.string().optional(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "kind": zod.string(),
   "documentPath": zod.string().optional(),
   "externalUrl": zod.string().optional(),
-  "archived": zod.boolean().optional()
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
 }).optional(),
   "homeImage": zod.string().optional(),
   "homeImageAlt": zod.string().optional(),
@@ -231,10 +243,13 @@ export const SaveSiteContentBody = zod.object({
   "description": zod.string(),
   "metaDescription": zod.string().optional(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "kind": zod.string(),
   "documentPath": zod.string().optional(),
   "externalUrl": zod.string().optional(),
-  "archived": zod.boolean().optional()
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
 })),
   "staff": zod.array(zod.object({
   "slug": zod.string(),
@@ -248,13 +263,15 @@ export const SaveSiteContentBody = zod.object({
   "photoPositionX": zod.number().min(saveSiteContentBodyStaffItemPhotoPositionXMin).max(saveSiteContentBodyStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
   "photoPositionY": zod.number().min(saveSiteContentBodyStaffItemPhotoPositionYMin).max(saveSiteContentBodyStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
   "alt": zod.string(),
-  "bio": zod.string()
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
 })),
   "events": zod.array(zod.object({
   "path": zod.string(),
   "title": zod.string(),
   "date": zod.string(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "archived": zod.boolean()
 })),
   "news": zod.array(zod.object({
@@ -262,6 +279,7 @@ export const SaveSiteContentBody = zod.object({
   "title": zod.string(),
   "date": zod.string(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "archived": zod.boolean()
 })),
   "documents": zod.array(zod.object({
@@ -295,10 +313,13 @@ export const SaveSiteContentResponse = zod.object({
   "description": zod.string(),
   "metaDescription": zod.string().optional(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "kind": zod.string(),
   "documentPath": zod.string().optional(),
   "externalUrl": zod.string().optional(),
-  "archived": zod.boolean().optional()
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
 }).optional(),
   "homeImage": zod.string().optional(),
   "homeImageAlt": zod.string().optional(),
@@ -337,10 +358,13 @@ export const SaveSiteContentResponse = zod.object({
   "description": zod.string(),
   "metaDescription": zod.string().optional(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "kind": zod.string(),
   "documentPath": zod.string().optional(),
   "externalUrl": zod.string().optional(),
-  "archived": zod.boolean().optional()
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
 })),
   "staff": zod.array(zod.object({
   "slug": zod.string(),
@@ -354,13 +378,15 @@ export const SaveSiteContentResponse = zod.object({
   "photoPositionX": zod.number().min(saveSiteContentResponseStaffItemPhotoPositionXMin).max(saveSiteContentResponseStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
   "photoPositionY": zod.number().min(saveSiteContentResponseStaffItemPhotoPositionYMin).max(saveSiteContentResponseStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
   "alt": zod.string(),
-  "bio": zod.string()
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
 })),
   "events": zod.array(zod.object({
   "path": zod.string(),
   "title": zod.string(),
   "date": zod.string(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "archived": zod.boolean()
 })),
   "news": zod.array(zod.object({
@@ -368,6 +394,7 @@ export const SaveSiteContentResponse = zod.object({
   "title": zod.string(),
   "date": zod.string(),
   "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
   "archived": zod.boolean()
 })),
   "documents": zod.array(zod.object({
@@ -379,6 +406,1545 @@ export const SaveSiteContentResponse = zod.object({
   "label": zod.string(),
   "path": zod.string(),
   "children": zod.array(zod.string())
+}))
+})
+
+
+/**
+ * @summary Get published content, current draft, and version history
+ */
+export const getSiteContentEditorResponsePublishedStaffItemPhotoPositionXMin = 0;
+export const getSiteContentEditorResponsePublishedStaffItemPhotoPositionXMax = 100;
+
+export const getSiteContentEditorResponsePublishedStaffItemPhotoPositionYMin = 0;
+export const getSiteContentEditorResponsePublishedStaffItemPhotoPositionYMax = 100;
+
+export const getSiteContentEditorResponseDraftStaffItemPhotoPositionXMin = 0;
+export const getSiteContentEditorResponseDraftStaffItemPhotoPositionXMax = 100;
+
+export const getSiteContentEditorResponseDraftStaffItemPhotoPositionYMin = 0;
+export const getSiteContentEditorResponseDraftStaffItemPhotoPositionYMax = 100;
+
+export const getSiteContentEditorResponseVersionsItemContentStaffItemPhotoPositionXMin = 0;
+export const getSiteContentEditorResponseVersionsItemContentStaffItemPhotoPositionXMax = 100;
+
+export const getSiteContentEditorResponseVersionsItemContentStaffItemPhotoPositionYMin = 0;
+export const getSiteContentEditorResponseVersionsItemContentStaffItemPhotoPositionYMax = 100;
+
+
+
+export const GetSiteContentEditorResponse = zod.object({
+  "published": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(getSiteContentEditorResponsePublishedStaffItemPhotoPositionXMin).max(getSiteContentEditorResponsePublishedStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(getSiteContentEditorResponsePublishedStaffItemPhotoPositionYMin).max(getSiteContentEditorResponsePublishedStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "draft": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(getSiteContentEditorResponseDraftStaffItemPhotoPositionXMin).max(getSiteContentEditorResponseDraftStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(getSiteContentEditorResponseDraftStaffItemPhotoPositionYMin).max(getSiteContentEditorResponseDraftStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "draftBaseRevision": zod.number().int(),
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "revision": zod.number().int(),
+  "createdAt": zod.string(),
+  "content": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(getSiteContentEditorResponseVersionsItemContentStaffItemPhotoPositionXMin).max(getSiteContentEditorResponseVersionsItemContentStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(getSiteContentEditorResponseVersionsItemContentStaffItemPhotoPositionYMin).max(getSiteContentEditorResponseVersionsItemContentStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+})
+}))
+})
+
+
+/**
+ * @summary Save an approved editor draft
+ */
+export const saveSiteContentDraftBodyContentStaffItemPhotoPositionXMin = 0;
+export const saveSiteContentDraftBodyContentStaffItemPhotoPositionXMax = 100;
+
+export const saveSiteContentDraftBodyContentStaffItemPhotoPositionYMin = 0;
+export const saveSiteContentDraftBodyContentStaffItemPhotoPositionYMax = 100;
+
+
+
+
+export const SaveSiteContentDraftBody = zod.object({
+  "content": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(saveSiteContentDraftBodyContentStaffItemPhotoPositionXMin).max(saveSiteContentDraftBodyContentStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(saveSiteContentDraftBodyContentStaffItemPhotoPositionYMin).max(saveSiteContentDraftBodyContentStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "expectedDraftRevision": zod.number().int().min(1)
+})
+
+export const saveSiteContentDraftResponsePublishedStaffItemPhotoPositionXMin = 0;
+export const saveSiteContentDraftResponsePublishedStaffItemPhotoPositionXMax = 100;
+
+export const saveSiteContentDraftResponsePublishedStaffItemPhotoPositionYMin = 0;
+export const saveSiteContentDraftResponsePublishedStaffItemPhotoPositionYMax = 100;
+
+export const saveSiteContentDraftResponseDraftStaffItemPhotoPositionXMin = 0;
+export const saveSiteContentDraftResponseDraftStaffItemPhotoPositionXMax = 100;
+
+export const saveSiteContentDraftResponseDraftStaffItemPhotoPositionYMin = 0;
+export const saveSiteContentDraftResponseDraftStaffItemPhotoPositionYMax = 100;
+
+export const saveSiteContentDraftResponseVersionsItemContentStaffItemPhotoPositionXMin = 0;
+export const saveSiteContentDraftResponseVersionsItemContentStaffItemPhotoPositionXMax = 100;
+
+export const saveSiteContentDraftResponseVersionsItemContentStaffItemPhotoPositionYMin = 0;
+export const saveSiteContentDraftResponseVersionsItemContentStaffItemPhotoPositionYMax = 100;
+
+
+
+export const SaveSiteContentDraftResponse = zod.object({
+  "published": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(saveSiteContentDraftResponsePublishedStaffItemPhotoPositionXMin).max(saveSiteContentDraftResponsePublishedStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(saveSiteContentDraftResponsePublishedStaffItemPhotoPositionYMin).max(saveSiteContentDraftResponsePublishedStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "draft": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(saveSiteContentDraftResponseDraftStaffItemPhotoPositionXMin).max(saveSiteContentDraftResponseDraftStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(saveSiteContentDraftResponseDraftStaffItemPhotoPositionYMin).max(saveSiteContentDraftResponseDraftStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "draftBaseRevision": zod.number().int(),
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "revision": zod.number().int(),
+  "createdAt": zod.string(),
+  "content": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(saveSiteContentDraftResponseVersionsItemContentStaffItemPhotoPositionXMin).max(saveSiteContentDraftResponseVersionsItemContentStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(saveSiteContentDraftResponseVersionsItemContentStaffItemPhotoPositionYMin).max(saveSiteContentDraftResponseVersionsItemContentStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+})
+}))
+})
+
+
+/**
+ * @summary Publish the saved website draft
+ */
+
+
+
+export const PublishSiteContentBody = zod.object({
+  "expectedDraftRevision": zod.number().int().min(1)
+})
+
+export const publishSiteContentResponsePublishedStaffItemPhotoPositionXMin = 0;
+export const publishSiteContentResponsePublishedStaffItemPhotoPositionXMax = 100;
+
+export const publishSiteContentResponsePublishedStaffItemPhotoPositionYMin = 0;
+export const publishSiteContentResponsePublishedStaffItemPhotoPositionYMax = 100;
+
+export const publishSiteContentResponseDraftStaffItemPhotoPositionXMin = 0;
+export const publishSiteContentResponseDraftStaffItemPhotoPositionXMax = 100;
+
+export const publishSiteContentResponseDraftStaffItemPhotoPositionYMin = 0;
+export const publishSiteContentResponseDraftStaffItemPhotoPositionYMax = 100;
+
+export const publishSiteContentResponseVersionsItemContentStaffItemPhotoPositionXMin = 0;
+export const publishSiteContentResponseVersionsItemContentStaffItemPhotoPositionXMax = 100;
+
+export const publishSiteContentResponseVersionsItemContentStaffItemPhotoPositionYMin = 0;
+export const publishSiteContentResponseVersionsItemContentStaffItemPhotoPositionYMax = 100;
+
+
+
+export const PublishSiteContentResponse = zod.object({
+  "published": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(publishSiteContentResponsePublishedStaffItemPhotoPositionXMin).max(publishSiteContentResponsePublishedStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(publishSiteContentResponsePublishedStaffItemPhotoPositionYMin).max(publishSiteContentResponsePublishedStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "draft": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(publishSiteContentResponseDraftStaffItemPhotoPositionXMin).max(publishSiteContentResponseDraftStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(publishSiteContentResponseDraftStaffItemPhotoPositionYMin).max(publishSiteContentResponseDraftStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "draftBaseRevision": zod.number().int(),
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "revision": zod.number().int(),
+  "createdAt": zod.string(),
+  "content": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(publishSiteContentResponseVersionsItemContentStaffItemPhotoPositionXMin).max(publishSiteContentResponseVersionsItemContentStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(publishSiteContentResponseVersionsItemContentStaffItemPhotoPositionYMin).max(publishSiteContentResponseVersionsItemContentStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+})
+}))
+})
+
+
+/**
+ * @summary Restore a published version into the draft
+ */
+
+
+
+
+export const RestoreSiteContentVersionBody = zod.object({
+  "versionId": zod.number().int().min(1),
+  "expectedDraftRevision": zod.number().int().min(1)
+})
+
+export const restoreSiteContentVersionResponsePublishedStaffItemPhotoPositionXMin = 0;
+export const restoreSiteContentVersionResponsePublishedStaffItemPhotoPositionXMax = 100;
+
+export const restoreSiteContentVersionResponsePublishedStaffItemPhotoPositionYMin = 0;
+export const restoreSiteContentVersionResponsePublishedStaffItemPhotoPositionYMax = 100;
+
+export const restoreSiteContentVersionResponseDraftStaffItemPhotoPositionXMin = 0;
+export const restoreSiteContentVersionResponseDraftStaffItemPhotoPositionXMax = 100;
+
+export const restoreSiteContentVersionResponseDraftStaffItemPhotoPositionYMin = 0;
+export const restoreSiteContentVersionResponseDraftStaffItemPhotoPositionYMax = 100;
+
+export const restoreSiteContentVersionResponseVersionsItemContentStaffItemPhotoPositionXMin = 0;
+export const restoreSiteContentVersionResponseVersionsItemContentStaffItemPhotoPositionXMax = 100;
+
+export const restoreSiteContentVersionResponseVersionsItemContentStaffItemPhotoPositionYMin = 0;
+export const restoreSiteContentVersionResponseVersionsItemContentStaffItemPhotoPositionYMax = 100;
+
+
+
+export const RestoreSiteContentVersionResponse = zod.object({
+  "published": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(restoreSiteContentVersionResponsePublishedStaffItemPhotoPositionXMin).max(restoreSiteContentVersionResponsePublishedStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(restoreSiteContentVersionResponsePublishedStaffItemPhotoPositionYMin).max(restoreSiteContentVersionResponsePublishedStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "draft": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(restoreSiteContentVersionResponseDraftStaffItemPhotoPositionXMin).max(restoreSiteContentVersionResponseDraftStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(restoreSiteContentVersionResponseDraftStaffItemPhotoPositionYMin).max(restoreSiteContentVersionResponseDraftStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+}),
+  "draftBaseRevision": zod.number().int(),
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "revision": zod.number().int(),
+  "createdAt": zod.string(),
+  "content": zod.object({
+  "revision": zod.number().int(),
+  "planVersion": zod.number().int().optional(),
+  "redirects": zod.record(zod.string(), zod.string()).optional(),
+  "home": zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+}).optional(),
+  "homeImage": zod.string().optional(),
+  "homeImageAlt": zod.string().optional(),
+  "faqs": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "showOnHome": zod.boolean()
+})).optional(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "activeAnnouncements": zod.array(zod.object({
+  "id": zod.string(),
+  "enabled": zod.boolean(),
+  "title": zod.string(),
+  "text": zod.string(),
+  "buttonLabel": zod.string().optional(),
+  "url": zod.string().optional(),
+  "eventPath": zod.string().optional(),
+  "startsAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm'),
+  "expiresAt": zod.string().optional().describe('America/Denver local datetime, YYYY-MM-DDTHH:mm')
+})).optional(),
+  "pages": zod.array(zod.object({
+  "path": zod.string(),
+  "label": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "metaDescription": zod.string().optional(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "kind": zod.string(),
+  "documentPath": zod.string().optional(),
+  "externalUrl": zod.string().optional(),
+  "archived": zod.boolean().optional(),
+  "showInMenu": zod.boolean().optional(),
+  "menuOrder": zod.number().int().optional()
+})),
+  "staff": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "administrative": zod.boolean().optional().describe('Include this person in the Administrative Staff directory.'),
+  "faculty": zod.boolean().optional(),
+  "board": zod.boolean().optional(),
+  "boardRole": zod.string().optional(),
+  "photo": zod.string(),
+  "photoPositionX": zod.number().min(restoreSiteContentVersionResponseVersionsItemContentStaffItemPhotoPositionXMin).max(restoreSiteContentVersionResponseVersionsItemContentStaffItemPhotoPositionXMax).optional().describe('Horizontal photo position in percent; defaults to 50.'),
+  "photoPositionY": zod.number().min(restoreSiteContentVersionResponseVersionsItemContentStaffItemPhotoPositionYMin).max(restoreSiteContentVersionResponseVersionsItemContentStaffItemPhotoPositionYMax).optional().describe('Vertical photo position in percent; defaults to 0 to keep faces near the top visible.'),
+  "alt": zod.string(),
+  "bio": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "events": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "news": zod.array(zod.object({
+  "path": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "markdown": zod.string(),
+  "blocks": zod.record(zod.string(), zod.unknown()).optional(),
+  "archived": zod.boolean()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "navigation": zod.array(zod.object({
+  "label": zod.string(),
+  "path": zod.string(),
+  "children": zod.array(zod.string())
+}))
+})
 }))
 })
 

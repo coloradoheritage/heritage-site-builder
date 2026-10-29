@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { Link, useLocation } from "wouter";
 import { getGetSiteContentQueryKey, useGetSiteContent } from "@workspace/api-client-react";
 import {
   ArrowUpRightIcon, Bars3Icon, CalendarDaysIcon, ChevronDownIcon, EnvelopeIcon, MapPinIcon, PhoneIcon, XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { MAP_LINK, OFFICE, PRAXI_PARENT_PORTAL, VISIT_PATH, articleHref } from "../lib/cms";
+import { MAP_LINK, OFFICE, PRAXI_PARENT_PORTAL, VISIT_PATH, articleHref, denverNow } from "../lib/cms";
 import { Button, Logo, Tagline } from "./brand";
+import type { SiteContentState } from "@workspace/api-client-react";
+import { isValidMountainInput, toMountainInput } from "./puck-time";
 
 type NavChild = { label: string; path: string; external?: boolean };
 type NavItem = { label: string; path: string; children?: NavChild[] };
@@ -50,10 +52,19 @@ const isParentsPath = (path: string) => path === "/parents" || path.startsWith("
 
 /* ---------- Announcements (server decides visibility; we only render activeAnnouncements) ---------- */
 
-export function AnnouncementBar() {
+export function AnnouncementBar({ contentOverride }: { contentOverride?: SiteContentState } = {}) {
   const query = useGetSiteContent({ query: { queryKey: getGetSiteContentQueryKey(), refetchInterval: 30_000, refetchOnWindowFocus: true } });
-  const active = query.data?.activeAnnouncements ?? [];
-  const events = query.data?.events ?? [];
+  const draftNow = denverNow();
+  const active = contentOverride
+    ? (contentOverride.announcements ?? []).filter((announcement) => {
+      const start = toMountainInput(announcement.startsAt);
+      const end = toMountainInput(announcement.expiresAt);
+      if (!announcement.enabled || (announcement.startsAt && (!start || !isValidMountainInput(start))) ||
+          (announcement.expiresAt && (!end || !isValidMountainInput(end))) || (start && end && end <= start)) return false;
+      return (!start || draftNow >= start) && (!end || draftNow < end);
+    })
+    : query.data?.activeAnnouncements ?? [];
+  const events = contentOverride?.events ?? query.data?.events ?? [];
   if (!active.length) return null;
   return <div className="cb-announce" role="region" aria-label="School announcements" data-testid="announcement-bar">
     {active.map((a) => {
@@ -72,12 +83,35 @@ export function AnnouncementBar() {
 
 /* ---------- Header ---------- */
 
-export function PublicSiteHeader({ editing = false }: { editing?: boolean }) {
+export function PublicSiteHeader({ editing = false, contentOverride }: { editing?: boolean; contentOverride?: SiteContentState }) {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
+  const contentQuery = useGetSiteContent({ query: { queryKey: getGetSiteContentQueryKey() } });
   const navRef = useRef<HTMLElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   const path = location.split("?")[0].replace(/\/+$/, "") || "/";
+  const pageRecords = contentOverride?.pages ?? contentQuery.data?.pages ?? [];
+  const navigationRecords = contentOverride?.navigation ?? contentQuery.data?.navigation ?? [];
+  const pageByPath = useMemo(() => new Map(pageRecords.map((page) => [page.path, page])), [pageRecords]);
+  const navItems = useMemo(() => NAV.flatMap((item) => {
+    const rootPage = pageByPath.get(item.path);
+    if (!item.children && rootPage?.showInMenu === false) return [];
+    const stored = navigationRecords.find((group) => group.path === item.path);
+    const configuredChildren = stored?.children?.length ? stored.children : item.children?.map((child) => child.path) ?? [];
+    const paths = [...configuredChildren];
+    pageRecords.filter((page) => {
+      const groupPrefix = item.path === "/" ? "/" : `${item.path}/`;
+      return page.showInMenu === true && page.path !== item.path && page.path.startsWith(groupPrefix) && !paths.includes(page.path);
+    }).sort((a, b) => (a.menuOrder ?? Number.MAX_SAFE_INTEGER) - (b.menuOrder ?? Number.MAX_SAFE_INTEGER)).forEach((page) => paths.push(page.path));
+    const children = paths
+      .filter((childPath) => pageByPath.get(childPath)?.showInMenu !== false)
+      .map((childPath) => {
+        const fixed = item.children?.find((child) => child.path === childPath);
+        const page = pageByPath.get(childPath);
+        return { label: page?.label || fixed?.label || childPath, path: childPath, external: fixed?.external };
+      });
+    return [{ ...item, children: children.length ? children : undefined }];
+  }), [navigationRecords, pageByPath, pageRecords]);
 
   const closeAll = (except?: HTMLDetailsElement | null) => {
     navRef.current?.querySelectorAll("details[open]").forEach((d) => { if (d !== except) (d as HTMLDetailsElement).open = false; });
@@ -125,7 +159,7 @@ export function PublicSiteHeader({ editing = false }: { editing?: boolean }) {
       </button>
       <nav ref={navRef} id="cb-main-navigation" className={`cb-nav ${open ? "is-open" : ""}`} aria-label="Main navigation">
         <ul className="cb-nav-list">
-          {NAV.map((item) => <li key={item.label} className={isCurrent(item.path) ? "is-current" : ""}>
+          {navItems.map((item) => <li key={item.label} className={isCurrent(item.path) ? "is-current" : ""}>
             {item.children
               ? <details className="cb-dropdown" data-testid={`nav-dropdown-${item.label.toLowerCase()}`} onToggle={(e) => { const d = e.currentTarget; if (d.open) closeAll(d); }}>
                 <summary>{item.label}<ChevronDownIcon aria-hidden="true" /></summary>

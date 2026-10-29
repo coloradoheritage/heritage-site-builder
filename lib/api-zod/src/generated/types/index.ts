@@ -8,11 +8,14 @@
 
 export * from './cmsAnnouncement';
 export * from './cmsArticle';
+export * from './cmsArticleBlocks';
 export * from './cmsDocument';
 export * from './cmsFaq';
 export * from './cmsNavigation';
 export * from './cmsPage';
+export * from './cmsPageBlocks';
 export * from './cmsStaff';
+export * from './cmsStaffBlocks';
 export * from './editorAccessResponse';
 export * from './getMediaHealth200';
 export * from './healthStatus';
@@ -24,7 +27,12 @@ export * from './inquiryInput';
 export * from './inquiryInputProgram';
 export * from './inquiryRecord';
 export * from './photoUploadRequest';
+export * from './siteContentDraftInput';
+export * from './siteContentEditorState';
+export * from './siteContentPublishInput';
+export * from './siteContentRestoreInput';
 export * from './siteContentState';
 export * from './siteContentStateRedirects';
+export * from './siteContentVersion';
 export * from './submitInquiry201';
 export * from './uploadSitePhoto200';

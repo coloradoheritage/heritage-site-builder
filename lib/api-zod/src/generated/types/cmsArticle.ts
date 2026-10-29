@@ -5,11 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CmsArticleBlocks } from './cmsArticleBlocks';
 
 export interface CmsArticle {
   path: string;
   title: string;
   date: string;
   markdown: string;
+  blocks?: CmsArticleBlocks;
   archived: boolean;
 }

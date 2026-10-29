@@ -66,7 +66,7 @@ paths:
                 $ref: "#/components/schemas/SiteContentState"
     put:
       operationId: saveSiteContent
-      summary: Save website content as an approved editor
+      summary: Save website content as an approved editor draft
       requestBody:
         required: true
         content:
@@ -75,13 +75,87 @@ paths:
               $ref: "#/components/schemas/SiteContentState"
       responses:
         "200":
-          description: Saved website content
+          description: Saved website draft; public content is unchanged
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SiteContentState"
         "409":
-          description: Content changed since it was loaded
+          description: Draft changed since it was loaded
+  /site-content/editor:
+    get:
+      operationId: getSiteContentEditor
+      summary: Get published content, current draft, and version history
+      responses:
+        "200":
+          description: Approved editor state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContentEditorState"
+        "401": { description: Sign in required }
+        "403": { description: Approved staff only }
+  /site-content/draft:
+    put:
+      operationId: saveSiteContentDraft
+      summary: Save an approved editor draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteContentDraftInput"
+      responses:
+        "200":
+          description: Saved draft; public content is unchanged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContentEditorState"
+        "409": { description: Draft changed since it was loaded }
+        "401": { description: Sign in required }
+        "403": { description: Approved staff only }
+  /site-content/publish:
+    post:
+      operationId: publishSiteContent
+      summary: Publish the saved website draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteContentPublishInput"
+      responses:
+        "200":
+          description: Published content and updated version history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContentEditorState"
+        "409": { description: Draft changed since it was loaded }
+        "401": { description: Sign in required }
+        "403": { description: Approved staff only }
+  /site-content/restore:
+    post:
+      operationId: restoreSiteContentVersion
+      summary: Restore a published version into the draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteContentRestoreInput"
+      responses:
+        "200":
+          description: Restored version to the draft; public content is unchanged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContentEditorState"
+        "404": { description: Version not found }
+        "409": { description: Draft changed since it was loaded }
+        "401": { description: Sign in required }
+        "403": { description: Approved staff only }
   /media/upload:
     post:
       operationId: uploadSitePhoto
@@ -224,10 +298,15 @@ components:
         description: { type: string }
         metaDescription: { type: string }
         markdown: { type: string }
+        blocks:
+          type: object
+          additionalProperties: true
         kind: { type: string }
         documentPath: { type: string }
         externalUrl: { type: string }
         archived: { type: boolean }
+        showInMenu: { type: boolean }
+        menuOrder: { type: integer }
     CmsStaff:
       type: object
       required: [slug, name, role, photo, alt, bio]
@@ -254,6 +333,9 @@ components:
           description: Vertical photo position in percent; defaults to 0 to keep faces near the top visible.
         alt: { type: string }
         bio: { type: string }
+        blocks:
+          type: object
+          additionalProperties: true
     CmsArticle:
       type: object
       required: [path, title, date, markdown, archived]
@@ -262,6 +344,9 @@ components:
         title: { type: string }
         date: { type: string }
         markdown: { type: string }
+        blocks:
+          type: object
+          additionalProperties: true
         archived: { type: boolean }
     CmsDocument:
       type: object
@@ -319,6 +404,41 @@ components:
         navigation:
           type: array
           items: { $ref: "#/components/schemas/CmsNavigation" }
+    SiteContentVersion:
+      type: object
+      required: [id, revision, createdAt, content]
+      properties:
+        id: { type: integer }
+        revision: { type: integer }
+        createdAt: { type: string }
+        content: { $ref: "#/components/schemas/SiteContentState" }
+    SiteContentEditorState:
+      type: object
+      required: [published, draft, draftBaseRevision, versions]
+      properties:
+        published: { $ref: "#/components/schemas/SiteContentState" }
+        draft: { $ref: "#/components/schemas/SiteContentState" }
+        draftBaseRevision: { type: integer }
+        versions:
+          type: array
+          items: { $ref: "#/components/schemas/SiteContentVersion" }
+    SiteContentDraftInput:
+      type: object
+      required: [content, expectedDraftRevision]
+      properties:
+        content: { $ref: "#/components/schemas/SiteContentState" }
+        expectedDraftRevision: { type: integer, minimum: 1 }
+    SiteContentPublishInput:
+      type: object
+      required: [expectedDraftRevision]
+      properties:
+        expectedDraftRevision: { type: integer, minimum: 1 }
+    SiteContentRestoreInput:
+      type: object
+      required: [versionId, expectedDraftRevision]
+      properties:
+        versionId: { type: integer, minimum: 1 }
+        expectedDraftRevision: { type: integer, minimum: 1 }
     HealthStatus:
       type: object
       properties:

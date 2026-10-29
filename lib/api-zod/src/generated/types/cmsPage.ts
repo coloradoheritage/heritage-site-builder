@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CmsPageBlocks } from './cmsPageBlocks';
 
 export interface CmsPage {
   path: string;
@@ -13,8 +14,11 @@ export interface CmsPage {
   description: string;
   metaDescription?: string;
   markdown: string;
+  blocks?: CmsPageBlocks;
   kind: string;
   documentPath?: string;
   externalUrl?: string;
   archived?: boolean;
+  showInMenu?: boolean;
+  menuOrder?: number;
 }

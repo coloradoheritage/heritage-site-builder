@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CmsStaffBlocks } from './cmsStaffBlocks';
 
 export interface CmsStaff {
   slug: string;
@@ -30,4 +31,5 @@ export interface CmsStaff {
   photoPositionY?: number;
   alt: string;
   bio: string;
+  blocks?: CmsStaffBlocks;
 }
