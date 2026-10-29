@@ -2,3 +2,4 @@
 - [App Storage runtime](app-storage-runtime.md) — preserve explicit bucket selection and the SDK package boundary when changing API bundling.
 - [CHESS editorial approvals](editorial-approvals.md) — leave unconfirmed school claims/assets editable or hidden; inspect actual gallery subjects before choosing a hero.
 - [Responsive page bands](responsive-page-bands.md) — avoid viewport-based negative margins on nested CTAs; classic scrollbars make them overflow.
+- [Editor audience](editor-audience.md) — default to visual, plain-language editing; keep advanced source controls optional.

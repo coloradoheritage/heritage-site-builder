@@ -7,6 +7,7 @@ import { announcementStatus, denverNow, hasConfirm, mediaUrl, publicAsset, type 
 import { HomePage } from "./home-page";
 import { FaqAccordion } from "./home-page";
 import { schoolPhotos, SiteImage } from "./site-image";
+import { VisualBodyEditor } from "./rich-markdown-editor";
 
 type Update = (fn: (d: SiteContentState) => SiteContentState) => void;
 
@@ -147,16 +148,22 @@ export function HomeEditor({ draft, update }: { draft: SiteContentState; update:
       <h2>Home page</h2>
       <Field label="Main headline (H1)"><input value={home.label} onChange={(e) => set({ label: e.target.value })} data-testid="input-home-h1" /></Field>
       <Field label="Hero subhead"><textarea rows={3} value={home.description} onChange={(e) => set({ description: e.target.value })} data-testid="input-home-subhead" /></Field>
-      <Field label="Search description" hint="Up to 155 characters. Separate from the hero subhead."><textarea rows={2} maxLength={155} value={home.metaDescription ?? ""} onChange={(e) => set({ metaDescription: e.target.value })} data-testid="input-home-meta-description" /></Field>
-      <Field label="Browser / search title" hint={`${home.title.length} characters (aim for under 60)`}><input value={home.title} onChange={(e) => set({ title: e.target.value })} data-testid="input-home-title" /></Field>
+      <details className="cms-settings">
+        <summary>Search settings (optional)</summary>
+        <Field label="Search description" hint="A short summary shown in search results."><textarea rows={2} maxLength={155} value={home.metaDescription ?? ""} onChange={(e) => set({ metaDescription: e.target.value })} data-testid="input-home-meta-description" /></Field>
+        <Field label="Search title" hint={`${home.title.length} characters. Leave this as-is unless you know it needs changing.`}><input value={home.title} onChange={(e) => set({ title: e.target.value })} data-testid="input-home-title" /></Field>
+      </details>
       <div className="cms-hero-photo">
         {d.homeImage ? <img src={mediaUrl(d.homeImage)} alt={d.homeImageAlt || "Current hero photo"} /> : <p className="cms-confirm">[CONFIRM: upload an approved CHESS classroom or family photo.]</p>}
         <Field label="Hero photo description (alt)"><input value={d.homeImageAlt ?? ""} onChange={(e) => update((x) => ({ ...x, homeImageAlt: e.target.value }))} data-testid="input-home-image-alt" /></Field>
       </div>
       <PhotoUploader label="Replace hero photo" defaultAlt={d.homeImageAlt ?? ""} onUploaded={(url, alt) => update((x) => ({ ...x, homeImage: url, homeImageAlt: alt }))} />
-      <Field label="Sections (Markdown)" hint="Each '## Heading' starts a section, shown in order. Bullets that start with **Bold title** become cards. A paragraph of only links becomes buttons. Tables use | pipes |. [CONFIRM] notes stay visible until replaced.">
-        <textarea className="cms-md" rows={28} value={home.markdown} onChange={(e) => set({ markdown: e.target.value })} data-testid="input-home-markdown" />
-      </Field>
+      <div className="cms-field">
+        <span>Home page sections</span>
+        <small>Click in the page text and edit it directly. Use the buttons to add headings, lists, and links.</small>
+        <VisualBodyEditor markdown={home.markdown} onMarkdown={(markdown) => set({ markdown })} testId="input-home-markdown" ariaLabel="Home page sections" />
+        <PhotoUploader label="Add a photo to the end of these sections" onUploaded={(url, alt) => set({ markdown: `${home.markdown}\n\n![${alt}](${url})\n` })} />
+      </div>
     </div>
     <div className="cms-live-preview" onClickCapture={(e) => { if ((e.target as Element).closest("a")) e.preventDefault(); }} aria-label="Home page preview">
       <span className="cms-preview-label">Live preview</span>
@@ -174,11 +181,14 @@ export function FaqEditor({ draft, update }: { draft: SiteContentState; update: 
   return <div className="cms-form cms-wide">
     <div className="cms-row-head"><h2>Frequently asked questions</h2>
       <button type="button" className="cms-btn" onClick={() => setFaqs((f) => [...f, { id: newId("faq"), question: "", answer: "", showOnHome: false }])} data-testid="button-add-faq"><Plus size={14} /> Add question</button></div>
-    <p className="cms-help">All questions appear on /faq. Checked ones also appear on the home page. Questions or answers containing [CONFIRM] are left out of search-engine data until replaced.</p>
+    <p className="cms-help">All questions appear on the FAQ page. Turn on “Show on home page” to feature one there. If you see [CONFIRM], verify that detail before saving.</p>
     {!faqs.length && <div className="cms-empty-state"><p>No questions yet.</p></div>}
     <SortableList items={faqs} keyOf={(f) => f.id} label={(f) => f.question || "Untitled"} onMove={(a, b) => setFaqs((f) => move(f, a, b))} render={(f) => <div className="cms-faq-edit">
       <Field label="Question"><input value={f.question} onChange={(e) => patch(f.id, { question: e.target.value })} data-testid={`input-faq-q-${f.id}`} /></Field>
-      <Field label="Answer (Markdown)"><textarea rows={3} value={f.answer} onChange={(e) => patch(f.id, { answer: e.target.value })} data-testid={`input-faq-a-${f.id}`} /></Field>
+        <div className="cms-field">
+          <span>Answer</span>
+          <VisualBodyEditor markdown={f.answer} onMarkdown={(answer) => patch(f.id, { answer })} testId={`input-faq-a-${f.id}`} ariaLabel={`Answer for ${f.question || "new question"}`} />
+        </div>
       <div className="cms-inline">
         <label className="cms-check"><input type="checkbox" checked={f.showOnHome} onChange={(e) => patch(f.id, { showOnHome: e.target.checked })} data-testid={`check-faq-home-${f.id}`} /> Show on home page</label>
         {(hasConfirm(f.question) || hasConfirm(f.answer)) && <span className="cms-pill is-warn">Has [CONFIRM], not in search data</span>}

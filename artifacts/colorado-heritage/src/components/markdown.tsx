@@ -49,15 +49,18 @@ function MdLink({ href, children, testId }: { href: string; children: ReactNode;
 }
 
 const INLINE = /\[(CONFIRM[^\]]*)\]|(!?)\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|(\*\*|__)(.+?)\5|(?<![\w/])(\*|_)(?!\s)(.+?)\7(?![\w])|`([^`]+)`/g;
+const ESCAPED_MARKDOWN = /\\([\\`*_{}\[\]()#+\-.!|>])/g;
 
 export function inlineMarkdown(value: string, keyPrefix = "i"): ReactNode[] {
   const tokens: ReactNode[] = [];
+  const source = value.replace(ESCAPED_MARKDOWN, (_match, character: string) => `\uE000${character.codePointAt(0)}\uE001`);
+  const restoreEscaped = (text: string) => text.replace(/\uE000(\d+)\uE001/g, (_match, code: string) => String.fromCodePoint(Number(code)));
   let cursor = 0;
   let match: RegExpExecArray | null;
   let index = 0;
   const re = new RegExp(INLINE.source, "g");
-  while ((match = re.exec(value))) {
-    if (match.index > cursor) tokens.push(value.slice(cursor, match.index));
+  while ((match = re.exec(source))) {
+    if (match.index > cursor) tokens.push(restoreEscaped(source.slice(cursor, match.index)));
     const key = `${keyPrefix}-${index++}`;
     if (match[1] !== undefined) tokens.push(<Confirm key={key}>[{match[1]}]</Confirm>);
     else if (match[4] !== undefined) {
@@ -69,7 +72,7 @@ export function inlineMarkdown(value: string, keyPrefix = "i"): ReactNode[] {
     else if (match[9]) tokens.push(<code key={key}>{match[9]}</code>);
     cursor = re.lastIndex;
   }
-  if (cursor < value.length) tokens.push(value.slice(cursor));
+  if (cursor < source.length) tokens.push(restoreEscaped(source.slice(cursor)));
   return tokens;
 }
 

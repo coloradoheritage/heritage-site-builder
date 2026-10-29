@@ -6,6 +6,7 @@ import {
 } from "@workspace/api-client-react";
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, Check, Plus, RotateCw, Save, Trash2 } from "lucide-react";
 import { DocumentsContext, MarkdownContent, resolveDocument } from "./markdown";
+import { VisualBodyEditor } from "./rich-markdown-editor";
 import { AnnouncementsEditor, FaqEditor, HomeEditor, InquiriesInbox, MediaHealthBanner, PhotoUploader } from "./site-editors";
 export { PhotoUploader } from "./site-editors";
 import { fixText, mediaUrl, publicAsset, publicPath } from "../lib/cms";
@@ -98,7 +99,7 @@ function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDes
 }) {
   const [active, setActive] = useState<"title" | "description" | "body" | null>(null);
   return <DocumentsContext.Provider value={documents}><div className="cms-preview chess-public">
-    <div className="cms-preview-bar"><span>Live preview. Click any text to edit it.</span>{publicUrl && <a href={publicUrl} target="_blank" rel="noreferrer">Open public page <ArrowUpRight size={12} /></a>}</div>
+    <div className="cms-preview-bar"><span>Click the words below to edit them. Use the buttons for simple formatting.</span>{publicUrl && <a href={publicUrl} target="_blank" rel="noreferrer">Open public page <ArrowUpRight size={12} /></a>}</div>
     <article className="chess-content-page cms-preview-page">
       <header className="chess-page-intro chess-content-heading">
         <span className="chess-eyebrow">{eyebrow}</span>
@@ -110,10 +111,7 @@ function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDes
           : <p className="cms-editable" tabIndex={0} onClick={() => setActive("description")} onKeyDown={(e) => e.key === "Enter" && setActive("description")}>{fixText(description || "") || "Add a short summary"}</p>)}
       </header>
       {active === "body"
-        ? <div className="cms-inline-body">
-          <textarea autoFocus value={markdown} onChange={(e) => onMarkdown(e.target.value)} rows={18} aria-label="Page text" data-testid="preview-body-input" />
-          <div className="cms-inline-help"><span>Formatting: # Heading, **bold**, - list item, [link text](/path)</span><button type="button" className="cms-btn" onClick={() => setActive(null)}><Check size={13} /> Done</button></div>
-        </div>
+        ? <VisualBodyEditor markdown={markdown} onMarkdown={onMarkdown} onDone={() => setActive(null)} />
         : <div className="cms-editable cms-editable-body" tabIndex={0} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) e.preventDefault(); setActive("body"); }} onKeyDown={(e) => e.key === "Enter" && setActive("body")} data-testid="preview-edit-body">
           {markdown.trim() ? <MarkdownContent markdown={markdown} /> : <p className="cms-muted">No body text yet. Click to write.</p>}
         </div>}
@@ -142,7 +140,7 @@ function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
     <div>
       <input className="cms-search" placeholder="Find a page…" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Find a page" />
       <ListRail items={draft.pages} selected={sel} onSelect={setSel} filter={filter} addLabel="Add page"
-        render={(p) => ({ title: fixText(p.label), meta: p.path })}
+        render={(p) => ({ title: fixText(p.label), meta: "Website page" })}
         onMove={(a, b) => { update((d) => ({ ...d, pages: move(d.pages, a, b) })); if (a === sel) setSel(b); }} onAdd={add} />
     </div>
     {page ? <div className="cms-editor">
