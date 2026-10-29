@@ -20,3 +20,9 @@ Use the supplied real CHESS photo collection for public editorial photography, n
 **Why:** The user provided the school photo archive and explicitly requested only those real photos for public page imagery.
 
 **How to apply:** Keep the photos selectable in the editor, preserve descriptive alt text, and frame group photographs without cutting off faces. Existing staff portraits remain appropriate on staff listings and biographies.
+
+The user believes Bailey, Colorado, is the location associated with the diploma story's graduation story; treat this as unconfirmed until they verify it.
+
+**Why:** The user shared this as a belief, not as a confirmed correction.
+
+**How to apply:** Use Bailey as a review note for that story, but do not change public location text without confirmation.
