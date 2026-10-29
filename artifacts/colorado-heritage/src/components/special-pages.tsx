@@ -13,6 +13,7 @@ import { MarkdownContent, useDocUrl, useResolvedHref } from "./markdown";
 import { FaqAccordion } from "./home-page";
 import { FacultyGrid } from "./faculty-grid";
 import { PraxiBox, QuietVisit, VisitBand } from "./site-chrome";
+import { PagePhoto } from "./site-image";
 
 const PROGRAMS: InquiryInput["program"][] = ["Independent School", "Academy", "Diploma", "Not sure"];
 const PROGRAM_LABEL: Record<string, string> = { "Independent School": "Independent School", Academy: "K–12 Academy", Diploma: "High School Diploma Program", "Not sure": "Not sure yet" };
@@ -239,6 +240,7 @@ export function VisitPage({ page, content }: { page: CmsPage; content: SiteConte
 export function FaqPage({ content }: { content: SiteContentExt }) {
   return <article className="cb-page" data-testid="page-faq">
     <header className="cb-page-head"><Eyebrow>For parents</Eyebrow><h1>Frequently Asked Questions</h1><p>Plain answers about the Independent School, K–12 Academy classes, the High School Diploma Program, cost, and how to start.</p></header>
+    <PagePhoto markdown={content.pages.find(p => p.path === "/faq")?.markdown} />
     <section className="cb-page-section" aria-labelledby="h-faq"><h2 id="h-faq">Questions Parents Ask</h2><FaqAccordion faqs={content.faqs ?? []} /></section>
     <VisitBand title="Still have a question?" text="Call the office or schedule a visit. We would love to meet your family." />
   </article>;
@@ -285,6 +287,7 @@ export function CalendarPage({ page, content }: { page: CmsPage; content: SiteCo
   const upcoming = [...content.events].filter((e) => !e.archived && (e.date || "").slice(0, 10) >= today).sort((a, b) => (a.date || "").localeCompare(b.date || "")).slice(0, 12);
   return <article className="cb-page" data-testid="page-calendar">
     <header className="cb-page-head"><Eyebrow>Parents</Eyebrow><h1>{fixText(page.label) || "Calendar & Events"}</h1><p>{fixText(page.description)}</p></header>
+    <PagePhoto markdown={page.markdown} />
     {pdf && <div className="cb-btn-row"><Button href={pdf} testId="link-calendar-pdf"><ArrowDownTrayIcon className="cb-btn-icon" aria-hidden="true" /> Download the school calendar (PDF)</Button></div>}
     <section className="cb-page-section" aria-labelledby="h-upcoming">
       <h2 id="h-upcoming">Upcoming events</h2>
@@ -325,6 +328,7 @@ export function NewsIndex({ content }: { content: SiteContentExt }) {
   }, [archive, list]);
   const hrefFor = (a: CmsArticle) => articleHref(a, content.events.includes(a) ? "events" : "news");
   return <article className="cb-page cb-page-wide" data-testid={archive ? "page-news-archive" : "page-news"}>
+    <PagePhoto markdown={content.pages.find(p => p.path === "/news")?.markdown} />
     <header className="cb-page-head">
       <Eyebrow>{archive ? "Archive" : "From the CHESS community"}</Eyebrow>
       <h1>{archive ? "News & Events Archive" : "News & Blog"}</h1>

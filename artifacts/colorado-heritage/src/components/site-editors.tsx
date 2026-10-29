@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowDown, ArrowUp, Check, Copy, GripVertical, ImagePlus
 import { announcementStatus, denverNow, hasConfirm, mediaUrl, publicAsset, type SiteContentExt } from "../lib/cms";
 import { HomePage } from "./home-page";
 import { FaqAccordion } from "./home-page";
+import { schoolPhotos, SiteImage } from "./site-image";
 
 type Update = (fn: (d: SiteContentState) => SiteContentState) => void;
 
@@ -107,6 +108,15 @@ export function PhotoUploader({ label, onUploaded, defaultAlt = "" }: { label: s
 
   return <div className="cms-uploader">
     <strong>{label}</strong>
+    <details className="cms-photo-library" data-testid="school-photo-library">
+      <summary>Choose from the CHESS photo library ({schoolPhotos.length} photos)</summary>
+      <p>Choose a school photo below. Its description is included automatically; save your changes to keep the selection.</p>
+      <div className="cms-photo-library-grid">{schoolPhotos.map(photo => <button key={photo.filename} type="button" className="cms-library-photo"
+        onClick={() => { onUploaded(photo.url, photo.alt); setAlt(photo.alt); setStatus({ kind: "ok", text: "Library photo selected. Remember to save your changes." }); }}>
+        <SiteImage src={photo.url} alt={photo.alt} sizes="180px" loading="lazy" />
+        <span>{photo.filename}</span>
+      </button>)}</div>
+    </details>
     <div className="cms-upload-row">
       <label htmlFor={id} className="cms-btn cms-choose" data-testid="button-choose-photo"><ImagePlus size={14} /> Choose photo</label>
       <input ref={inputRef} id={id} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" onChange={(e) => choose(e.target.files?.[0] ?? null)} data-testid="input-photo-file" />

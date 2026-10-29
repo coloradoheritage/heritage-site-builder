@@ -11,6 +11,8 @@ import {
 import { isAdministrative, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
 import { Button, MoreLink, Reveal } from "./brand";
 import { MarkdownContent, inlineMarkdown, useResolvedHref } from "./markdown";
+import { SiteImage } from "./site-image";
+import { QuoteCards, splitTestimonials } from "./testimonials";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -127,6 +129,10 @@ function H3Cards({ blocks }: { blocks: { title: string; body: string }[] }) {
 }
 
 export function SectionBody({ body, h3Cards = false }: { body: string; h3Cards?: boolean }) {
+  const qchunks = splitTestimonials(body);
+  if (qchunks.some((c) => c.type === "quotes" && (c.items.length >= 2 || c.items.some((t) => t.attribution)))) {
+    return <>{qchunks.map((c, i) => c.type === "quotes" ? <QuoteCards key={i} items={c.items} /> : <SectionBody key={i} body={c.text} h3Cards={h3Cards} />)}</>;
+  }
   if (h3Cards) {
     const parts = body.split(/^###\s+/m);
     if (parts.length >= 3) {
@@ -227,7 +233,7 @@ export function HomeHero({ content }: { content: SiteContentExt }) {
   const home = content.home;
   const image = content.homeImage ? mediaUrl(content.homeImage) : "";
   return <section className="cb-hero" aria-labelledby="home-title">
-    {image && <img className="cb-hero-img" src={image} alt={content.homeImageAlt || ""} fetchPriority="high" />}
+    {image && <SiteImage className="cb-hero-img" src={content.homeImage!} sizes="100vw" alt={content.homeImageAlt || ""} fetchPriority="high" />}
     {!image && <p className="cb-hero-photo-placeholder">{content.homeImageAlt || "[CONFIRM: upload an approved CHESS classroom or family photo.]"}</p>}
     <div className="cb-hero-overlay" aria-hidden="true" />
     <div className="cb-hero-inner">

@@ -173,7 +173,7 @@ body.cb-menu-open { overflow: hidden; }
 .cb-hero { position: relative; isolation: isolate; aspect-ratio: 16 / 9; max-height: 760px; min-height: 560px; width: 100%; display: grid; align-items: center; overflow: hidden; background: var(--navy); color: #fff; }
 .cb-hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; z-index: -2; transform: scale(1.04); animation: cb-hero-zoom 14s ease-out forwards; }
 @keyframes cb-hero-zoom { to { transform: scale(1); } }
-.cb-hero-overlay { position: absolute; inset: 0; z-index: -1; background: rgba(26,54,93,.7); }
+.cb-hero-overlay { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(12,28,52,.90), rgba(12,28,52,.78) 58%, rgba(12,28,52,.65)); }
 .cb-hero-overlay::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--gold); }
 .cb-hero-inner { width: min(1180px, calc(100% - 2.5rem)); margin: 0 auto; padding: 4rem 0; max-width: 1180px; }
 .cb-hero-inner > * { max-width: 760px; animation: cb-rise .8s cubic-bezier(.2,.7,.2,1) both; }
@@ -272,8 +272,8 @@ body.cb-menu-open { overflow: hidden; }
 .cb-page-head::after { content: ""; position: absolute; left: 0; bottom: -2px; width: 72px; height: 3px; background: var(--gold); }
 .cb-page-head > p { font-size: 1.12em; color: var(--slate-soft); max-width: 720px; }
 .cb-page-section { margin: 3rem 0; }
-.cb-page-image { margin: 0 0 2rem; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
-.cb-page-image img { width: 100%; max-height: 460px; object-fit: cover; display: block; }
+.cb-page-image { margin: 0 auto 2rem; max-width: 620px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.cb-page-image img { width: 100%; height: auto; object-fit: cover; object-position: center 30%; display: block; }
 .cb-crumbs { font-size: .9rem; color: var(--slate-soft); margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: .4rem; }
 .cb-crumbs span { display: inline-flex; gap: .4rem; }
 .cb-crumbs a { color: var(--blue); text-decoration: underline; }
@@ -414,3 +414,39 @@ body.cb-menu-open { overflow: hidden; }
 .cb-hours-sec { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 1.25rem; }
 .cb-hours-sec .cb-table-wrap { margin: .5rem 0 0; border: 0; }
 .cb-hours-sec .cb-table-wrap table { min-width: 0; }
+
+/* ---------- Testimonial quote cards ---------- */
+.cb-quote-grid { list-style: none; margin: 1.5rem 0; padding: 0; width: 100%; display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: stretch; }
+@media (min-width: 768px) { .cb-quote-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .cb-quote-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cb-page .cb-quote-grid { grid-template-columns: 1fr; }
+@media (min-width: 768px) { .cb-page .cb-quote-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cb-quote-grid.is-single { grid-template-columns: 1fr; max-width: 860px; }
+.cb-quote-grid > li { display: flex; }
+.cb-quote-card { position: relative; flex: 1; display: flex; flex-direction: column; margin: 0; background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: var(--radius); padding: 2.4rem 1.6rem 1.5rem; box-shadow: var(--shadow); }
+.cb-quote-mark { position: absolute; top: .35rem; left: 1.3rem; font: 700 3.2rem/1 var(--f-head); color: var(--gold); }
+.cb-site .cb-quote-card blockquote { margin: 0 0 1.25rem; padding: 0; border: 0; background: none; box-shadow: none; border-radius: 0; font-family: var(--f-head); font-style: italic; font-size: 1.02rem; line-height: 1.65; color: var(--navy); }
+.cb-quote-card blockquote p:last-child { margin-bottom: 0; }
+.cb-quote-card figcaption { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--line); font-weight: 700; font-size: .95rem; color: var(--slate); }
+.cb-quote-card figcaption::before { content: "— "; color: var(--gold); }
+
+/* Approved school photography: retain whole groups instead of trimming faces. */
+.cb-home-section .chess-prose p:has(> img:only-child) { max-width: 580px; margin: 1.5rem auto 2rem; }
+.cb-home-section .chess-prose p > img:only-child,
+.cb-prose-wrap .chess-prose p > img:only-child { width: 100%; height: auto; border-radius: var(--radius); object-fit: cover; object-position: center 30%; }
+.cb-prose-wrap .chess-prose p:has(> img:only-child) { max-width: 620px; margin-inline: auto; }
+.cb-hero-img { object-position: center 45%; }
+@media (max-width: 767px) {
+  .cb-hero { display: flex; flex-direction: column; aspect-ratio: auto; min-height: 0; }
+  .cb-hero-img { position: relative; inset: auto; height: auto; width: 100%; object-fit: cover; z-index: 0; animation: none; transform: none; }
+  .cb-hero:has(.cb-hero-img) .cb-hero-overlay { display: none; }
+  .cb-hero-inner { padding-top: 1.5rem; }
+}
+/* Gallery stays a modest responsive photo grid, never a stack of full banners. */
+[data-testid="page-gallery"] .cb-page-image { display: none; }
+[data-testid="page-gallery"] .chess-prose { max-width: none; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; align-items: start; }
+[data-testid="page-gallery"] .chess-prose > :not(p:has(> img:only-child)) { grid-column: 1 / -1; }
+[data-testid="page-gallery"] .chess-prose p:has(> img:only-child) { width: 100%; margin: 0; }
+@media (max-width: 899px) { [data-testid="page-gallery"] .chess-prose { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 479px) { [data-testid="page-gallery"] .chess-prose { grid-template-columns: 1fr; } }
+@media (min-width: 1100px) { .cb-page-wide .cb-quote-grid:not(.is-single) { grid-template-columns: repeat(3,minmax(0,1fr)); } }

@@ -1,0 +1,772 @@
+[
+  {
+    "filename": "choir-nnn_6083.jpg",
+    "alt": "CHESS choir performing in a church sanctuary",
+    "url": "/api/media/files/f2c3ca33a16cc632cbe58d2d5b75be50b52286840b1d62b826e4015ef68d5b1f.webp",
+    "srcSet": "/api/media/files/2deede3ae826416924cf82a6299587d641645cac7683fb744a146dbf629b6c6c.webp 400w, /api/media/files/3ea36d7f645f1fd36e92cb0fd6f684f2440f6b61fed6c2e102af4e1869b991f4.webp 800w, /api/media/files/f2c3ca33a16cc632cbe58d2d5b75be50b52286840b1d62b826e4015ef68d5b1f.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/2deede3ae826416924cf82a6299587d641645cac7683fb744a146dbf629b6c6c.webp",
+        "bytes": 16356
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/3ea36d7f645f1fd36e92cb0fd6f684f2440f6b61fed6c2e102af4e1869b991f4.webp",
+        "bytes": 50190
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/f2c3ca33a16cc632cbe58d2d5b75be50b52286840b1d62b826e4015ef68d5b1f.webp",
+        "bytes": 106344
+      }
+    ]
+  },
+  {
+    "filename": "choir-nnn_6088.jpg",
+    "alt": "CHESS choir performing in a church sanctuary",
+    "url": "/api/media/files/9b79b6299e5ea3278674c0d068fd05aa4bf046ff102c43023ad992614434a900.webp",
+    "srcSet": "/api/media/files/7f2d36d9c5890480c1d103634a556f738ec01fd9b2fdeda773bc1e70890aef8e.webp 400w, /api/media/files/78f0a1a6292d232efeae0f5a138d658c33d1e753c0aba435f56bc691910aa066.webp 800w, /api/media/files/9b79b6299e5ea3278674c0d068fd05aa4bf046ff102c43023ad992614434a900.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/7f2d36d9c5890480c1d103634a556f738ec01fd9b2fdeda773bc1e70890aef8e.webp",
+        "bytes": 16812
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/78f0a1a6292d232efeae0f5a138d658c33d1e753c0aba435f56bc691910aa066.webp",
+        "bytes": 53792
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/9b79b6299e5ea3278674c0d068fd05aa4bf046ff102c43023ad992614434a900.webp",
+        "bytes": 120286
+      }
+    ]
+  },
+  {
+    "filename": "choir-nnn_6092.jpg",
+    "alt": "CHESS choir performing in a church sanctuary",
+    "url": "/api/media/files/737056dd4b376352b3acc3a316eda24ba1c2f568da91ade649474f383ed5fa3f.webp",
+    "srcSet": "/api/media/files/ef0626a340b52ca2145e5e9d43548bbff003d49ed3cf334d33f9069549bcd27c.webp 400w, /api/media/files/59870a53aecddc4c3c70c9d4776a5ae3352b266da506d7945006bb0597ccbfee.webp 800w, /api/media/files/737056dd4b376352b3acc3a316eda24ba1c2f568da91ade649474f383ed5fa3f.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/ef0626a340b52ca2145e5e9d43548bbff003d49ed3cf334d33f9069549bcd27c.webp",
+        "bytes": 19292
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/59870a53aecddc4c3c70c9d4776a5ae3352b266da506d7945006bb0597ccbfee.webp",
+        "bytes": 59948
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/737056dd4b376352b3acc3a316eda24ba1c2f568da91ade649474f383ed5fa3f.webp",
+        "bytes": 119132
+      }
+    ]
+  },
+  {
+    "filename": "choir-nnn_6141.jpg",
+    "alt": "CHESS choir performing in a church sanctuary",
+    "url": "/api/media/files/3852e61191fd9da97c1d37089cf5561b1f6c127e11c24eb870d7089080f20dad.webp",
+    "srcSet": "/api/media/files/da7a95b99a9965c4d27c279bf384b3980c83b4caf0398db5d15f400b5c34ad3c.webp 400w, /api/media/files/bf06c9bcf25f3fa95766bfc1765dca965d4e5fe51e7b060e6ae61888a93edf70.webp 800w, /api/media/files/3852e61191fd9da97c1d37089cf5561b1f6c127e11c24eb870d7089080f20dad.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/da7a95b99a9965c4d27c279bf384b3980c83b4caf0398db5d15f400b5c34ad3c.webp",
+        "bytes": 19658
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/bf06c9bcf25f3fa95766bfc1765dca965d4e5fe51e7b060e6ae61888a93edf70.webp",
+        "bytes": 62266
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/3852e61191fd9da97c1d37089cf5561b1f6c127e11c24eb870d7089080f20dad.webp",
+        "bytes": 140254
+      }
+    ]
+  },
+  {
+    "filename": "choir-nnn_6170.jpg",
+    "alt": "CHESS choir performing in a church sanctuary",
+    "url": "/api/media/files/6522df839f414056b3f05401bcfe828f93d752d82041a768ac1afc033aaac91e.webp",
+    "srcSet": "/api/media/files/622039d4f4bccc9da83af47ccba34113e00cd31be7069a4440c0077084b48efb.webp 400w, /api/media/files/d9813214b83de816f7574a4553cf3a8dcb3bb608fb6418b0f681408e109b75a5.webp 800w, /api/media/files/6522df839f414056b3f05401bcfe828f93d752d82041a768ac1afc033aaac91e.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/622039d4f4bccc9da83af47ccba34113e00cd31be7069a4440c0077084b48efb.webp",
+        "bytes": 19600
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/d9813214b83de816f7574a4553cf3a8dcb3bb608fb6418b0f681408e109b75a5.webp",
+        "bytes": 58676
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/6522df839f414056b3f05401bcfe828f93d752d82041a768ac1afc033aaac91e.webp",
+        "bytes": 119164
+      }
+    ]
+  },
+  {
+    "filename": "classroom-chess-classroom-.jpg",
+    "alt": "CHESS students working at desks beside classroom bookshelves",
+    "url": "/api/media/files/a6ceb1d8a37efb2c141434f8400a0093703694592739643dbdbe3d7e71dde0ce.webp",
+    "srcSet": "/api/media/files/522ba54a565507fe2d970c6989f0b2f2da9fbcc0626654ed63d3bd7a1f1fe4c1.webp 400w, /api/media/files/93cf7a8344943766ea00a6d5610d4604a2a805d6cbf405f2386531e48bb1e5ab.webp 800w, /api/media/files/a6ceb1d8a37efb2c141434f8400a0093703694592739643dbdbe3d7e71dde0ce.webp 1200w",
+    "width": 2048,
+    "height": 1152,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/522ba54a565507fe2d970c6989f0b2f2da9fbcc0626654ed63d3bd7a1f1fe4c1.webp",
+        "bytes": 13358
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/93cf7a8344943766ea00a6d5610d4604a2a805d6cbf405f2386531e48bb1e5ab.webp",
+        "bytes": 39632
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/a6ceb1d8a37efb2c141434f8400a0093703694592739643dbdbe3d7e71dde0ce.webp",
+        "bytes": 74532
+      }
+    ]
+  },
+  {
+    "filename": "graduation-dsc_0097.jpg",
+    "alt": "CHESS graduates seated at the front of the church sanctuary",
+    "url": "/api/media/files/58f4b1bb908abc0fd32346c33207a2d3d822dcbbbecc384bacd1b62c81dce456.webp",
+    "srcSet": "/api/media/files/2d574d97fbf6b28a80597627cd672095bb172baf7a38994081d7c179f4e03dbf.webp 400w, /api/media/files/c3ed58836fefc7f27a4ac8c44910a9f22d5835b076b94331291557596d40f26c.webp 800w, /api/media/files/58f4b1bb908abc0fd32346c33207a2d3d822dcbbbecc384bacd1b62c81dce456.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/2d574d97fbf6b28a80597627cd672095bb172baf7a38994081d7c179f4e03dbf.webp",
+        "bytes": 22310
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/c3ed58836fefc7f27a4ac8c44910a9f22d5835b076b94331291557596d40f26c.webp",
+        "bytes": 73200
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/58f4b1bb908abc0fd32346c33207a2d3d822dcbbbecc384bacd1b62c81dce456.webp",
+        "bytes": 140158
+      }
+    ]
+  },
+  {
+    "filename": "graduation-grad-2025-bw.jpg",
+    "alt": "CHESS graduates tossing their caps outdoors in a black-and-white photograph",
+    "url": "/api/media/files/21405cd26513f1f7c76366ae31f8e842adc6081a9d75e5292604f8225739376b.webp",
+    "srcSet": "/api/media/files/650d61f899a1aaaf238b8156a0a329fbb45a4b1077c1185ac973b2f0f4c9a243.webp 400w, /api/media/files/fd354d16eeb4dd7c8ee844e89dd4191cdf505db63508bc17f6425be0a5b8b513.webp 800w, /api/media/files/21405cd26513f1f7c76366ae31f8e842adc6081a9d75e5292604f8225739376b.webp 1200w",
+    "width": 1200,
+    "height": 800,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/650d61f899a1aaaf238b8156a0a329fbb45a4b1077c1185ac973b2f0f4c9a243.webp",
+        "bytes": 24892
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/fd354d16eeb4dd7c8ee844e89dd4191cdf505db63508bc17f6425be0a5b8b513.webp",
+        "bytes": 85980
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/21405cd26513f1f7c76366ae31f8e842adc6081a9d75e5292604f8225739376b.webp",
+        "bytes": 169134
+      }
+    ]
+  },
+  {
+    "filename": "graduation-nnn_5842.jpg",
+    "alt": "CHESS graduates in blue gowns seated at the graduation ceremony",
+    "url": "/api/media/files/af060938c2c75e725aa605ee0478f64a67f1f63725ebf17223ef9c77f3093c39.webp",
+    "srcSet": "/api/media/files/f4c4588fb4674bb56000639c6a545785eaeb0637bad7fc602db2fade7b2a215c.webp 400w, /api/media/files/703866739bce33aea7026a0349a21d0221f14f50de5089db49384ed14c9569ae.webp 800w, /api/media/files/af060938c2c75e725aa605ee0478f64a67f1f63725ebf17223ef9c77f3093c39.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/f4c4588fb4674bb56000639c6a545785eaeb0637bad7fc602db2fade7b2a215c.webp",
+        "bytes": 20356
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/703866739bce33aea7026a0349a21d0221f14f50de5089db49384ed14c9569ae.webp",
+        "bytes": 65620
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/af060938c2c75e725aa605ee0478f64a67f1f63725ebf17223ef9c77f3093c39.webp",
+        "bytes": 128392
+      }
+    ]
+  },
+  {
+    "filename": "graduation-nnn_5879.jpg",
+    "alt": "CHESS graduates in blue gowns during their graduation ceremony",
+    "url": "/api/media/files/9b68615f7093444b91b2b73a24855e9ebf38100535001cd9755d383b115e667e.webp",
+    "srcSet": "/api/media/files/ee543f9487125ef807caeefc002b1762071aedc04a277bec85fe89eef4c31aa3.webp 400w, /api/media/files/8f85d1628af7cb53b82c486294b65ffffe14fd8d8484f5b7736df45a2c09aa9b.webp 800w, /api/media/files/9b68615f7093444b91b2b73a24855e9ebf38100535001cd9755d383b115e667e.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/ee543f9487125ef807caeefc002b1762071aedc04a277bec85fe89eef4c31aa3.webp",
+        "bytes": 17550
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/8f85d1628af7cb53b82c486294b65ffffe14fd8d8484f5b7736df45a2c09aa9b.webp",
+        "bytes": 52598
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/9b68615f7093444b91b2b73a24855e9ebf38100535001cd9755d383b115e667e.webp",
+        "bytes": 99828
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2013.jpg",
+    "alt": "A Bible and graduation decorations at the CHESS ceremony",
+    "url": "/api/media/files/2b95ac7331cb645547bc78053abf9bf9cc4351ca62fa00011aaf255241c14d1c.webp",
+    "srcSet": "/api/media/files/da000b88cc6b1c016171cbf444cf366c12f0143f50499d067848f3e0a53896f0.webp 400w, /api/media/files/34ae5e0663b2428473be1e3099388bec5b187b33e66649f19d38ad2781563799.webp 800w, /api/media/files/2b95ac7331cb645547bc78053abf9bf9cc4351ca62fa00011aaf255241c14d1c.webp 1200w",
+    "width": 1600,
+    "height": 2400,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/da000b88cc6b1c016171cbf444cf366c12f0143f50499d067848f3e0a53896f0.webp",
+        "bytes": 12140
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/34ae5e0663b2428473be1e3099388bec5b187b33e66649f19d38ad2781563799.webp",
+        "bytes": 38344
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/2b95ac7331cb645547bc78053abf9bf9cc4351ca62fa00011aaf255241c14d1c.webp",
+        "bytes": 101174
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2020.jpg",
+    "alt": "A white CHESS water bottle with the school crest",
+    "url": "/api/media/files/8b67bc36a66d3171b16785980ed3c75b3adaf30b8a89823962f136504bc2851e.webp",
+    "srcSet": "/api/media/files/47f4609549bd1c88b843e2d9993210a53b27910c68f8440796f21084d409d178.webp 400w, /api/media/files/a9183e466084f0757f7e4be94951a09c2166d28e4811be180142a16973e331ac.webp 800w, /api/media/files/8b67bc36a66d3171b16785980ed3c75b3adaf30b8a89823962f136504bc2851e.webp 1200w",
+    "width": 1600,
+    "height": 2400,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/47f4609549bd1c88b843e2d9993210a53b27910c68f8440796f21084d409d178.webp",
+        "bytes": 6358
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/a9183e466084f0757f7e4be94951a09c2166d28e4811be180142a16973e331ac.webp",
+        "bytes": 19056
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/8b67bc36a66d3171b16785980ed3c75b3adaf30b8a89823962f136504bc2851e.webp",
+        "bytes": 57676
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2067.jpg",
+    "alt": "CHESS graduates joining hands in a circle outdoors",
+    "url": "/api/media/files/0f4178f9610d4174872a69860de3906394edc2c6d89ae197b37ce9ae1f0ad383.webp",
+    "srcSet": "/api/media/files/81b1be34d0b0c02b53677a3c532702f1bb5d86cb449cfdab54f7aa14e392e5bb.webp 400w, /api/media/files/01bcc5b7edbae80cb2f1a172467c67aa2d237d90ac9b6629195dae638a13aaef.webp 800w, /api/media/files/0f4178f9610d4174872a69860de3906394edc2c6d89ae197b37ce9ae1f0ad383.webp 1200w",
+    "width": 1200,
+    "height": 1800,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/81b1be34d0b0c02b53677a3c532702f1bb5d86cb449cfdab54f7aa14e392e5bb.webp",
+        "bytes": 35426
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/01bcc5b7edbae80cb2f1a172467c67aa2d237d90ac9b6629195dae638a13aaef.webp",
+        "bytes": 100402
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/0f4178f9610d4174872a69860de3906394edc2c6d89ae197b37ce9ae1f0ad383.webp",
+        "bytes": 236016
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2172.jpg",
+    "alt": "A framed graduation display and flowers at CHESS",
+    "url": "/api/media/files/3cceb043f016208b547c41cd83afc6382109dceb8d422f236ebfc0c5d5f52a3e.webp",
+    "srcSet": "/api/media/files/61401b1f1bc97fdb41c7d59ae1c6274c8c4aa9c0ef73773eb512da4d422866f7.webp 400w, /api/media/files/6171ce7654a2c12128d76b787ae084db5bbd028f1512eecd39d5d8800dc3239b.webp 800w, /api/media/files/3cceb043f016208b547c41cd83afc6382109dceb8d422f236ebfc0c5d5f52a3e.webp 1200w",
+    "width": 1600,
+    "height": 2400,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/61401b1f1bc97fdb41c7d59ae1c6274c8c4aa9c0ef73773eb512da4d422866f7.webp",
+        "bytes": 46260
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/6171ce7654a2c12128d76b787ae084db5bbd028f1512eecd39d5d8800dc3239b.webp",
+        "bytes": 168816
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/3cceb043f016208b547c41cd83afc6382109dceb8d422f236ebfc0c5d5f52a3e.webp",
+        "bytes": 317836
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2211.jpg",
+    "alt": "A CHESS graduation attendee greeting guests in the sanctuary",
+    "url": "/api/media/files/956ddee6e377c8fc4174a82a2e9cb71d2dc5bea5cac39eb1ef6071d0addaf104.webp",
+    "srcSet": "/api/media/files/e7b61ce9e6180aafef6d0093a855000e81c648ae0d9b7e6acfcae75433bd7a8c.webp 400w, /api/media/files/f4e201aa195decec08d4a9a11c24b8be00b58d7e5af02936afc51739ad69661d.webp 800w, /api/media/files/956ddee6e377c8fc4174a82a2e9cb71d2dc5bea5cac39eb1ef6071d0addaf104.webp 1200w, /api/media/files/460b8ed9ff6f310ec4febf2ad7b63393e02f8a60af4e95548214728d3fcaa7ed.webp 2400w",
+    "width": 2400,
+    "height": 1600,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/e7b61ce9e6180aafef6d0093a855000e81c648ae0d9b7e6acfcae75433bd7a8c.webp",
+        "bytes": 15594
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/f4e201aa195decec08d4a9a11c24b8be00b58d7e5af02936afc51739ad69661d.webp",
+        "bytes": 38282
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/956ddee6e377c8fc4174a82a2e9cb71d2dc5bea5cac39eb1ef6071d0addaf104.webp",
+        "bytes": 64372
+      },
+      {
+        "width": 2400,
+        "url": "/api/media/files/460b8ed9ff6f310ec4febf2ad7b63393e02f8a60af4e95548214728d3fcaa7ed.webp",
+        "bytes": 194074
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2218.jpg",
+    "alt": "A speaker addressing the CHESS graduation ceremony",
+    "url": "/api/media/files/50217dc5861ee9ea24149bab8a3bba8cb63002c668a0e29b36f20f0220f648c9.webp",
+    "srcSet": "/api/media/files/308645263078bdabd9e854abf0ccaca0929f52d863a614bb69f11bf58e7fc9b3.webp 400w, /api/media/files/44ab47f69c27efb193f1016b915b0de69c7dd3081a2794d91cc71890777f3871.webp 800w, /api/media/files/50217dc5861ee9ea24149bab8a3bba8cb63002c668a0e29b36f20f0220f648c9.webp 1200w",
+    "width": 1600,
+    "height": 2400,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/308645263078bdabd9e854abf0ccaca0929f52d863a614bb69f11bf58e7fc9b3.webp",
+        "bytes": 12956
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/44ab47f69c27efb193f1016b915b0de69c7dd3081a2794d91cc71890777f3871.webp",
+        "bytes": 48514
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/50217dc5861ee9ea24149bab8a3bba8cb63002c668a0e29b36f20f0220f648c9.webp",
+        "bytes": 136842
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2224.jpg",
+    "alt": "CHESS graduates entering the sanctuary during the graduation procession",
+    "url": "/api/media/files/7eda97efcb90bc91708ea86ca435c9cafc4d118ba0e2907f5a9a9a78c199d725.webp",
+    "srcSet": "/api/media/files/82efacc49a4039c32d4c67f6b538fc2e2af38c64e9badd98ba0f387e10c98458.webp 400w, /api/media/files/13f5279405eae3368eb79df5758a9dca210dd977b66bc317309cc4832b83f866.webp 800w, /api/media/files/7eda97efcb90bc91708ea86ca435c9cafc4d118ba0e2907f5a9a9a78c199d725.webp 1200w",
+    "width": 1600,
+    "height": 2400,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/82efacc49a4039c32d4c67f6b538fc2e2af38c64e9badd98ba0f387e10c98458.webp",
+        "bytes": 26434
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/13f5279405eae3368eb79df5758a9dca210dd977b66bc317309cc4832b83f866.webp",
+        "bytes": 66036
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/7eda97efcb90bc91708ea86ca435c9cafc4d118ba0e2907f5a9a9a78c199d725.webp",
+        "bytes": 118068
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2288.jpg",
+    "alt": "CHESS graduates and ceremony participants at the front of the sanctuary",
+    "url": "/api/media/files/839f46a4a9daf322990932cd06bd469eb5dd90073dc723956e805d88afe018bb.webp",
+    "srcSet": "/api/media/files/baf6dc849792de912101a8337c4eb1b7fac3e0d83634186d94e3af101a22a47d.webp 400w, /api/media/files/b85b6d8f5688a53e276276c774a3210fbdf8be470afeaf3e703acf9530a461c8.webp 800w, /api/media/files/839f46a4a9daf322990932cd06bd469eb5dd90073dc723956e805d88afe018bb.webp 1200w",
+    "width": 2000,
+    "height": 1333,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/baf6dc849792de912101a8337c4eb1b7fac3e0d83634186d94e3af101a22a47d.webp",
+        "bytes": 15906
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/b85b6d8f5688a53e276276c774a3210fbdf8be470afeaf3e703acf9530a461c8.webp",
+        "bytes": 48048
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/839f46a4a9daf322990932cd06bd469eb5dd90073dc723956e805d88afe018bb.webp",
+        "bytes": 85322
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2306.jpg",
+    "alt": "A speaker at the lectern with CHESS graduates seated behind him",
+    "url": "/api/media/files/367f66c306328df54e56ba65ebc748e5f1a48c73f3621277dabc1028ad3eb62f.webp",
+    "srcSet": "/api/media/files/b3500656efb09d1538957001683a26ef6bea34d85c99f213421b00447e234eb7.webp 400w, /api/media/files/9b0ccea174164811b9035666a36c2ff53120091ec07afd5817a2d9fbe4591ea2.webp 800w, /api/media/files/367f66c306328df54e56ba65ebc748e5f1a48c73f3621277dabc1028ad3eb62f.webp 1200w, /api/media/files/767d3c9462f74b82bb714bfe598cc1556dddb097325f83f6deb74dfc00bf1aaf.webp 2400w",
+    "width": 2400,
+    "height": 1600,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/b3500656efb09d1538957001683a26ef6bea34d85c99f213421b00447e234eb7.webp",
+        "bytes": 15750
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/9b0ccea174164811b9035666a36c2ff53120091ec07afd5817a2d9fbe4591ea2.webp",
+        "bytes": 40164
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/367f66c306328df54e56ba65ebc748e5f1a48c73f3621277dabc1028ad3eb62f.webp",
+        "bytes": 70062
+      },
+      {
+        "width": 2400,
+        "url": "/api/media/files/767d3c9462f74b82bb714bfe598cc1556dddb097325f83f6deb74dfc00bf1aaf.webp",
+        "bytes": 221556
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2312.jpg",
+    "alt": "Families and graduates gathered in the church sanctuary for CHESS graduation",
+    "url": "/api/media/files/62d184b4c3e6900cdaf1590ecb5aaed1ae787d5ee8b1c55e80331710546e3290.webp",
+    "srcSet": "/api/media/files/b1c6d5e51657c77eaeccaf6f5eb4d80e6b1fc222abc047ea50b2a4e1fe8043d9.webp 400w, /api/media/files/ea5d6f993b7c57d909a0cfbae6f5fec0851e7c5db107613d4b44453ec2f77749.webp 800w, /api/media/files/62d184b4c3e6900cdaf1590ecb5aaed1ae787d5ee8b1c55e80331710546e3290.webp 1200w, /api/media/files/d0fe7b82189b96c3fc5dfc552d5e53b6cf8025b3b5e6f2ece8c003d55c3c4390.webp 2400w",
+    "width": 2400,
+    "height": 1600,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/b1c6d5e51657c77eaeccaf6f5eb4d80e6b1fc222abc047ea50b2a4e1fe8043d9.webp",
+        "bytes": 20042
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/ea5d6f993b7c57d909a0cfbae6f5fec0851e7c5db107613d4b44453ec2f77749.webp",
+        "bytes": 59174
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/62d184b4c3e6900cdaf1590ecb5aaed1ae787d5ee8b1c55e80331710546e3290.webp",
+        "bytes": 111250
+      },
+      {
+        "width": 2400,
+        "url": "/api/media/files/d0fe7b82189b96c3fc5dfc552d5e53b6cf8025b3b5e6f2ece8c003d55c3c4390.webp",
+        "bytes": 310970
+      }
+    ]
+  },
+  {
+    "filename": "graduation-sarahporterphotography2334.jpg",
+    "alt": "A CHESS graduation speaker at the lectern beside a window",
+    "url": "/api/media/files/d0d033556a85dcbbda5ecb22ca1e711dcf0512400d2e84329f4e75d71bbd9d20.webp",
+    "srcSet": "/api/media/files/414a68faca2521958773f66d8b905ad2183837a59ec4d30e7ac4be98117f50ea.webp 400w, /api/media/files/223355331b3352974a49281ed72204e001f0b6c973a77d4bd47d7a5d6364cb65.webp 800w, /api/media/files/d0d033556a85dcbbda5ecb22ca1e711dcf0512400d2e84329f4e75d71bbd9d20.webp 1200w",
+    "width": 1600,
+    "height": 2400,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/414a68faca2521958773f66d8b905ad2183837a59ec4d30e7ac4be98117f50ea.webp",
+        "bytes": 20812
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/223355331b3352974a49281ed72204e001f0b6c973a77d4bd47d7a5d6364cb65.webp",
+        "bytes": 51684
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/d0d033556a85dcbbda5ecb22ca1e711dcf0512400d2e84329f4e75d71bbd9d20.webp",
+        "bytes": 99178
+      }
+    ]
+  },
+  {
+    "filename": "hero-graduation-041.jpg",
+    "alt": "The CHESS graduating class gathered outdoors in caps and gowns",
+    "url": "/api/media/files/ea88b9e1fe4e3c78bb22dbb0b45a77ce50292280a99205036a1ce38a71524c34.webp",
+    "srcSet": "/api/media/files/68f9850593082481d706fc6ad828e8afb97ddc4ac585f2a4e131e883d7c0ea86.webp 400w, /api/media/files/7e854f4f19ac75df1d79fa2a27eca165fb6b4a9e5168ea20eb0ac191e97d6775.webp 800w, /api/media/files/ea88b9e1fe4e3c78bb22dbb0b45a77ce50292280a99205036a1ce38a71524c34.webp 1200w, /api/media/files/0d4357002ed2ac3735342f2ae3e8d15f64bf7088a900d5b671433681017f0b04.webp 2400w",
+    "width": 2400,
+    "height": 1600,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/68f9850593082481d706fc6ad828e8afb97ddc4ac585f2a4e131e883d7c0ea86.webp",
+        "bytes": 34836
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/7e854f4f19ac75df1d79fa2a27eca165fb6b4a9e5168ea20eb0ac191e97d6775.webp",
+        "bytes": 116152
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/ea88b9e1fe4e3c78bb22dbb0b45a77ce50292280a99205036a1ce38a71524c34.webp",
+        "bytes": 232162
+      },
+      {
+        "width": 2400,
+        "url": "/api/media/files/0d4357002ed2ac3735342f2ae3e8d15f64bf7088a900d5b671433681017f0b04.webp",
+        "bytes": 615716
+      }
+    ]
+  },
+  {
+    "filename": "literary-night-dsc_9501.jpg",
+    "alt": "Families viewing student displays at CHESS literary night",
+    "url": "/api/media/files/3ba32ea4bfa1636dd9765735dfa3035ff2ace518fd3baccd2f21b555d95777f7.webp",
+    "srcSet": "/api/media/files/c4b30c03247d9e5d8a59bbc420b080b40dfeaa81377b8a20f1baa4e89ffa37a4.webp 400w, /api/media/files/6baf9f3ad7116522211297aaed7821ab7ce2db38b2e278847c217d66b103a11a.webp 800w, /api/media/files/3ba32ea4bfa1636dd9765735dfa3035ff2ace518fd3baccd2f21b555d95777f7.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/c4b30c03247d9e5d8a59bbc420b080b40dfeaa81377b8a20f1baa4e89ffa37a4.webp",
+        "bytes": 16230
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/6baf9f3ad7116522211297aaed7821ab7ce2db38b2e278847c217d66b103a11a.webp",
+        "bytes": 51610
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/3ba32ea4bfa1636dd9765735dfa3035ff2ace518fd3baccd2f21b555d95777f7.webp",
+        "bytes": 104780
+      }
+    ]
+  },
+  {
+    "filename": "plays-dsc_4269.jpg",
+    "alt": "CHESS students performing a play on stage",
+    "url": "/api/media/files/de8f720e64f444bc60bc0e9069b0314fe2029e211265a83e66b888e4953c851f.webp",
+    "srcSet": "/api/media/files/c614db105558976576352e59abf10a274142a9a4f6faffae6b1060aadfc54fee.webp 400w, /api/media/files/d8dce11d8d94cfea5058ce436eb8356256a1f15838fc10635f55d4714dd5aac1.webp 800w, /api/media/files/de8f720e64f444bc60bc0e9069b0314fe2029e211265a83e66b888e4953c851f.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/c614db105558976576352e59abf10a274142a9a4f6faffae6b1060aadfc54fee.webp",
+        "bytes": 14862
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/d8dce11d8d94cfea5058ce436eb8356256a1f15838fc10635f55d4714dd5aac1.webp",
+        "bytes": 47540
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/de8f720e64f444bc60bc0e9069b0314fe2029e211265a83e66b888e4953c851f.webp",
+        "bytes": 90078
+      }
+    ]
+  },
+  {
+    "filename": "plays-dsc_4277.jpg",
+    "alt": "CHESS students performing a play on stage",
+    "url": "/api/media/files/720f6b4fa488d8598cbea6c49663abec74d2d6a5cdae257ed6819e9695fb5481.webp",
+    "srcSet": "/api/media/files/e17cb22854db644c4399b796666cea438b4f2657a740ece4744938f074b73ade.webp 400w, /api/media/files/401c09fc7bf1762457cb1c1f4f2a32b19597f9b7a6c9f03c406b7a142006b262.webp 800w, /api/media/files/720f6b4fa488d8598cbea6c49663abec74d2d6a5cdae257ed6819e9695fb5481.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/e17cb22854db644c4399b796666cea438b4f2657a740ece4744938f074b73ade.webp",
+        "bytes": 20176
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/401c09fc7bf1762457cb1c1f4f2a32b19597f9b7a6c9f03c406b7a142006b262.webp",
+        "bytes": 63538
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/720f6b4fa488d8598cbea6c49663abec74d2d6a5cdae257ed6819e9695fb5481.webp",
+        "bytes": 112472
+      }
+    ]
+  },
+  {
+    "filename": "plays-dsc_4292.jpg",
+    "alt": "CHESS students performing a play on stage",
+    "url": "/api/media/files/79e0ce0b972ebbc4a2b87e5a3494b507e2bdd5a808faeef75ab3d6ea2732a398.webp",
+    "srcSet": "/api/media/files/14f14d7875fc990110dd01cf248764f9b445e94ba08ef85d875b7201924a8a6b.webp 400w, /api/media/files/2ba59dfeb58b79631bf9a17afcd45023c2cbf79492a8c29a105dcc23fd102821.webp 800w, /api/media/files/79e0ce0b972ebbc4a2b87e5a3494b507e2bdd5a808faeef75ab3d6ea2732a398.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/14f14d7875fc990110dd01cf248764f9b445e94ba08ef85d875b7201924a8a6b.webp",
+        "bytes": 22850
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/2ba59dfeb58b79631bf9a17afcd45023c2cbf79492a8c29a105dcc23fd102821.webp",
+        "bytes": 72908
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/79e0ce0b972ebbc4a2b87e5a3494b507e2bdd5a808faeef75ab3d6ea2732a398.webp",
+        "bytes": 132398
+      }
+    ]
+  },
+  {
+    "filename": "plays-dsc_4366.jpg",
+    "alt": "CHESS students performing a play on stage",
+    "url": "/api/media/files/f2e7f433c323c3006d74a7388fae4c364784f59adaf56cec606f542ca28c2e50.webp",
+    "srcSet": "/api/media/files/ad7b365b611f8ca95081e2f942638f644f8c56ed9674d5e8ab2948a64f325723.webp 400w, /api/media/files/20fffca68c32eb8bdd30da5c351fce60cddbde3fd17c187239f3959ad35618e7.webp 800w, /api/media/files/f2e7f433c323c3006d74a7388fae4c364784f59adaf56cec606f542ca28c2e50.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/ad7b365b611f8ca95081e2f942638f644f8c56ed9674d5e8ab2948a64f325723.webp",
+        "bytes": 20932
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/20fffca68c32eb8bdd30da5c351fce60cddbde3fd17c187239f3959ad35618e7.webp",
+        "bytes": 66302
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/f2e7f433c323c3006d74a7388fae4c364784f59adaf56cec606f542ca28c2e50.webp",
+        "bytes": 132124
+      }
+    ]
+  },
+  {
+    "filename": "plays-nnn_5718.jpg",
+    "alt": "CHESS students performing a play on stage",
+    "url": "/api/media/files/0833b0a5cf98efe91625ac0ac3ccb735313a40cbaca46507e656458a41fb74ef.webp",
+    "srcSet": "/api/media/files/f17925e67d1f25b0dd30af32a51b1d96b9b5c51713e6f4717d10130e31af66f1.webp 400w, /api/media/files/11a6923e6cb59a404346b4f77268911354f907944581b4a96793a35cc8de21e3.webp 800w, /api/media/files/0833b0a5cf98efe91625ac0ac3ccb735313a40cbaca46507e656458a41fb74ef.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/f17925e67d1f25b0dd30af32a51b1d96b9b5c51713e6f4717d10130e31af66f1.webp",
+        "bytes": 12560
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/11a6923e6cb59a404346b4f77268911354f907944581b4a96793a35cc8de21e3.webp",
+        "bytes": 37308
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/0833b0a5cf98efe91625ac0ac3ccb735313a40cbaca46507e656458a41fb74ef.webp",
+        "bytes": 71864
+      }
+    ]
+  },
+  {
+    "filename": "plays-nnn_5765.jpg",
+    "alt": "CHESS students performing a play on stage",
+    "url": "/api/media/files/1916ee03dbd666c6e647a7f7b475660e9bd81da3773b0dfcff0c168531e23afb.webp",
+    "srcSet": "/api/media/files/b341e268165f8fccc3a849385a6abd658dab8c521884099d13bf6ce8393d9a47.webp 400w, /api/media/files/079ba923d7d341c8792c3bdfd3073196dc85b2a512e596e17875f4c238213188.webp 800w, /api/media/files/1916ee03dbd666c6e647a7f7b475660e9bd81da3773b0dfcff0c168531e23afb.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/b341e268165f8fccc3a849385a6abd658dab8c521884099d13bf6ce8393d9a47.webp",
+        "bytes": 13828
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/079ba923d7d341c8792c3bdfd3073196dc85b2a512e596e17875f4c238213188.webp",
+        "bytes": 45606
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/1916ee03dbd666c6e647a7f7b475660e9bd81da3773b0dfcff0c168531e23afb.webp",
+        "bytes": 94076
+      }
+    ]
+  },
+  {
+    "filename": "plays-nnn_5834.jpg",
+    "alt": "CHESS students performing a play on stage",
+    "url": "/api/media/files/6fe2e595b99dfc0f67e71fc1f5b1e1d897347893c3c7913ca28de212bab91da4.webp",
+    "srcSet": "/api/media/files/3bd04b2633831783f82dcadff37ded25c20dc304235ff26cee561549550a3b22.webp 400w, /api/media/files/21f2732e5fd864734f4a053c6aaad60cec113a302660ac7c4cbe405f79f804f9.webp 800w, /api/media/files/6fe2e595b99dfc0f67e71fc1f5b1e1d897347893c3c7913ca28de212bab91da4.webp 1200w",
+    "width": 2048,
+    "height": 1365,
+    "variants": [
+      {
+        "width": 400,
+        "url": "/api/media/files/3bd04b2633831783f82dcadff37ded25c20dc304235ff26cee561549550a3b22.webp",
+        "bytes": 16032
+      },
+      {
+        "width": 800,
+        "url": "/api/media/files/21f2732e5fd864734f4a053c6aaad60cec113a302660ac7c4cbe405f79f804f9.webp",
+        "bytes": 48616
+      },
+      {
+        "width": 1200,
+        "url": "/api/media/files/6fe2e595b99dfc0f67e71fc1f5b1e1d897347893c3c7913ca28de212bab91da4.webp",
+        "bytes": 103948
+      }
+    ]
+  }
+]

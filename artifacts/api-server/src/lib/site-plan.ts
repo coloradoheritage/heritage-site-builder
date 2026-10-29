@@ -2,6 +2,7 @@ import plan from "../../../../attached_assets/CHESS_site_plan_v4_1793291778431.t
 import oldRoutes from "../../../colorado-heritage/seo-routes.json";
 import sourceNews from "../../../colorado-heritage/src/data/newsArchive.json";
 import documentManifest from "../data/document-manifest.json";
+import { applySchoolPhotos } from "./school-photo-rollout";
 
 type Content = Record<string, any>;
 const slug = (value: string) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -226,7 +227,7 @@ Although we seek to maintain our listed fee schedule, please contact us to deter
 [Frequently asked questions](/faq) · [Schedule a Visit](/admissions/visit) · [Call (970) 346-0099](tel:+19703460099)`;
 }
 
-export const SITE_PLAN_VERSION = 6;
+export const SITE_PLAN_VERSION = 7;
 function repairImportedContent(input: Content): Content {
   const content=structuredClone(input);
   content.redirects ||= {};
@@ -262,10 +263,15 @@ function repairImportedContent(input: Content): Content {
     content.homeImageAlt="[CONFIRM: upload an approved CHESS classroom or family photo.]";
   }
   content.planVersion=SITE_PLAN_VERSION;
-  return content;
+  return applySchoolPhotos(content);
 }
 export function migrateSitePlan(original: Content): Content {
   if (Number(original.planVersion) >= SITE_PLAN_VERSION) return original;
+  if (Number(original.planVersion) >= 6) {
+    const content = applySchoolPhotos(original);
+    content.planVersion = SITE_PLAN_VERSION;
+    return content;
+  }
   if (Number(original.planVersion) >= 4) return repairImportedContent(original);
   const content = structuredClone(original);
   const old = new Map<string, any>(content.pages.map((p: any) => [p.path, p]));

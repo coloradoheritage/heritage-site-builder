@@ -14,3 +14,9 @@ Inspect the actual subject of copied photographs before selecting or describing 
 **Why:** Reviewing the imported images revealed that an automatic gallery-first selection was being described incorrectly as students and families.
 
 **How to apply:** Use a school-approved classroom/family photo with accurate alt text, or an explicitly editable photo placeholder; do not silently substitute a stock photo or relabel artwork.
+
+Use the supplied real CHESS photo collection for public editorial photography, not stock or AI-generated images. The school specifically approved the outdoor graduating-class photograph for the home hero.
+
+**Why:** The user provided the school photo archive and explicitly requested only those real photos for public page imagery.
+
+**How to apply:** Keep the photos selectable in the editor, preserve descriptive alt text, and frame group photographs without cutting off faces. Existing staff portraits remain appropriate on staff listings and biographies.

@@ -14,6 +14,7 @@ import { DocumentsContext, MarkdownContent, useDocUrl } from "./markdown";
 import { FacultyGrid, Initials } from "./faculty-grid";
 import { FaqAccordion, HomePage, SectionBody } from "./home-page";
 import { CalendarPage, ContactPage, FaqPage, NewsIndex, PeoplePage, VisitPage } from "./special-pages";
+import { SiteImage } from "./site-image";
 import { MobileActionBar, PraxiBox, QuietVisit, VisitBand } from "./site-chrome";
 
 export { DocumentsContext, resolveDocument, MarkdownContent } from "./markdown";
@@ -89,7 +90,7 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
   const path = page.path;
   let markdown = cleanFilenameCaptions(stripSourceTitle(page.markdown));
   if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
-  const heroImage = markdown.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/m);
+  const heroImage = path === "/gallery" ? null : markdown.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/m);
   if (heroImage) markdown = markdown.replace(heroImage[0], "");
   const docUrl = useDocUrl();
   const resourceUrl = page.externalUrl || docUrl(page.documentPath);
@@ -107,13 +108,13 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
   const firstChunk = midCta ? `${sections[0].title ? `## ${sections[0].title}\n` : ""}${sections[0].body}` : markdown;
   const rest = midCta ? sections.slice(1).map((s) => `${s.title ? `## ${s.title}\n` : ""}${s.body}`).join("\n") : "";
 
-  return <article className="cb-page" data-testid={`page-${testId(path)}`}>
+  return <article className={`cb-page ${path === "/gallery" || path === "/about/testimonials" ? "cb-page-wide" : ""}`} data-testid={`page-${testId(path)}`}>
     {crumbs.length > 0 && <nav className="cb-crumbs" aria-label="Breadcrumb"><Link href="/">Home</Link>{crumbs.map((c, i) => { const p = `/${crumbs.slice(0, i + 1).join("/")}`; return <span key={p}><span aria-hidden="true">/</span><Link href={p}>{fixText(content.pages.find((x) => x.path === p)?.label ?? c)}</Link></span>; })}</nav>}
     <header className="cb-page-head">
       <h1>{fixText(page.label)}</h1>
       {page.description && <p>{fixText(page.description)}</p>}
     </header>
-    {heroImage && <figure className="cb-page-image"><img src={mediaUrl(heroImage[2])} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : ""} /></figure>}
+    {heroImage && <figure className="cb-page-image"><SiteImage src={heroImage[2]} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : ""} loading="lazy" /></figure>}
     {page.kind === "protected" && !markdown.trim()
       ? <PraxiBox />
       : markdown.trim()
