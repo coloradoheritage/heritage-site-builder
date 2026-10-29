@@ -5,14 +5,25 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CmsAnnouncement } from './cmsAnnouncement';
 import type { CmsArticle } from './cmsArticle';
 import type { CmsDocument } from './cmsDocument';
+import type { CmsFaq } from './cmsFaq';
 import type { CmsNavigation } from './cmsNavigation';
 import type { CmsPage } from './cmsPage';
 import type { CmsStaff } from './cmsStaff';
+import type { SiteContentStateRedirects } from './siteContentStateRedirects';
 
 export interface SiteContentState {
   revision: number;
+  planVersion?: number;
+  redirects?: SiteContentStateRedirects;
+  home?: CmsPage;
+  homeImage?: string;
+  homeImageAlt?: string;
+  faqs?: CmsFaq[];
+  announcements?: CmsAnnouncement[];
+  readonly activeAnnouncements?: readonly CmsAnnouncement[];
   pages: CmsPage[];
   staff: CmsStaff[];
   events: CmsArticle[];

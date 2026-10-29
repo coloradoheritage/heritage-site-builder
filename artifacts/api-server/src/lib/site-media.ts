@@ -6,6 +6,11 @@ export const mediaStorage = new Client({ bucketId: process.env.DEFAULT_OBJECT_ST
 
 export async function storePhoto(bytes: Buffer): Promise<string> {
   // Decode and re-encode on the server too: a client-supplied MIME type is not trusted.
+  const brand = bytes.subarray(4,36).toString("ascii");
+  if (/ftyp(?:heic|heix|hevc|hevx|mif1|msf1)/.test(brand)) {
+    const { default: convert } = await import("heic-convert");
+    bytes = Buffer.from(await convert({buffer:bytes,format:"JPEG",quality:0.9}));
+  }
   let quality = 80;
   let output = await sharp(bytes, { limitInputPixels: 40_000_000 })
     .rotate().resize(1200, 1200, { fit: "inside", withoutEnlargement: true })

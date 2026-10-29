@@ -1,118 +1,26 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowDown, ArrowRight, ArrowUpRight, Download, Menu, RotateCw, X } from "lucide-react";
-import { useGetSiteContent, type CmsArticle, type CmsDocument, type CmsPage, type CmsStaff, type SiteContentState } from "@workspace/api-client-react";
-import { footerGroups } from "../data/siteSitemap";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import { useGetSiteContent, type CmsArticle, type CmsPage, type CmsStaff } from "@workspace/api-client-react";
 import {
-  PRAXI_PARENT_PORTAL, articleHref, canonicalInternalPath, excerpt, fixText, formatDate, labelForPath,
-  mediaUrl, pageMap, publicAsset, publicPath, sortArticles, stripSourceTitle, usePageMeta,
+  articleHref, canonicalInternalPath, excerpt, faqJsonLd, fixText, formatDate, mediaUrl, pageMap, schoolJsonLd, sortArticles,
+  setContentRedirects, splitSections, stripSourceTitle, useJsonLd, usePageMeta, useRobots, type SiteContentExt,
 } from "../lib/cms";
+import { cleanFilenameCaptions, isAdministrative, isFilenameCaption, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
 import "./public-site.css";
 import "./cms.css";
-import { administrativeStaff, cleanFilenameCaptions, isAdministrative, isFilenameCaption, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
+import { Button, Eyebrow, MoreLink } from "./brand";
+import { DocumentsContext, MarkdownContent, useDocUrl } from "./markdown";
+import { FacultyGrid, Initials } from "./faculty-grid";
+import { FaqAccordion, HomePage, SectionBody } from "./home-page";
+import { CalendarPage, ContactPage, FaqPage, NewsIndex, PeoplePage, VisitPage } from "./special-pages";
+import { MobileActionBar, PraxiBox, QuietVisit, VisitBand } from "./site-chrome";
 
-/** Documents keyed by their original (immutable) link; url holds the current editable destination. */
-export const DocumentsContext = createContext<CmsDocument[]>([]);
-export function resolveDocument(href: string, docs: CmsDocument[]): string {
-  if (!href) return href;
-  const clean = href.trim();
-  const hit = docs.find((doc) => doc.id === clean)
-    ?? docs.find((doc) => doc.id === clean.replace(/^https?:\/\/(?:www\.)?coloradoheritage\.org/i, ""));
-  return hit?.url || href;
-}
-const useDocUrl = () => { const docs = useContext(DocumentsContext); return (href?: string) => (href ? mediaUrl(resolveDocument(href, docs)) : undefined); };
+export { DocumentsContext, resolveDocument, MarkdownContent } from "./markdown";
+export { FacultyGrid } from "./faculty-grid";
+export { PublicSiteHeader, PublicSiteFooter, AnnouncementBar, MobileActionBar } from "./site-chrome";
 
 const testId = (path: string) => path.replaceAll("/", "-").replace(/^-/, "");
-
-function resolveHref(href: string): string {
-  if (!href || href.startsWith("#") || /^(mailto:|tel:|javascript:)/i.test(href)) return href;
-  try {
-    const parsed = new URL(href, "https://www.coloradoheritage.org");
-    const isOfficial = parsed.hostname === "coloradoheritage.org" || parsed.hostname.endsWith(".coloradoheritage.org");
-    if (!isOfficial) return href;
-    return `${canonicalInternalPath(parsed.pathname)}${parsed.search}${parsed.hash}`;
-  } catch {
-    return href;
-  }
-}
-
-function LinkText({ href, children, testId: id }: { href: string; children: ReactNode; testId: string }) {
-  const docs = useContext(DocumentsContext);
-  const docHref = resolveDocument(href, docs);
-  const resolved = docHref !== href ? mediaUrl(docHref) : resolveHref(href);
-  if (/^https?:\/\//i.test(resolved)) return <a href={resolved} target="_blank" rel="noreferrer" data-testid={id}>{children}<ArrowUpRight aria-hidden="true" size={13} /></a>;
-  if (/^(mailto:|tel:|#)/i.test(resolved)) return <a href={resolved} data-testid={id}>{children}</a>;
-  return <Link href={resolved} data-testid={id}>{children}</Link>;
-}
-
-function inlineMarkdown(value: string, keyPrefix: string): ReactNode[] {
-  const tokens: ReactNode[] = [];
-  const pattern = /(!?)\[([^\]]*)\]\(([^)]+)\)|(\*\*|__)(.+?)\4|(\*|_)(.+?)\6|`([^`]+)`/g;
-  let cursor = 0;
-  let match: RegExpExecArray | null;
-  let index = 0;
-  while ((match = pattern.exec(value))) {
-    if (match.index > cursor) tokens.push(value.slice(cursor, match.index));
-    const key = `${keyPrefix}-${index++}`;
-    if (match[2] !== undefined) {
-      if (match[1]) tokens.push(<img key={key} src={mediaUrl(resolveHref(match[3]))} alt={match[2] || "Colorado Heritage"} loading="lazy" />);
-      else tokens.push(<LinkText key={key} href={match[3]} testId={`link-content-${index}`}>{match[2]}</LinkText>);
-    } else if (match[4]) tokens.push(<strong key={key}>{match[5]}</strong>);
-    else if (match[6]) tokens.push(<em key={key}>{match[7]}</em>);
-    else if (match[8]) tokens.push(<code key={key}>{match[8]}</code>);
-    cursor = pattern.lastIndex;
-  }
-  if (cursor < value.length) tokens.push(value.slice(cursor));
-  return tokens;
-}
-
-export function MarkdownContent({ markdown }: { markdown: string }) {
-  const cleaned = fixText(cleanFilenameCaptions(markdown))
-    .replace(/\r/g, "")
-    .split("\n")
-    .filter((line) => !/^(School year office hours begin|o Independent School|o See our latest Blog|0items|\$0|Click below to view the Colorado Heritage You Tube Channel|0 Likes|Share)/.test(line.trim()))
-    .join("\n");
-  const blocks: ReactNode[] = [];
-  let paragraph: string[] = [];
-  let list: string[] = [];
-  let key = 0;
-  const flushParagraph = () => {
-    const text = paragraph.join(" ").trim();
-    if (text) blocks.push(<p key={`p-${key++}`}>{inlineMarkdown(text, `inline-${key}`)}</p>);
-    paragraph = [];
-  };
-  const flushList = () => {
-    if (!list.length) return;
-    blocks.push(<ul key={`ul-${key++}`}>{list.map((item, i) => <li key={i}>{inlineMarkdown(item, `li-${key}-${i}`)}</li>)}</ul>);
-    list = [];
-  };
-  cleaned.split("\n").forEach((raw) => {
-    const line = raw.trim();
-    if (!line) { flushParagraph(); flushList(); return; }
-    if (/^#{1,6}\s/.test(line)) {
-      flushParagraph(); flushList();
-      const level = line.match(/^#+/)?.[0].length || 2;
-      const children = inlineMarkdown(line.replace(/^#{1,6}\s*/, ""), `heading-${key}`);
-      blocks.push(level <= 2 ? <h2 key={`h-${key++}`}>{children}</h2> : <h3 key={`h-${key++}`}>{children}</h3>);
-      return;
-    }
-    if (/^[-*]\s/.test(line)) { flushParagraph(); list.push(line.replace(/^[-*]\s+/, "")); return; }
-    if (/^!\[/.test(line) || /^\[!\[/.test(line)) {
-      flushParagraph(); flushList();
-      blocks.push(<p className="chess-inline-image" key={`img-${key++}`}>{inlineMarkdown(line, `image-${key}`)}</p>);
-      return;
-    }
-    if (/^_{1,2}.+_{1,2}$/.test(line)) {
-      flushParagraph(); flushList();
-      blocks.push(<blockquote key={`quote-${key++}`}>{inlineMarkdown(line.replace(/^_+|_+$/g, ""), `quote-${key}`)}</blockquote>);
-      return;
-    }
-    paragraph.push(line);
-  });
-  flushParagraph();
-  flushList();
-  return <div className="chess-prose">{blocks}</div>;
-}
 
 /* ---------- Loading / error ---------- */
 
@@ -124,220 +32,154 @@ function PageSkeleton() {
 }
 
 function LoadError({ onRetry }: { onRetry: () => void }) {
-  return <section className="chess-not-found cms-load-error" role="alert">
-    <span className="chess-eyebrow">Connection problem</span>
+  return <section className="cb-page cb-error" role="alert">
+    <Eyebrow>Connection problem</Eyebrow>
     <h1>This page could not be loaded.</h1>
-    <p>We could not reach the Colorado Heritage website content right now. Please check your connection and try again, or call the school office.</p>
-    <button type="button" className="chess-button" onClick={onRetry} data-testid="button-retry-content"><RotateCw size={15} aria-hidden="true" /> Try again</button>
+    <p>We could not reach the website content right now. Please check your connection and try again, or call the office at (970) 346-0099.</p>
+    <button type="button" className="cb-btn cb-btn-primary" onClick={onRetry} data-testid="button-retry-content"><ArrowPathIcon className="cb-btn-icon" aria-hidden="true" /><span>Try again</span></button>
   </section>;
 }
 
-/* ---------- Page types ---------- */
+/* ---------- Generic pages ---------- */
 
-function ArchiveIndex({ type, articles }: { type: "news" | "events"; articles: CmsArticle[] }) {
-  const [visibleCount, setVisibleCount] = useState(12);
-  const visible = sortArticles(articles.filter((a) => !a.archived));
-  const heading = type === "news" ? "News & Blog" : "Calendar & Events";
-  return <div className="chess-archive-layout">
-    <header className="chess-page-intro">
-      <span className="chess-eyebrow">From the CHESS community</span>
-      <h1>{heading}</h1>
-      <p>{type === "news" ? "Notes, articles, and encouragement from the Colorado Heritage community." : "Upcoming gatherings and important dates for Colorado Heritage families."}</p>
-      {type === "events" && <Link href="/families/school-calendar" className="chess-button cms-calendar-cta" data-testid="link-events-calendar">View the school calendar <ArrowRight size={15} aria-hidden="true" /></Link>}
-    </header>
-    {visible.length === 0
-      ? <div className="cms-empty"><strong>Nothing posted yet.</strong><p>{type === "news" ? "New stories will appear here." : "New events will appear here. In the meantime, see the school calendar."}</p></div>
-      : <div className="chess-archive-grid">
-        {visible.slice(0, visibleCount).map((entry, index) => {
-          const href = articleHref(entry, type);
-          return <article className="chess-archive-card" key={`${entry.path}-${index}`} data-testid={`archive-entry-${type}-${index}`}>
-            <div className="chess-card-meta">{type === "news" ? "Journal" : "Event"}{entry.date && <><span aria-hidden="true">/</span>{formatDate(entry.date)}</>}</div>
-            <h2><Link href={href} data-testid={`link-${type}-entry-${index}`}>{fixText(entry.title)}</Link></h2>
-            <p>{excerpt(entry.markdown) || "Read the full update from Colorado Heritage."}</p>
-            <Link className="chess-read-link" href={href} aria-label={`Open ${fixText(entry.title)}`} data-testid={`read-${type}-entry-${index}`}>{type === "news" ? "Read story" : "View event"} <ArrowRight size={15} aria-hidden="true" /></Link>
-          </article>;
-        })}
-      </div>}
-    {visibleCount < visible.length && <button className="chess-load-more" type="button" onClick={() => setVisibleCount((c) => c + 12)} data-testid={`button-load-more-${type}`}>Show more <ArrowDown size={15} aria-hidden="true" /></button>}
-  </div>;
-}
-
-function SitemapPage({ content }: { content: SiteContentState }) {
+function SitemapPage({ content }: { content: SiteContentExt }) {
   const groups = useMemo(() => {
+    const names: Record<string, string> = { about: "About", programs: "Programs", admissions: "Admissions", parents: "Parents", news: "News", contact: "Contact" };
     const bucket = new Map<string, CmsPage[]>();
-    content.pages.forEach((page) => {
+    content.pages.filter((p) => !p.archived).forEach((page) => {
       const top = page.path.split("/").filter(Boolean)[0] || "home";
-      bucket.set(top, [...(bucket.get(top) ?? []), page]);
+      const label = names[top] ?? "More";
+      bucket.set(label, [...(bucket.get(label) ?? []), page]);
     });
-    const names: Record<string, string> = { programs: "Programs", families: "Parents & families", about: "About CHESS" };
-    return [...bucket.entries()].map(([key, pages]) => ({ label: names[key] ?? "Community", key, pages })).reduce<{ label: string; pages: CmsPage[] }[]>((acc, g) => {
-      const existing = acc.find((a) => a.label === g.label);
-      if (existing) existing.pages.push(...g.pages); else acc.push({ label: g.label, pages: [...g.pages] });
-      return acc;
-    }, []);
+    return [...bucket.entries()];
   }, [content.pages]);
-  return <section className="chess-sitemap-page">
-    <header className="chess-page-intro"><span className="chess-eyebrow">Find your way</span><h1>Website sitemap</h1><p>Every Colorado Heritage page, by topic.</p></header>
-    <div className="chess-sitemap-grid">{groups.map((group) => <section key={group.label} className="chess-sitemap-group">
-      <h2>{group.label}</h2><ul>{group.pages.map((page) => <li key={page.path}>{page.externalUrl
-        ? <a href={page.externalUrl} target="_blank" rel="noopener noreferrer" data-testid={`sitemap-link-${testId(page.path)}`}>{fixText(page.label)} <ArrowUpRight size={12} aria-hidden="true" /></a>
+  return <article className="cb-page cb-page-wide">
+    <header className="cb-page-head"><Eyebrow>Find your way</Eyebrow><h1>Website Sitemap</h1><p>Every CHESS page, by topic.</p></header>
+    <div className="cb-sitemap">{groups.map(([label, pages]) => <section key={label}>
+      <h2>{label}</h2><ul>{pages.map((page) => <li key={page.path}>{page.externalUrl
+        ? <a href={page.externalUrl} target="_blank" rel="noopener noreferrer" data-testid={`sitemap-link-${testId(page.path)}`}>{fixText(page.label)}</a>
         : <Link href={page.path} data-testid={`sitemap-link-${testId(page.path)}`}>{fixText(page.label)}</Link>}</li>)}</ul>
     </section>)}
-      {content.staff.length > 0 && <section className="chess-sitemap-group"><h2>Faculty &amp; staff</h2><ul>{content.staff.map((s) => <li key={s.slug}><Link href={staffProfilePath(s)}>{s.name}</Link></li>)}</ul></section>}
+      <section><h2>Our People</h2><ul>{content.staff.map((s) => <li key={s.slug}><Link href={staffProfilePath(s)}>{s.name}</Link></li>)}</ul></section>
+      <section><h2>Help</h2><ul><li><Link href="/faq">Frequently Asked Questions</Link></li><li><Link href="/news?archive=1">News &amp; Events Archive</Link></li></ul></section>
     </div>
-    <div className="chess-sitemap-archives">
-      {[{ label: "News & blog", type: "news" as const, entries: content.news }, { label: "Events", type: "events" as const, entries: content.events }].map((group) => {
-        const list = sortArticles(group.entries.filter((e) => !e.archived));
-        return <details key={group.type} className="chess-sitemap-archive">
-          <summary>{group.label}<span>{list.length} pages</span></summary>
-          <ul>{list.map((entry) => <li key={entry.path}><Link href={articleHref(entry, group.type)}>{fixText(entry.title)}</Link></li>)}</ul>
-        </details>;
-      })}
-    </div>
-  </section>;
+  </article>;
 }
 
-function OverviewPage({ page, content }: { page: CmsPage; content: SiteContentState }) {
+function OverviewPage({ page, content }: { page: CmsPage; content: SiteContentExt }) {
   const pages = pageMap(content);
-  const navChildren = content.navigation.find((n) => n.path === page.path)?.children ?? [];
-  const directChildren = content.pages.filter((c) => c.path.startsWith(`${page.path}/`) && !c.path.slice(page.path.length + 1).includes("/")).map((c) => c.path);
-  const childPaths = [...new Set([...navChildren, ...directChildren])].filter((p) => pages.has(p));
+  const children = content.pages.filter((c) => c.path.startsWith(`${page.path}/`) && !c.path.slice(page.path.length + 1).includes("/") && !c.archived);
   const body = stripSourceTitle(page.markdown);
-  return <div className="chess-overview">
-    <header className="chess-page-intro">
-      <span className="chess-eyebrow">Colorado Heritage Education School System</span>
-      <h1>{fixText(page.label)}</h1>
-      <p>{fixText(page.description)}</p>
-    </header>
-    <div className="chess-overview-content">
-      <div className="chess-overview-note">
-        <span className="chess-rule-mark" aria-hidden="true">CHESS</span>
-        {body ? <MarkdownContent markdown={body} /> : <p>Since 1991, Colorado Heritage has come alongside homeschooling families with encouragement and support rooted in Christian education.</p>}
-      </div>
-      <div className="chess-overview-links">
-        {childPaths.map((path, index) => {
-          const child = pages.get(path)!;
-          return <Link href={child.path} className="chess-overview-link" key={child.path} data-testid={`overview-link-${testId(child.path)}`}>
-            <span className="chess-link-number">{String(index + 1).padStart(2, "0")}</span>
-            <span><strong>{fixText(child.label)}</strong><small>{fixText(child.description)}</small></span>
-            <ArrowRight aria-hidden="true" size={18} />
-          </Link>;
-        })}
-      </div>
-    </div>
-  </div>;
-}
-
-function Initials({ name }: { name: string }) {
-  const letters = name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-  return <span className="cms-initials" aria-hidden="true">{letters || "CH"}</span>;
-}
-
-export function FacultyGrid({ staff }: { staff: CmsStaff[] }) {
-  if (!staff.length) return <div className="cms-empty"><strong>Faculty profiles are coming soon.</strong><p>Contact the office to learn about our teachers.</p></div>;
-  return <ul className="cms-faculty-grid" data-testid="faculty-grid">
-    {staff.map((person) => <li key={person.slug}>
-      <Link href={staffProfilePath(person)} className="cms-faculty-card" data-testid={`faculty-card-${person.slug}`}>
-        <span className="cms-faculty-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || person.name} style={{ objectPosition: portraitPosition(person) }} loading="lazy" /> : <Initials name={person.name} />}</span>
-        <strong>{person.name}</strong>
-        <small>{fixText(person.role)}</small>
+  const program = page.path === "/programs";
+  return <article className="cb-page cb-page-wide">
+    <header className="cb-page-head"><Eyebrow>{program ? "Programs" : "CHESS"}</Eyebrow><h1>{fixText(page.label)}</h1><p>{fixText(page.description)}</p></header>
+    {body.trim() && <div className="cb-prose-wrap"><SectionBody body={body} /></div>}
+    {children.length > 0 && <ul className="cb-overview-links">{children.map((child, i) => <li key={child.path}>
+      <Link href={child.path} className="cb-overview-link" data-testid={`overview-link-${testId(child.path)}`}>
+        <span className="cb-overview-num">{String(i + 1).padStart(2, "0")}</span>
+        <span><strong>{fixText(pages.get(child.path)?.label ?? child.label)}</strong><small>{fixText(child.description)}</small></span>
+        <span aria-hidden="true" className="cb-overview-arrow">→</span>
       </Link>
-    </li>)}
-  </ul>;
+    </li>)}</ul>}
+    {page.path.startsWith("/parents") ? <PraxiBox /> : <VisitBand title="Come see CHESS for yourself" text="Schedule a visit with our office to ask questions and see the school." />}
+  </article>;
+}
+
+function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt }) {
+  const path = page.path;
+  let markdown = cleanFilenameCaptions(stripSourceTitle(page.markdown));
+  if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
+  const heroImage = markdown.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/m);
+  if (heroImage) markdown = markdown.replace(heroImage[0], "");
+  const docUrl = useDocUrl();
+  const resourceUrl = page.externalUrl || docUrl(page.documentPath);
+  const isProgram = path.startsWith("/programs/");
+  const isParents = path.startsWith("/parents");
+  const isTuition = path === "/admissions/tuition";
+  const crumbs = path.split("/").filter(Boolean).slice(0, -1);
+  const costFaqs = (content.faqs ?? []).filter((f) => /cost|tuition|pay|scholarship|fee|price|afford/i.test(f.question));
+  const tuitionFaqs = isTuition ? (costFaqs.length ? costFaqs : content.faqs ?? []) : [];
+  useJsonLd("faq", isTuition ? faqJsonLd(tuitionFaqs) : null);
+
+  // Programs and tuition get a slim CTA after the first section.
+  const sections = splitSections(markdown);
+  const midCta = (isProgram || isTuition) && sections.length > 2;
+  const firstChunk = midCta ? `${sections[0].title ? `## ${sections[0].title}\n` : ""}${sections[0].body}` : markdown;
+  const rest = midCta ? sections.slice(1).map((s) => `${s.title ? `## ${s.title}\n` : ""}${s.body}`).join("\n") : "";
+
+  return <article className="cb-page" data-testid={`page-${testId(path)}`}>
+    {crumbs.length > 0 && <nav className="cb-crumbs" aria-label="Breadcrumb"><Link href="/">Home</Link>{crumbs.map((c, i) => { const p = `/${crumbs.slice(0, i + 1).join("/")}`; return <span key={p}><span aria-hidden="true">/</span><Link href={p}>{fixText(content.pages.find((x) => x.path === p)?.label ?? c)}</Link></span>; })}</nav>}
+    <header className="cb-page-head">
+      <h1>{fixText(page.label)}</h1>
+      {page.description && <p>{fixText(page.description)}</p>}
+    </header>
+    {heroImage && <figure className="cb-page-image"><img src={mediaUrl(heroImage[2])} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : ""} /></figure>}
+    {page.kind === "protected" && !markdown.trim()
+      ? <PraxiBox />
+      : markdown.trim()
+        ? <div className="cb-prose-wrap">
+          <SectionBody body={firstChunk} />
+          {midCta && (isTuition
+            ? <aside className="cb-quiet-cta"><p>Questions about cost? Call us. We are glad to walk through it with you.</p><a href="tel:+19703460099">(970) 346-0099</a></aside>
+            : <QuietVisit text={`See if the ${fixText(page.label)} fits your family.`} />)}
+          {rest && <SectionBody body={rest} />}
+        </div>
+        : <p className="cb-muted">{fixText(page.description)}</p>}
+    {resourceUrl && <p className="cb-btn-row"><Button href={resourceUrl} variant="secondary" testId={`link-open-resource-${testId(path)}`}>{page.externalUrl ? "Open" : "Download"} {fixText(page.label)}</Button></p>}
+    {isTuition && tuitionFaqs.length > 0 && <section className="cb-page-section"><h2>Questions about cost</h2><FaqAccordion faqs={tuitionFaqs} /></section>}
+    {isParents ? <PraxiBox /> : isProgram || isTuition || path.startsWith("/admissions") || path.startsWith("/about")
+      ? <VisitBand title={isProgram ? `See the ${fixText(page.label)} in person` : "Come see CHESS for yourself"} text="Schedule a visit with our office to ask questions and see the school." />
+      : null}
+  </article>;
 }
 
 function StaffBio({ person }: { person: CmsStaff }) {
   const administrative = isAdministrative(person);
-  const directoryPath = administrative ? "/about/staff" : "/about/faculty";
-  return <article className="chess-content-page cms-bio">
-    <nav className="cms-crumbs" aria-label="Breadcrumb"><Link href="/about">About</Link><span>/</span><Link href={directoryPath}>{administrative ? "Administrative Staff" : "Our Faculty"}</Link></nav>
+  return <article className="cb-page cms-bio">
+    <nav className="cb-crumbs" aria-label="Breadcrumb"><Link href="/about">About</Link><span aria-hidden="true">/</span><Link href="/about/our-people">Our People</Link></nav>
     <div className="cms-bio-layout">
-      <div className="cms-faculty-photo cms-bio-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || person.name} style={{ objectPosition: portraitPosition(person) }} /> : <Initials name={person.name} />}</div>
+      <div className="cms-faculty-photo cms-bio-photo">{person.photo ? <img src={mediaUrl(person.photo)} alt={person.alt || `Portrait of ${person.name}`} style={{ objectPosition: portraitPosition(person) }} /> : <Initials name={person.name} />}</div>
       <div>
-        <span className="chess-eyebrow">{fixText(person.role)}</span>
+        <Eyebrow>{fixText(person.role)}</Eyebrow>
         <h1 className="cms-bio-name">{person.name}</h1>
-        {person.bio ? <MarkdownContent markdown={person.bio} /> : <p className="cms-muted">A full biography is coming soon.</p>}
+        {person.bio ? <MarkdownContent markdown={person.bio} /> : <p className="cb-muted">A full biography is coming soon.</p>}
+        <p><MoreLink href={`/about/our-people#${administrative ? "administration" : "faculty"}`} testId="link-back-people">All of our people</MoreLink></p>
       </div>
     </div>
-    <div className="chess-bottom-nav"><Link href={directoryPath} data-testid={administrative ? "link-back-staff" : "link-back-faculty"}>{administrative ? "All staff" : "All faculty"} <ArrowRight size={15} aria-hidden="true" /></Link></div>
-  </article>;
-}
-
-function CalendarPage({ page }: { page: CmsPage }) {
-  const docUrl = useDocUrl();
-  const pdf = docUrl(page.documentPath) || page.externalUrl;
-  return <article className="chess-content-page cms-calendar">
-    <header className="chess-page-intro chess-content-heading">
-      <span className="chess-eyebrow">Parents / Calendar &amp; Events</span>
-      <h1>{fixText(page.label)}</h1>
-      <p>{fixText(page.description)}</p>
-    </header>
-    {page.markdown && <MarkdownContent markdown={stripSourceTitle(page.markdown)} />}
-    {pdf
-      ? <>
-        <div className="cms-pdf-actions">
-          <a className="chess-button" href={pdf} target="_blank" rel="noopener noreferrer" data-testid="link-calendar-pdf"><Download size={15} aria-hidden="true" /> Open or download PDF</a>
-          <Link href="/events" className="chess-read-link">Upcoming events <ArrowRight size={15} aria-hidden="true" /></Link>
-        </div>
-        <object className="cms-pdf-frame" data={`${pdf}#view=FitH`} type="application/pdf" aria-label={`${page.label} PDF`}>
-          <p>Your browser cannot show the calendar inline. <a href={pdf}>Open the calendar PDF</a>.</p>
-        </object>
-      </>
-      : <div className="cms-empty"><strong>The calendar has not been uploaded yet.</strong><p>Please contact the school office for current dates.</p></div>}
-  </article>;
-}
-
-function ContentPage({ page, content }: { page: CmsPage; content: SiteContentState }) {
-  const isAdministrativeDirectory = page.path === "/about/staff";
-  const isFaculty = page.path === "/about/faculty" || isAdministrativeDirectory;
-  let markdown = cleanFilenameCaptions(stripSourceTitle(page.markdown));
-  if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
-  const heroImage = isFaculty ? null : markdown.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-  if (heroImage) markdown = markdown.replace(heroImage[0], "");
-  if (isFaculty) {
-    // Imported biographies now live on the individual profile pages, not twice on the directory.
-    markdown = /^###\s+\**(?:Miss|Mrs?\.|Pastor)|\*\*(?:Principal|Admissions Coordinator|Receptionist)/im.test(markdown) ? "" : markdown.replace(/!\[[^\]]*\]\([^)]+\)/g, "");
-  }
-  const docUrl = useDocUrl();
-  const resourceUrl = page.externalUrl || docUrl(page.documentPath);
-  return <article className={`chess-content-page${isFaculty ? " cms-faculty-page" : ""}`}>
-    <header className="chess-page-intro chess-content-heading">
-      <span className="chess-eyebrow">{page.path.split("/").filter(Boolean).slice(0, -1).join(" / ") || "Colorado Heritage"}</span>
-      <h1>{fixText(page.label)}</h1>
-      {heroImage && <figure className="chess-page-image"><img src={mediaUrl(heroImage[2])} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : `${page.label} at Colorado Heritage`} />{heroImage[1] && !isFilenameCaption(heroImage[1]) && <figcaption>{fixText(heroImage[1])}</figcaption>}</figure>}
-      {(!markdown || isFaculty) && <p>{fixText(page.description)}</p>}
-    </header>
-    {isFaculty && <FacultyGrid staff={isAdministrativeDirectory ? administrativeStaff(content.staff) : content.staff} />}
-    {page.kind === "protected" && !markdown.trim()
-      ? <section className="chess-content-placeholder"><p>This resource is intended for current CHESS families. Contact the CHESS office for help accessing the current resource.</p><Link className="chess-read-link" href="/contact" data-testid="link-protected-resource-contact">Contact the CHESS office <ArrowRight size={15} aria-hidden="true" /></Link></section>
-      : markdown.trim()
-        ? <MarkdownContent markdown={markdown} />
-        : !isFaculty && <section className="chess-content-placeholder"><p>{fixText(page.description)}</p></section>}
-    {resourceUrl && <div className="chess-page-cta"><a className="chess-button" href={resourceUrl} target="_blank" rel="noopener noreferrer" data-testid={`link-open-resource-${testId(page.path)}`}>{page.externalUrl ? "Open" : "View"} {fixText(page.label)} <ArrowUpRight size={15} aria-hidden="true" /></a></div>}
-    <div className="chess-bottom-nav"><Link href="/" data-testid="link-back-home">Colorado Heritage home <ArrowRight size={15} aria-hidden="true" /></Link></div>
+    <VisitBand title="Meet our teachers in person" text="Schedule a visit with our office to ask questions." />
   </article>;
 }
 
 function ArchiveDetail({ entry, kind }: { entry: CmsArticle; kind: "news" | "events" }) {
-  return <article className="chess-content-page chess-archive-detail">
-    <header className="chess-page-intro chess-content-heading">
-      <span className="chess-eyebrow">{kind === "news" ? "News & Blog" : "Calendar & Events"}{entry.date && ` / ${formatDate(entry.date)}`}</span>
+  useRobots(entry.archived);
+  const body = stripSourceTitle(entry.markdown).replace(new RegExp(`^#\\s+${entry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "m"), "");
+  return <article className="cb-page" data-testid="page-article">
+    <nav className="cb-crumbs" aria-label="Breadcrumb"><Link href={kind === "news" ? "/news" : "/parents/calendar"}>{kind === "news" ? "News & Blog" : "Calendar & Events"}</Link></nav>
+    <header className="cb-page-head">
+      {entry.archived && <span className="cb-archived-tag">Archived — details may no longer apply</span>}
       <h1>{fixText(entry.title)}</h1>
+      {entry.date && <p className="cb-muted">{formatDate(entry.date)}</p>}
     </header>
-    <MarkdownContent markdown={stripSourceTitle(entry.markdown).replace(new RegExp(`^#\\s+${entry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "m"), "")} />
-    <div className="chess-bottom-nav"><Link href={`/${kind}`} data-testid={`link-back-${kind}`}>Back to {kind === "news" ? "News & Blog" : "Calendar & Events"} <ArrowRight size={15} aria-hidden="true" /></Link></div>
+    <MarkdownContent markdown={body} />
+    {kind === "news"
+      ? <QuietVisit text="Curious about CHESS? Schedule a visit with our office." />
+      : <p><MoreLink href="/parents/calendar">All upcoming events</MoreLink></p>}
   </article>;
 }
 
+/* ---------- Routing ---------- */
+
 type Resolved =
-  | { type: "sitemap" } | { type: "index"; kind: "news" | "events" }
+  | { type: "home" } | { type: "sitemap" } | { type: "news" } | { type: "faq" }
   | { type: "article"; entry: CmsArticle; kind: "news" | "events" }
   | { type: "staff"; person: CmsStaff } | { type: "page"; page: CmsPage } | { type: "missing" };
 
-function resolve(path: string, content: SiteContentState): Resolved {
+function resolve(path: string, content: SiteContentExt): Resolved {
+  if (path === "/") return { type: "home" };
   if (path === "/sitemap") return { type: "sitemap" };
-  if (path === "/news" || path === "/events") return { type: "index", kind: path.slice(1) as "news" | "events" };
-  const staffMatch = path.match(/^\/about\/(?:faculty|staff)\/([^/]+)$/);
+  if (path === "/news") return { type: "news" };
+  if (path === "/faq") return { type: "faq" };
+  const staffMatch = path.match(/^\/about\/(?:our-people|faculty|staff)\/([^/]+)$/);
   if (staffMatch) {
     const person = content.staff.find((s) => s.slug === staffMatch[1]);
     return person ? { type: "staff", person } : { type: "missing" };
@@ -351,116 +193,68 @@ function resolve(path: string, content: SiteContentState): Resolved {
   return { type: "missing" };
 }
 
+const DEFAULT_DESC = "CHESS is a private Christian K–12 school in Greeley, Colorado that has partnered with homeschooling families since 1991.";
+
 export function PublicSitePages() {
   const [location] = useLocation();
   const path = decodeURI(location.split("?")[0].replace(/\/+$/, "") || "/");
   const query = useGetSiteContent();
-  const resolved = query.data ? resolve(path, query.data) : null;
+  const content = query.data as SiteContentExt | undefined;
+  if (content) setContentRedirects(content.redirects);
+  const resolved = content ? resolve(path, content) : null;
 
-  let title = "Colorado Heritage";
-  let description = "Colorado Heritage Education School System, a private Christian school serving homeschooling families in Greeley, CO since 1991.";
-  if (resolved?.type === "page") { title = resolved.page.title || `${resolved.page.label} | Colorado Heritage`; description = resolved.page.description || description; }
-  else if (resolved?.type === "article") { title = `${resolved.entry.title} | Colorado Heritage`; description = excerpt(resolved.entry.markdown) || description; }
-  else if (resolved?.type === "staff") { title = `${resolved.person.name}, ${resolved.person.role} | Colorado Heritage`; description = excerpt(resolved.person.bio) || `${resolved.person.name} serves Colorado Heritage as ${resolved.person.role}.`; }
-  else if (resolved?.type === "index") { title = resolved.kind === "news" ? "News & Blog | Colorado Heritage" : "Calendar & Events | Colorado Heritage"; }
-  else if (resolved?.type === "sitemap") { title = "Website Sitemap | Colorado Heritage"; }
-  else if (resolved?.type === "missing") { title = "Page not found | Colorado Heritage"; }
+  let title = "Colorado Heritage Education School System | CHESS";
+  let description = DEFAULT_DESC;
+  if (resolved?.type === "home") { title = content?.home?.title || "Christian Homeschool Partnership in Greeley, CO | CHESS"; description = (content?.home as { metaDescription?: string } | undefined)?.metaDescription || content?.home?.description || description; }
+  else if (resolved?.type === "page") { title = resolved.page.title || `${resolved.page.label} | CHESS`; description = (resolved.page as { metaDescription?: string }).metaDescription || resolved.page.description || description; }
+  else if (resolved?.type === "article") { title = `${resolved.entry.title} | CHESS`; description = excerpt(resolved.entry.markdown) || description; }
+  else if (resolved?.type === "staff") { title = `${resolved.person.name}, ${resolved.person.role} | CHESS`; description = excerpt(resolved.person.bio) || `${resolved.person.name} serves CHESS as ${resolved.person.role}.`; }
+  else if (resolved?.type === "news") title = "News & Blog | CHESS";
+  else if (resolved?.type === "faq") { title = "Frequently Asked Questions | CHESS"; description = "Answers about CHESS programs, tuition, the Diploma Program, and how to start."; }
+  else if (resolved?.type === "sitemap") title = "Website Sitemap | CHESS";
+  else if (resolved?.type === "missing") title = "Page not found | CHESS";
   usePageMeta(title, description, resolved?.type === "staff" ? staffProfilePath(resolved.person) : path);
+  useJsonLd("school", schoolJsonLd);
+  useJsonLd("faq-page", resolved && (resolved.type === "home" || resolved.type === "faq") && content
+    ? faqJsonLd(resolved.type === "home" ? (content.faqs ?? []).filter((f) => f.showOnHome) : content.faqs ?? [])
+    : null);
+  const upcoming = resolved?.type === "page" && resolved.page.path === "/parents/calendar" && content
+    ? sortArticles(content.events.filter((e) => !e.archived && e.date >= new Date().toISOString().slice(0, 10))).slice(0, 10)
+    : [];
+  useJsonLd("events", upcoming.length ? upcoming.map((e) => ({
+    "@context": "https://schema.org", "@type": "Event", name: e.title, startDate: e.date, eventStatus: "https://schema.org/EventScheduled",
+    location: { "@type": "Place", name: "Colorado Heritage Education School System", address: schoolJsonLd.address },
+  })) : null);
+  useRobots(resolved?.type === "missing");
 
-  if (query.isPending) return <main className="chess-public chess-main"><PageSkeleton /></main>;
-  if (query.isError || !query.data || !resolved) return <main className="chess-public chess-main"><LoadError onRetry={() => query.refetch()} /></main>;
-  const content = query.data;
+  if (query.isPending) return <main className="cb-main" id="main"><PageSkeleton /><MobileActionBar /></main>;
+  if (query.isError || !content || !resolved) return <main className="cb-main" id="main"><LoadError onRetry={() => query.refetch()} /></main>;
 
   let body: ReactNode;
-  let extraClass = "";
   switch (resolved.type) {
+    case "home": body = <HomePage content={content} />; break;
     case "sitemap": body = <SitemapPage content={content} />; break;
-    case "index": body = <ArchiveIndex type={resolved.kind} articles={content[resolved.kind]} />; break;
+    case "news": body = <NewsIndex content={content} />; break;
+    case "faq": body = <FaqPage content={content} />; break;
     case "article": body = <ArchiveDetail entry={resolved.entry} kind={resolved.kind} />; break;
     case "staff": body = <StaffBio person={resolved.person} />; break;
-    case "page":
-      if (resolved.page.kind === "overview") { body = <OverviewPage page={resolved.page} content={content} />; extraClass = "chess-overview-main"; }
-      else if (resolved.page.path === "/families/school-calendar") body = <CalendarPage page={resolved.page} />;
-      else body = <ContentPage page={resolved.page} content={content} />;
+    case "page": {
+      const p = resolved.page;
+      if (p.path === "/contact") body = <ContactPage page={p} content={content} />;
+      else if (p.path === "/admissions/visit") body = <VisitPage page={p} content={content} />;
+      else if (p.path === "/about/our-people") body = <PeoplePage page={p} content={content} />;
+      else if (p.path === "/parents/calendar" || p.path === "/families/school-calendar") body = <CalendarPage page={p} content={content} />;
+      else if (p.kind === "overview") body = <OverviewPage page={p} content={content} />;
+      else body = <ContentPage page={p} content={content} />;
       break;
+    }
     default:
-      body = <section className="chess-not-found"><span className="chess-eyebrow">A wrong turn?</span><h1>We couldn’t find that page.</h1><p>The page may have moved. Use the sitemap to find your way around Colorado Heritage.</p><Link href="/sitemap" className="chess-button" data-testid="link-not-found-sitemap">Browse the sitemap <ArrowRight size={16} aria-hidden="true" /></Link></section>;
+      body = <section className="cb-page cb-error"><Eyebrow>A wrong turn?</Eyebrow><h1>We couldn’t find that page.</h1><p>The page may have moved. Try the sitemap, or call the office and we will help.</p><p className="cb-btn-row"><Button href="/sitemap" arrow testId="link-not-found-sitemap">Browse the sitemap</Button><Button href="/" variant="secondary">CHESS home</Button></p></section>;
   }
-  return <DocumentsContext.Provider value={content.documents}><main className={`chess-public chess-main ${extraClass}`}>{body}</main></DocumentsContext.Provider>;
+  return <DocumentsContext.Provider value={content.documents}>
+    <main className={`cb-main ${resolved.type === "home" ? "is-home" : ""}`} id="main">{body}</main>
+    <MobileActionBar />
+  </DocumentsContext.Provider>;
 }
 
-/* ---------- Header / footer ---------- */
-
-const NAV_ORDER = ["About", "Programs", "Admissions", "Parents", "News", "Contact"];
-
-export function PublicSiteHeader({ editing = false }: { editing?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [location] = useLocation();
-  const query = useGetSiteContent();
-  useEffect(() => setOpen(false), [location]);
-  const pages = pageMap(query.data);
-  const docs = query.data?.documents ?? [];
-  const nav = (query.data?.navigation ?? []).slice(0, 6);
-  const guard = (event: React.MouseEvent) => { if (editing) event.preventDefault(); };
-  const childLink = (path: string) => {
-    const page = pages.get(path);
-    const label = labelForPath(path, pages);
-    if (page?.documentPath && page.kind !== "overview" && path !== "/families/school-calendar" && !page.markdown.trim()) return <a href={mediaUrl(resolveDocument(page.documentPath, docs))} key={path} target="_blank" rel="noopener noreferrer" data-testid={`nav-link-${testId(path)}`} onClick={guard}>{label}</a>;
-    if (page?.externalUrl) return <a href={page.externalUrl} key={path} target="_blank" rel="noopener noreferrer" data-testid={`nav-link-${testId(path)}`} onClick={guard}>{label}<ArrowUpRight size={12} aria-hidden="true" /></a>;
-    return <a href={publicPath(path)} key={path} data-testid={`nav-link-${testId(path)}`} onClick={guard}>{label}</a>;
-  };
-  return <header className="chess-site-header">
-    <div className="chess-header-inner">
-      <a href={publicPath("/")} className="chess-brand" aria-label="Colorado Heritage home" data-testid="link-site-brand" onClick={guard}>
-        <img src={publicAsset("/images/chess-seal.png")} alt="Colorado Heritage Education School System seal" />
-        <span className="chess-brand-copy"><strong>Colorado Heritage</strong><small>Education School System</small></span>
-      </a>
-      <button className="chess-menu-toggle" type="button" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} aria-controls="chess-main-navigation" onClick={() => setOpen((s) => !s)} data-testid="button-mobile-navigation">
-        {open ? <X size={22} /> : <Menu size={22} />}<span>{open ? "Close" : "Menu"}</span>
-      </button>
-      <nav id="chess-main-navigation" className={`chess-navigation ${open ? "is-open" : ""}`} aria-label="Main navigation">
-        {query.isError && <span className="cms-nav-error" role="alert">Menu unavailable. <button type="button" onClick={() => query.refetch()}>Retry</button></span>}
-        {query.isPending && NAV_ORDER.map((label) => <span key={label} className="cms-nav-skel" aria-hidden="true" />)}
-        {nav.map((item) => item.children.length
-          ? <details className="chess-nav-dropdown" key={`${item.label}-${item.path}`} data-testid={`nav-dropdown-${item.label.toLowerCase().replaceAll(" ", "-")}`}>
-            <summary aria-label={`${item.label} pages`}>{fixText(item.label)}<ArrowDown size={12} aria-hidden="true" /></summary>
-            <div className="chess-dropdown-panel">
-              <a href={publicPath(item.path)} className="chess-dropdown-overview" data-testid={`nav-link-${item.label.toLowerCase()}-overview`} onClick={guard}>{labelForPath(item.path, pages)}<ArrowRight size={14} aria-hidden="true" /></a>
-              {item.children.filter((p) => p !== item.path).map(childLink)}
-            </div>
-          </details>
-          : <a href={publicPath(item.path)} key={`${item.label}-${item.path}`} data-testid={`nav-link-${item.label.toLowerCase().replaceAll(" ", "-")}`} onClick={guard}>{fixText(item.label)}</a>)}
-        <span className="cms-corner-actions">
-          <a href={PRAXI_PARENT_PORTAL} target="_blank" rel="noopener noreferrer" className="cms-corner-portal" data-testid="link-praxi-portal" onClick={guard}>Praxi Parent Portal<ArrowUpRight size={12} aria-hidden="true" /></a>
-          <a href={publicPath("/donate")} className="cms-corner-donate" data-testid="link-donate" onClick={guard}>Donate</a>
-        </span>
-      </nav>
-    </div>
-  </header>;
-}
-
-export function PublicSiteFooter({ editing = false }: { editing?: boolean }) {
-  const query = useGetSiteContent();
-  const pages = pageMap(query.data);
-  const groups = footerGroups.map((group) => ({ ...group, paths: group.paths.filter((p) => pages.has(p) || p === "/news" || p === "/events" || p === "/sitemap") }));
-  const guard = (event: React.MouseEvent) => { if (editing) event.preventDefault(); };
-  return <footer className="chess-site-footer">
-    <div className="chess-footer-top">
-      <section className="chess-footer-identity">
-        <a href={publicPath("/")} className="chess-footer-brand" data-testid="footer-brand-link" onClick={guard}><img src={publicAsset("/images/chess-seal.png")} alt="Colorado Heritage seal" /><span><strong>Colorado Heritage</strong><small>Education School System</small></span></a>
-        <p>A private Christian school serving K-12 homeschooling families in Greeley, CO since 1991.</p>
-        <span className="chess-footer-motto">“Pursuing the Knowledge of God.”</span>
-      </section>
-      {groups.map((group) => <section className="chess-footer-group" key={group.label}>
-        <h2>{group.label}</h2><ul>{group.paths.map((path) => {
-          const page = pages.get(path);
-          const label = path === "/sitemap" ? "Sitemap" : labelForPath(path, pages);
-          return <li key={path}>{page?.externalUrl
-            ? <a href={page.externalUrl} target="_blank" rel="noopener noreferrer" data-testid={`footer-link-${testId(path)}`} onClick={guard}>{label}<ArrowUpRight size={12} aria-hidden="true" /></a>
-            : <a href={publicPath(path)} data-testid={`footer-link-${testId(path)}`} onClick={guard}>{label}</a>}</li>;
-        })}</ul>
-      </section>)}
-    </div>
-    <div className="chess-footer-bottom"><span>© {new Date().getFullYear()} Colorado Heritage Education School System</span><a href={publicPath("/sitemap")} data-testid="footer-sitemap-link" onClick={guard}>Website sitemap <ArrowRight size={14} aria-hidden="true" /></a></div>
-  </footer>;
-}
+export { FacultyGrid as _FacultyGrid };

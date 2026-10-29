@@ -14,8 +14,17 @@ export function fixText(value: string): string {
   return (value || "").replace(/Accademy/g, "Academy").replace(/ACCADEMY/g, "ACADEMY").replace(/accademy/g, "academy");
 }
 
+let contentRedirects: Record<string, string> = {};
+/** Saved CMS redirects (legacy path -> new path); applied before other aliases so links never hop twice. */
+export function setContentRedirects(map?: Record<string, string>) { contentRedirects = map ?? {}; }
+
 export function canonicalInternalPath(pathname: string): string {
   const normalized = pathname.replace(/^https?:\/\/(?:www\.)?coloradoheritage\.org/i, "").split("?")[0].replace(/\/+$/, "") || "/";
+  if (contentRedirects[normalized]) {
+    let target = contentRedirects[normalized];
+    for (let i = 0; i < 5 && contentRedirects[target] && contentRedirects[target] !== target; i += 1) target = contentRedirects[target];
+    return target;
+  }
   if (legacyRouteAliases[normalized]) return legacyRouteAliases[normalized];
   const sourceMatch = sitePages.find((page) => page.sourcePath === normalized);
   if (sourceMatch) return sourceMatch.path;
@@ -93,7 +102,7 @@ function setMetaTag(attr: "name" | "property", key: string, value: string) {
 export function usePageMeta(title: string, description: string, path: string) {
   useEffect(() => {
     const cleanTitle = fixText(title);
-    const cleanDescription = fixText(description);
+    const cleanDescription = fixText(description).slice(0, 155);
     const url = `${SITE_ORIGIN}${publicPath(path)}`;
     document.title = cleanTitle;
     setMetaTag("name", "description", cleanDescription);
@@ -171,4 +180,118 @@ export async function compressImage(
   } finally {
     URL.revokeObjectURL(bitmapUrl);
   }
+}
+
+/* ---------- CHESS v4 shared constants & helpers ---------- */
+
+export type SiteContentExt = SiteContentState & { home?: CmsPage; homeImage?: string; homeImageAlt?: string };
+
+export const OFFICE = {
+  name: "Colorado Heritage Education School System",
+  phone: "(970) 346-0099",
+  tel: "tel:+19703460099",
+  email: "office@coloradoheritage.org",
+  street: "1300 9th Street",
+  city: "Greeley, CO 80631",
+};
+export const MAP_EMBED = "https://www.google.com/maps?q=1300+9th+Street,+Greeley,+CO+80631&output=embed";
+export const MAP_LINK = "https://www.google.com/maps/search/?api=1&query=1300+9th+Street+Greeley+CO+80631";
+export const VISIT_PATH = "/admissions/visit";
+
+/** Current America/Denver wall-clock time as YYYY-MM-DDTHH:mm (for admin status display only). */
+export function denverNow(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Denver", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+export type AnnouncementStatus = "Off" | "Scheduled" | "Live" | "Expired";
+export function announcementStatus(a: { enabled: boolean; startsAt?: string; expiresAt?: string }, now = denverNow()): AnnouncementStatus {
+  if (!a.enabled) return "Off";
+  if (a.expiresAt && now >= a.expiresAt) return "Expired";
+  if (a.startsAt && now < a.startsAt) return "Scheduled";
+  return "Live";
+}
+
+export const hasConfirm = (value?: string) => /\[CONFIRM/i.test(value || "");
+
+export function plainText(markdown: string): string {
+  return (markdown || "")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/(\*|_)(.+?)\1/g, "$2")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^#+\s*/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Injects (or removes) a JSON-LD script in <head>; re-runs on every SPA navigation. */
+export function useJsonLd(id: string, data: unknown) {
+  const json = data ? JSON.stringify(data) : "";
+  useEffect(() => {
+    const selector = `script[data-jsonld="${id}"]`;
+    let el = document.head.querySelector<HTMLScriptElement>(selector);
+    if (!json) { el?.remove(); return; }
+    if (!el) {
+      el = document.createElement("script");
+      el.type = "application/ld+json";
+      el.dataset.jsonld = id;
+      document.head.appendChild(el);
+    }
+    el.textContent = json;
+    return () => { document.head.querySelector(selector)?.remove(); };
+  }, [id, json]);
+}
+
+export function useRobots(noindex: boolean) {
+  useEffect(() => {
+    setMetaTag("name", "robots", noindex ? "noindex, follow" : "index, follow");
+  }, [noindex]);
+}
+
+export const schoolJsonLd = {
+  "@context": "https://schema.org",
+  "@type": ["School", "EducationalOrganization"],
+  name: OFFICE.name,
+  alternateName: "CHESS",
+  url: SITE_ORIGIN,
+  logo: `${SITE_ORIGIN}/images/chess-seal.png`,
+  telephone: "+1-970-346-0099",
+  email: OFFICE.email,
+  foundingDate: "1991",
+  description: "A private Christian K–12 school partnering with homeschooling families in Greeley, Colorado since 1991.",
+  educationalLevel: "Kindergarten through 12th grade (K–12)",
+  address: { "@type": "PostalAddress", streetAddress: OFFICE.street, addressLocality: "Greeley", addressRegion: "CO", postalCode: "80631", addressCountry: "US" },
+};
+
+export function faqJsonLd(faqs: { question: string; answer: string }[]) {
+  const clean = faqs.filter((f) => f.question.trim() && f.answer.trim() && !hasConfirm(f.question) && !hasConfirm(f.answer));
+  if (!clean.length) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: clean.map((f) => ({ "@type": "Question", name: plainText(f.question), acceptedAnswer: { "@type": "Answer", text: plainText(f.answer) } })),
+  };
+}
+
+export const slugifyHeading = (value: string) => plainText(value).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+export type MdSection = { title: string; id: string; body: string };
+/** Splits markdown on level-2 headings. Content before the first heading has an empty title. */
+export function splitSections(markdown: string): MdSection[] {
+  const out: MdSection[] = [];
+  let current: MdSection = { title: "", id: "", body: "" };
+  (markdown || "").replace(/\r/g, "").split("\n").forEach((line) => {
+    const m = line.match(/^##\s+(.+?)\s*(?:\{#([a-z0-9-]+)\})?\s*$/i);
+    if (m && !line.startsWith("###")) {
+      if (current.title || current.body.trim()) out.push(current);
+      current = { title: m[1], id: m[2] || slugifyHeading(m[1]), body: "" };
+    } else current.body += `${line}\n`;
+  });
+  if (current.title || current.body.trim()) out.push(current);
+  return out;
 }

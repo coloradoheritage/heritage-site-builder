@@ -9,7 +9,7 @@ export function isAdministrative(person) {
 }
 
 export function staffProfilePath(person) {
-  return `/about/${isAdministrative(person) ? "staff" : "faculty"}/${person.slug}`;
+  return `/about/our-people/${person.slug}`;
 }
 
 export function portraitPosition(person) {

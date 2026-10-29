@@ -12,6 +12,9 @@ export interface CmsStaff {
   role: string;
   /** Include this person in the Administrative Staff directory. */
   administrative?: boolean;
+  faculty?: boolean;
+  board?: boolean;
+  boardRole?: string;
   photo: string;
   /**
      * Horizontal photo position in percent; defaults to 50.

@@ -1,97 +1,68 @@
-import { marked } from "marked";
-import sanitizeHtml from "sanitize-html";
-import routes from "./seo-routes.json" with { type: "json" };
-import initialHome from "./seo-home.json" with { type: "json" };
-import { administrativeStaff, cleanFilenameCaptions, isAdministrative, portraitPosition, staffProfilePath } from "./directory-helpers.mjs";
-
-export const siteOrigin = "https://heritage-site-builder.replit.app";
-const apiOrigin = process.env.SITE_API_ORIGIN || "http://127.0.0.1:8080";
-const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[char]));
-const html = markdown => sanitizeHtml(marked.parse(cleanFilenameCaptions(markdown)), {
-  allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
-  allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, img:["src","alt","width","height","loading"], a:["href","title","rel"] },
-  allowedSchemes: ["http","https","mailto","tel"],
-});
-export function canonicalPath(path) {
-  const normal = decodeURI(path).replace(/\/+$/, "") || "/";
-  return routes.legacyRouteAliases[normal] || routes.sourcePaths[normal]
-    || (normal.startsWith("/new-events/") ? normal.replace("/new-events/","/events/") : normal);
+import routes from "./seo-routes.json" with { type:"json" };
+export const siteOrigin="https://heritage-site-builder.replit.app";
+const apiOrigin=process.env.SITE_API_ORIGIN||"http://127.0.0.1:8080";
+const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const json=value=>JSON.stringify(value).replace(/</g,"\\u003c").replace(/\u2028/g,"\\u2028").replace(/\u2029/g,"\\u2029");
+const plain=value=>String(value||"").replace(/!\[[^\]]*\]\([^)]+\)/g,"").replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/[#*_`>]/g,"").replace(/\s+/g," ").trim();
+export function canonicalPath(requested,content={}) {
+  let path;
+  try{path=decodeURI(requested).replace(/\/+$/,"")||"/";}catch{return requested;}
+  if(/^\/(?:news\/(?:category|tag)|new-events)(?:\/|$)/.test(path))return path.startsWith("/news")?"/news":"/parents/calendar";
+  const person=path.match(/^\/about\/(?:faculty|staff)\/([^/]+)$/);
+  if(person)return `/about/our-people/${person[1]}`;
+  if(path.startsWith("/s/")){
+    const document=content.documents?.find(d=>d.id.replace(/^https?:\/\/(?:www\.)?coloradoheritage\.org/i,"")===path);
+    if(document?.url && document.url!==path)return document.url;
+  }
+  for(let n=0;n<10;n++){
+    const [base,hash]=path.split("#");
+    const next=content.redirects?.[base]||routes.legacyRouteAliases[base]||routes.sourcePaths[base];
+    if(!next||next===base)break;
+    path=next+(hash&&!next.includes("#")?`#${hash}`:"");
+  }
+  return path;
 }
 export async function loadContent() {
-  const response = await fetch(`${apiOrigin}/api/site-content`, { signal: AbortSignal.timeout(10000) });
-  if (!response.ok) throw new Error("Website content is unavailable");
+  const response=await fetch(`${apiOrigin}/api/site-content`,{signal:AbortSignal.timeout(10000)});
+  if(!response.ok)throw Error("Website content is unavailable");
   return response.json();
 }
 export function renderSitemap(content) {
-  const paths = ["/", ...content.pages.map(page=>page.path), ...content.staff.map(staffProfilePath), ...content.news.map(item=>item.path), ...content.events.map(item=>item.path)];
-  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${[...new Set(paths)].map(path=>`<url><loc>${esc(siteOrigin+path)}</loc></url>`).join("")}</urlset>`;
+  const paths=["/",...content.pages.filter(p=>!p.archived).map(p=>p.path),...content.staff.map(p=>`/about/our-people/${p.slug}`),
+    ...content.news.filter(a=>!a.archived).map(a=>a.path),...content.events.filter(a=>!a.archived && canonicalPath(a.path,content)===a.path).map(a=>a.path)];
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${[...new Set(paths)].map(p=>`<url><loc>${esc(siteOrigin+p)}</loc></url>`).join("")}</urlset>`;
 }
-export async function renderPage(template, requestedPath, content) {
-  let path = canonicalPath(requestedPath);
-  const page = content.pages.find(page=>page.path===path);
-  const staff = content.staff.find(person=>[`/about/faculty/${person.slug}`, `/about/staff/${person.slug}`].includes(path));
-  if (staff) path = staffProfilePath(staff);
-  const article = [...content.news,...content.events].find(item=>item.path===path);
-  const isAdmin = /^\/admin(?:\/|$)/.test(path);
-  const found = path==="/" || page || staff || article || isAdmin;
-  const title = isAdmin ? "Staff Website Editor | Colorado Heritage" : staff ? `${staff.name} | Colorado Heritage` : article?.title || page?.title || (path==="/" ? "Colorado Heritage Education School System" : "Page not found | Colorado Heritage");
-  const description = staff?.role || page?.description || "A private Christian school serving K–12 homeschooling families in Greeley, Colorado since 1991.";
-  const docUrl = url => content.documents.find(doc=>doc.id===url)?.url || url;
-  let body = "";
-  if (path === "/") {
-    const homeResponse = await fetch(`${apiOrigin}/api/homepage-content`, { signal: AbortSignal.timeout(10000) });
-    if (!homeResponse.ok) throw new Error("Homepage content is unavailable");
-    const { content: savedHome } = await homeResponse.json();
-    const home = {
-      order: savedHome?.order || Object.keys(initialHome),
-      hidden: savedHome?.hidden || [],
-      copy: Object.fromEntries(Object.entries(initialHome).map(([key,fields])=>[key,{...fields,...savedHome?.copy?.[key]}])),
-    };
-    body = `<section><p>Kindergarten through grade 12 · Greeley, Colorado</p><h1>${esc(home.copy.hero.title || title)}</h1>${Object.entries(home.copy.hero).filter(([key])=>!/^image|title|button/i.test(key)&&!/button/i.test(key)).map(([,value])=>`<p>${esc(value)}</p>`).join("")}<a href="/families/apply">${esc(home.copy.hero.visitButton || "Schedule a Visit / Apply")}</a><a href="/programs">${esc(home.copy.hero.primaryButton)}</a><a href="/about/our-purpose">${esc(home.copy.hero.secondaryButton)}</a></section>`;
-    if (home.copy) {
-      for (const key of home.order || Object.keys(home.copy)) {
-        if (key==="hero" || home.hidden?.includes(key)) continue;
-        const copy=home.copy[key]||{};
-        body+=`<section>${Object.entries(copy).filter(([,value])=>typeof value==="string").map(([field,value])=>{
-          if(/imageAlt/i.test(field))return "";
-          if(/image/i.test(field))return value?`<img src="${esc(value)}" alt="${esc(copy[`${field}Alt`]||copy.title||"Colorado Heritage")}">`:"";
-          if(/title/i.test(field))return `<h2>${esc(value)}</h2>`;
-          return `<p>${esc(value)}</p>`;
-        }).join("")}</section>`;
-      }
-    } else {
-      body += `<section><h2>Christian education. Faithful partnership.</h2><p>Colorado Heritage Education School System partners with homeschooling families through our Independent School, K–12 Academy and High School Diploma programs.</p>${content.pages.filter(p=>p.path.startsWith("/programs/")&&p.path.split("/").length===3).map(p=>`<h2><a href="${esc(p.path)}">${esc(p.label)}</a></h2><p>${esc(p.description)}</p>`).join("")}<p>Serving families since 1991.</p></section>`;
-    }
-  } else if (staff) {
-    body=`<h1>${esc(staff.name)}</h1><p>${esc(staff.role)}</p>${staff.photo?`<img src="${esc(staff.photo)}" alt="${esc(staff.alt || staff.name)}" width="300" height="300" style="object-fit:cover;object-position:${portraitPosition(staff)}">`:""}${html(staff.bio)}<p><a href="/about/${isAdministrative(staff) ? "staff" : "faculty"}">All ${isAdministrative(staff) ? "staff" : "faculty"}</a></p>`;
-  } else if (article) {
-    body=`<h1>${esc(article.title)}</h1><time>${esc(article.date)}</time>${article.archived?"<p>Archived school event. This is not an upcoming event.</p>":""}${html(article.markdown)}`;
-  } else if (page) {
-    body=`<h1>${esc(page.label)}</h1><p>${esc(page.description)}</p>`;
-    if (path==="/about/faculty" || path==="/about/staff") {
-      const people = path==="/about/staff" ? administrativeStaff(content.staff) : content.staff;
-      body+=people.map(person=>`<article><a href="${esc(staffProfilePath(person))}">${person.photo?`<img src="${esc(person.photo)}" alt="${esc(person.alt || person.name)}" width="300" height="300" style="object-fit:cover;object-position:${portraitPosition(person)}">`:""}<h2>${esc(person.name)}</h2></a><p>${esc(person.role)}</p></article>`).join("");
-    } else {
-      body+=page.kind==="protected"&&(!page.markdown.trim()||page.markdown.trim()==="Colorado Heritage — Secure")
-        ? '<p>This resource is intended for current CHESS families. Contact the CHESS office for help accessing the current resource.</p><a href="/contact">Contact the school office</a>'
-        : html(page.markdown);
-    }
-    if (path==="/news" || path==="/events") body+=(path==="/news"?content.news:content.events).filter(item=>!item.archived).map(item=>`<article><h2><a href="${esc(item.path)}">${esc(item.title)}</a></h2><time>${esc(item.date)}</time></article>`).join("");
-    if (page.documentPath) body+=`<p><a href="${esc(docUrl(page.documentPath))}">${esc(page.label)} (PDF)</a></p>`;
-    if (page.externalUrl) body+=`<p><a href="${esc(page.externalUrl)}">Open ${esc(page.label)}</a></p>`;
-    if (page.kind==="overview" || path==="/sitemap") {
-      const links=path==="/sitemap"?content.pages:content.pages.filter(child=>content.navigation.find(item=>item.path===path)?.children.includes(child.path));
-      body+=`<ul>${links.map(child=>`<li><a href="${esc(child.path)}">${esc(child.label)}</a></li>`).join("")}</ul>`;
-    }
-  } else if (!isAdmin) body=`<h1>Page not found</h1><p>The page you requested does not exist.</p><a href="/">Return home</a>`;
-  const nav=`<header><a href="/">Colorado Heritage</a><nav aria-label="Main navigation">${content.navigation.map(group=>`<a href="${esc(group.path)}">${esc(group.label)}</a>`).join(" · ")}</nav></header>`;
-  const schema = { "@context":"https://schema.org","@type":"School",name:"Colorado Heritage Education School System",url:siteOrigin,telephone:"(970) 346-0099",email:"office@coloradoheritage.org",address:{"@type":"PostalAddress",streetAddress:"1300 9th St",addressLocality:"Greeley",addressRegion:"CO",addressCountry:"US"},logo:`${siteOrigin}/images/chess-seal.png` };
-  const metadata=`<title>${esc(title)}</title><meta name="description" content="${esc(description)}"><link rel="canonical" href="${esc(siteOrigin+path)}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:type" content="${article?"article":"website"}"><meta property="og:url" content="${esc(siteOrigin+path)}"><meta property="og:image" content="${siteOrigin}/images/chess-seal.png"><meta property="og:image:alt" content="Colorado Heritage Education School System seal"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(description)}"><meta name="twitter:image" content="${siteOrigin}/images/chess-seal.png"><meta name="robots" content="${!found||isAdmin||article?.archived?"noindex, follow":"index, follow"}"><script type="application/ld+json">${JSON.stringify(schema).replace(/</g,"\\u003c")}</script>`;
-  let output=template.replace(/<title>[\s\S]*?<\/title>/g,"").replace(/<meta[^>]+(?:name|property)="(?:description|robots|og:[^"]+|twitter:[^"]+)"[^>]*>/g,"").replace(/<link[^>]+rel="canonical"[^>]*>/g,"");
-  output=output.replace("</head>",`${metadata}</head>`);
-  for (const doc of content.documents) {
-    if(doc.id!==doc.url) body=body.split(`href="${esc(doc.id)}"`).join(`href="${esc(doc.url)}"`);
+export function redirectLocation(target,search=""){
+  const [path,hash]=target.split("#");
+  return path+search+(hash?`#${hash}`:"");
+}
+export async function renderPage(template,requestedPath,content,search="",renderer) {
+  const canonical=canonicalPath(requestedPath,content);
+  if(canonical!==requestedPath)return {status:301,redirect:canonical};
+  const path=canonical.split("#")[0];
+  const page=path==="/"?content.home:content.pages.find(p=>p.path===path);
+  const staff=content.staff.find(p=>path===`/about/our-people/${p.slug}`);
+  const article=[...content.news,...content.events].find(a=>a.path===path);
+  const admin=/^\/admin(?:\/|$)/.test(path);
+  const found=Boolean(page||staff||article||path==="/"||admin);
+  const title=admin?"Staff Website Editor | CHESS":staff?`${staff.name} | CHESS`:article?`${article.title} | CHESS ${path.startsWith("/news/")?"Blog":"Events"}`:page?.title||"Page not found | CHESS";
+  const description=(page?.metaDescription|| (article?plain(article.markdown).slice(0,150):staff?plain(staff.bio).slice(0,150):page?.description)||"Colorado Heritage Education School System — Christian K–12 education for homeschooling families in Greeley, Colorado since 1991.").slice(0,155);
+  const noindex=admin||!found||article?.archived||page?.archived;
+  const absolute=siteOrigin+path;
+  const bundle="./dist/server/entry-server.js";
+  const render=renderer||(await import(/* @vite-ignore */ bundle)).renderSite;
+  const rendered=admin?{html:"",school:null,faq:null}:render(content,path,search);
+  const schemas=[rendered.school,rendered.faq];
+  const events=[];
+  if(path==="/parents/calendar")for(const event of content.events.filter(a=>!a.archived && a.date>=new Date().toISOString().slice(0,10))){
+    events.push({"@context":"https://schema.org","@type":"Event",name:event.title,startDate:event.date,eventAttendanceMode:"https://schema.org/OfflineEventAttendanceMode",eventStatus:"https://schema.org/EventScheduled",description:plain(event.markdown).slice(0,155),url:siteOrigin+event.path,location:{"@type":"Place",name:"Colorado Heritage Education School System",address:{"@type":"PostalAddress",streetAddress:"1300 9th Street",addressLocality:"Greeley",addressRegion:"CO",postalCode:"80631",addressCountry:"US"}}});
   }
-  if (!isAdmin) output=output.replace('<div id="root"></div>',`<div id="root"><div class="chess-public">${nav}<main class="chess-page-shell">${body}</main><footer><p>Colorado Heritage Education School System · 1300 9th St, Greeley, CO · (970) 346-0099 · office@coloradoheritage.org</p></footer></div></div>`);
-  return { html:output, status:found?200:404, redirect: found&&path!==requestedPath?path:undefined };
+  if(events.length)schemas.push(events);
+  const metadata=`<title>${esc(title)}</title><meta name="description" content="${esc(description)}"><meta name="robots" content="${noindex?"noindex,follow":"index,follow"}"><link rel="canonical" href="${esc(absolute)}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(absolute)}"><meta property="og:type" content="${article?"article":"website"}"><meta property="og:site_name" content="Colorado Heritage Education School System"><meta property="og:image" content="${siteOrigin}/images/social-share.jpg"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(description)}"><meta name="twitter:image" content="${siteOrigin}/images/social-share.jpg">${schemas.filter(Boolean).map(s=>`<script type="application/ld+json">${json(s)}</script>`).join("")}<style>.cb-ssr .cb-reveal{opacity:1;transform:none}</style>`;
+  let schemaIndex=0;
+  const schemaIds=schemas.flatMap((value,index)=>value?[["school",path==="/admissions/tuition"?"faq":"faq-page","events"][index]]:[]);
+  const taggedMetadata=metadata.replace(/<script type="application\/ld\+json">/g,()=>`<script type="application/ld+json" data-jsonld="${schemaIds[schemaIndex++]}">`);
+  let output=template.replace(/<title>[\s\S]*?<\/title>/g,"").replace(/<meta[^>]+(?:name|property)="(?:description|robots|og:[^"]+|twitter:[^"]+)"[^>]*>/g,"").replace(/<link[^>]+rel="canonical"[^>]*>/g,"").replace("</head>",taggedMetadata+"</head>");
+  if(!admin)output=output.replace('<div id="root"></div>',`<div id="root">${rendered.html}</div><script id="chess-content" type="application/json">${json(content)}</script>`);
+  return {html:output,status:found?200:404};
 }

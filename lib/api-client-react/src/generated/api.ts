@@ -26,16 +26,47 @@ import type {
 
 import type {
   EditorAccessResponse,
+  GetMediaHealth200,
   HealthStatus,
   HomepageContentResponse,
   HomepageContentState,
+  InquiryInput,
+  InquiryRecord,
   PhotoUploadRequest,
   SiteContentState,
+  SubmitInquiry201,
   UploadSitePhoto200
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
 import type { ErrorType , BodyType } from '../custom-fetch';
+
+// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+T,
+>() => T extends Y ? 1 : 2
+? A
+: B;
+
+type WritableKeys<T> = {
+[P in keyof T]-?: IfEquals<
+  { [Q in P]: T[P] },
+  { -readonly [Q in P]: T[P] },
+  P
+>;
+}[keyof T];
+
+type UnionToIntersection<U> =
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
+type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
+
+type Writable<T> = Pick<T, WritableKeys<T>>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+  [P in keyof Writable<T>]: T[P] extends object
+    ? NonReadonly<NonNullable<T[P]>>
+    : T[P];
+} : DistributeReadOnlyOverUnions<T>;
+
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -60,6 +91,278 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetMediaHealthUrl = () => {
+
+
+
+
+  return `/api/media/health`
+}
+
+export const getMediaHealth = async ( options?: Parameters<typeof customFetch>[1]): Promise<GetMediaHealth200> => {
+
+  return customFetch<GetMediaHealth200>(getGetMediaHealthUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMediaHealthQueryKey = () => {
+    return [
+    `/api/media/health`
+    ] as const;
+    }
+
+
+export const getGetMediaHealthQueryOptions = <TData = Awaited<ReturnType<typeof getMediaHealth>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaHealth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMediaHealthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMediaHealth>>> = ({ signal }) => getMediaHealth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMediaHealth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMediaHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getMediaHealth>>>
+export type GetMediaHealthQueryError = ErrorType<unknown>
+
+
+export function useGetMediaHealth<TData = Awaited<ReturnType<typeof getMediaHealth>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaHealth>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMediaHealth>>,
+          TError,
+          Awaited<ReturnType<typeof getMediaHealth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMediaHealth<TData = Awaited<ReturnType<typeof getMediaHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaHealth>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMediaHealth>>,
+          TError,
+          Awaited<ReturnType<typeof getMediaHealth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMediaHealth<TData = Awaited<ReturnType<typeof getMediaHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaHealth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetMediaHealth<TData = Awaited<ReturnType<typeof getMediaHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaHealth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMediaHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitInquiryUrl = () => {
+
+
+
+
+  return `/api/inquiries`
+}
+
+export const submitInquiry = async (inquiryInput: InquiryInput, options?: Parameters<typeof customFetch>[1]): Promise<SubmitInquiry201> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SubmitInquiry201>(getSubmitInquiryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(inquiryInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitInquiryMutationKey = () => ['submitInquiry'] as const;
+
+export const getSubmitInquiryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitInquiry>>, TError,SubmitInquiryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitInquiry>>, TError,SubmitInquiryMutationVariables, TContext> => {
+
+const mutationKey = getSubmitInquiryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitInquiry>>, SubmitInquiryMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitInquiry(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitInquiryMutationResult = NonNullable<Awaited<ReturnType<typeof submitInquiry>>>
+    export type SubmitInquiryMutationBody = BodyType<InquiryInput>
+    export type SubmitInquiryMutationError = ErrorType<unknown>
+    export type SubmitInquiryMutationVariables = {data: BodyType<InquiryInput>}
+
+    export const useSubmitInquiry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitInquiry>>, TError,SubmitInquiryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof submitInquiry>>,
+        TError,
+        SubmitInquiryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSubmitInquiryMutationOptions(options), queryClient);
+    }
+
+export const getGetInquiriesUrl = () => {
+
+
+
+
+  return `/api/inquiries`
+}
+
+export const getInquiries = async ( options?: Parameters<typeof customFetch>[1]): Promise<InquiryRecord[]> => {
+
+  return customFetch<InquiryRecord[]>(getGetInquiriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInquiriesQueryKey = () => {
+    return [
+    `/api/inquiries`
+    ] as const;
+    }
+
+
+export const getGetInquiriesQueryOptions = <TData = Awaited<ReturnType<typeof getInquiries>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getInquiries>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInquiriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInquiries>>> = ({ signal }) => getInquiries({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInquiries>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetInquiriesQueryResult = NonNullable<Awaited<ReturnType<typeof getInquiries>>>
+export type GetInquiriesQueryError = ErrorType<unknown>
+
+
+export function useGetInquiries<TData = Awaited<ReturnType<typeof getInquiries>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getInquiries>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInquiries>>,
+          TError,
+          Awaited<ReturnType<typeof getInquiries>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetInquiries<TData = Awaited<ReturnType<typeof getInquiries>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getInquiries>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInquiries>>,
+          TError,
+          Awaited<ReturnType<typeof getInquiries>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetInquiries<TData = Awaited<ReturnType<typeof getInquiries>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getInquiries>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetInquiries<TData = Awaited<ReturnType<typeof getInquiries>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getInquiries>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetInquiriesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetSiteContentUrl = () => {
 
@@ -173,7 +476,7 @@ export const getSaveSiteContentUrl = () => {
 /**
  * @summary Save website content as an approved editor
  */
-export const saveSiteContent = async (siteContentState: SiteContentState, options?: Parameters<typeof customFetch>[1]): Promise<SiteContentState> => {
+export const saveSiteContent = async (siteContentState: NonReadonly<SiteContentState>, options?: Parameters<typeof customFetch>[1]): Promise<SiteContentState> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -232,9 +535,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type SaveSiteContentMutationResult = NonNullable<Awaited<ReturnType<typeof saveSiteContent>>>
-    export type SaveSiteContentMutationBody = BodyType<SiteContentState>
+    export type SaveSiteContentMutationBody = BodyType<NonReadonly<SiteContentState>>
     export type SaveSiteContentMutationError = ErrorType<void>
-    export type SaveSiteContentMutationVariables = {data: BodyType<SiteContentState>}
+    export type SaveSiteContentMutationVariables = {data: BodyType<NonReadonly<SiteContentState>>}
 
     /**
  * @summary Save website content as an approved editor
@@ -262,27 +565,16 @@ export const getUploadSitePhotoUrl = () => {
  * @summary Upload a compressed photo as an approved editor
  */
 export const uploadSitePhoto = async (photoUploadRequest: PhotoUploadRequest, options?: Parameters<typeof customFetch>[1]): Promise<UploadSitePhoto200> => {
+    const formData = new FormData();
+formData.append(`file`, photoUploadRequest.file);
+formData.append(`alt`, photoUploadRequest.alt);
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<UploadSitePhoto200>(getUploadSitePhotoUrl(),
+  return customFetch<UploadSitePhoto200>(getUploadSitePhotoUrl(),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(photoUploadRequest)
+    method: 'POST'
+    ,
+    body: formData
   }
 );}
 

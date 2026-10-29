@@ -5,8 +5,66 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface CmsFaq {
+  id: string;
+  question: string;
+  answer: string;
+  showOnHome: boolean;
+}
+
+export interface CmsAnnouncement {
+  id: string;
+  enabled: boolean;
+  title: string;
+  text: string;
+  buttonLabel?: string;
+  url?: string;
+  eventPath?: string;
+  /** America/Denver local datetime, YYYY-MM-DDTHH:mm */
+  startsAt?: string;
+  /** America/Denver local datetime, YYYY-MM-DDTHH:mm */
+  expiresAt?: string;
+}
+
+export type InquiryInputProgram = typeof InquiryInputProgram[keyof typeof InquiryInputProgram];
+
+
+export const InquiryInputProgram = {
+  Independent_School: 'Independent School',
+  Academy: 'Academy',
+  Diploma: 'Diploma',
+  Not_sure: 'Not sure',
+} as const;
+
+export interface InquiryInput {
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  parentName: string;
+  /** @maxLength 250 */
+  email: string;
+  /** @maxLength 50 */
+  phone?: string;
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  grades: string;
+  program: InquiryInputProgram;
+  /** @maxLength 4000 */
+  question?: string;
+  /** Honeypot; leave empty */
+  website?: string;
+}
+
+export type InquiryRecord = InquiryInput & {
+  id: string;
+  createdAt: string;
+};
+
 export interface PhotoUploadRequest {
-  data: string;
+  file: Blob | File;
   alt: string;
 }
 
@@ -15,10 +73,12 @@ export interface CmsPage {
   label: string;
   title: string;
   description: string;
+  metaDescription?: string;
   markdown: string;
   kind: string;
   documentPath?: string;
   externalUrl?: string;
+  archived?: boolean;
 }
 
 export interface CmsStaff {
@@ -27,6 +87,9 @@ export interface CmsStaff {
   role: string;
   /** Include this person in the Administrative Staff directory. */
   administrative?: boolean;
+  faculty?: boolean;
+  board?: boolean;
+  boardRole?: string;
   photo: string;
   /**
      * Horizontal photo position in percent; defaults to 50.
@@ -64,8 +127,18 @@ export interface CmsNavigation {
   children: string[];
 }
 
+export type SiteContentStateRedirects = {[key: string]: string};
+
 export interface SiteContentState {
   revision: number;
+  planVersion?: number;
+  redirects?: SiteContentStateRedirects;
+  home?: CmsPage;
+  homeImage?: string;
+  homeImageAlt?: string;
+  faqs?: CmsFaq[];
+  announcements?: CmsAnnouncement[];
+  readonly activeAnnouncements?: readonly CmsAnnouncement[];
   pages: CmsPage[];
   staff: CmsStaff[];
   events: CmsArticle[];
@@ -107,6 +180,15 @@ export interface HomepageContentResponse {
 export interface EditorAccessResponse {
   allowed: boolean;
 }
+
+export type GetMediaHealth200 = {
+  configured: boolean;
+  message: string;
+};
+
+export type SubmitInquiry201 = {
+  received: boolean;
+};
 
 export type UploadSitePhoto200 = {
   url: string;

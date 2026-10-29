@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type ErrorRequestHandler } from "express";
 import cors from "cors";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
@@ -34,7 +34,7 @@ app.use(
 );
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(cors({ credentials: true, origin: true }));
-app.use(express.json({ limit: "4mb" }));
+app.use(express.json({ limit: "16mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
@@ -47,5 +47,11 @@ app.use(
 );
 
 app.use("/api", router);
+const errors: ErrorRequestHandler = (error,req,res,_next) => {
+  const status = error.status === 413 ? 413 : error.status === 400 ? 400 : 500;
+  req.log.error({err:error},"Request failed");
+  res.status(status).json({error:status===413?"This request is too large. Photos must be 15 MB or smaller.":status===400?"The request could not be read. Please check the form and try again.":"The request could not be completed. Please try again or contact the school office."});
+};
+app.use(errors);
 
 export default app;

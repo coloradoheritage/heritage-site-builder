@@ -11,8 +11,10 @@ export interface CmsPage {
   label: string;
   title: string;
   description: string;
+  metaDescription?: string;
   markdown: string;
   kind: string;
   documentPath?: string;
   externalUrl?: string;
+  archived?: boolean;
 }

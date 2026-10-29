@@ -4,14 +4,16 @@ import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
+  useGetSiteContent,
   getGetHomepageContentQueryKey,
+  getGetSiteContentQueryKey,
   useGetEditorAccess,
   useGetHomepageContent,
   useSaveHomepageContent,
   type HomepageContentState,
 } from '@workspace/api-client-react';
 import { Redirect, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
-import { PublicSiteFooter, PublicSiteHeader, PublicSitePages } from './components/public-site';
+import { AnnouncementBar, PublicSiteFooter, PublicSiteHeader, PublicSitePages } from './components/public-site';
 import { EditorHome, SiteManager, PhotoUploader } from './components/site-manager';
 import { fixText, usePageMeta } from './lib/cms';
 import { legacyRouteAliases } from './data/siteSitemap';
@@ -169,6 +171,13 @@ const appBasePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const publicPath = (path: string) => `${appBasePath}${path.startsWith('/') ? path : `/${path}`}` || '/';
 const donateUrl = publicPath('/donate');
 const queryClient = new QueryClient();
+// Hydrate site content embedded by the server render so the first paint never falls back to a skeleton.
+if (typeof document !== 'undefined') {
+  try {
+    const seed = document.getElementById('chess-content')?.textContent;
+    if (seed) queryClient.setQueryData(getGetSiteContentQueryKey(), JSON.parse(seed));
+  } catch { /* ignore malformed seed; the client fetches normally */ }
+}
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
@@ -785,11 +794,15 @@ function PublicWebsite() {
     ?? (path.startsWith('/new-events/') ? path.replace(/^\/new-events/, '/events') : undefined)
     ?? (path.startsWith('/news/category/') || path.startsWith('/news/tag/') ? '/news' : undefined);
 
+  const siteQuery = useGetSiteContent();
+  const contentTarget = siteQuery.data?.redirects?.[path];
+  if (contentTarget && contentTarget !== path) return <Redirect to={contentTarget} />;
   if (aliasTarget && aliasTarget !== path) return <Redirect to={aliasTarget} />;
-  if (path === '/') return <HomepageApp />;
 
   return (
-    <div className="chess-public chess-site-frame">
+    <div className="cb-site">
+      <a className="cb-skip" href="#main">Skip to content</a>
+      <AnnouncementBar />
       <PublicSiteHeader />
       <PublicSitePages />
       <PublicSiteFooter />

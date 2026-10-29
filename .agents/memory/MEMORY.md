@@ -1,2 +1,3 @@
 - [CHESS editor access](homepage-editor-access.md) — keep editing limited to explicitly approved staff accounts, with authorization enforced by the API.
 - [App Storage runtime](app-storage-runtime.md) — preserve explicit bucket selection and the SDK package boundary when changing API bundling.
+- [CHESS editorial approvals](editorial-approvals.md) — leave unconfirmed school claims/assets editable or hidden; inspect actual gallery subjects before choosing a hero.

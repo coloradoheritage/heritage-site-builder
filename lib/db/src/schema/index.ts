@@ -19,3 +19,5 @@
 
 export * from "./homepage-content";
 export * from "./site-content";
+export * from "./inquiries";
+export * from "./content-backups";

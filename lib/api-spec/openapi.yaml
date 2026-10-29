@@ -11,6 +11,48 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /media/health:
+    get:
+      operationId: getMediaHealth
+      responses:
+        "200":
+          description: Editor storage configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [configured, message]
+                properties:
+                  configured: { type: boolean }
+                  message: { type: string }
+  /inquiries:
+    post:
+      operationId: submitInquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InquiryInput" }
+      responses:
+        "201":
+          description: Received securely by the school office inbox
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [received]
+                properties:
+                  received: { type: boolean }
+    get:
+      operationId: getInquiries
+      responses:
+        "200":
+          description: Approved editors only
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/InquiryRecord" }
   /site-content:
     get:
       operationId: getSiteContent
@@ -47,7 +89,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: "#/components/schemas/PhotoUploadRequest"
       responses:
@@ -126,11 +168,51 @@ paths:
           description: Editor access required
 components:
   schemas:
+    CmsFaq:
+      type: object
+      required: [id, question, answer, showOnHome]
+      properties:
+        id: { type: string }
+        question: { type: string }
+        answer: { type: string }
+        showOnHome: { type: boolean }
+    CmsAnnouncement:
+      type: object
+      required: [id, enabled, title, text]
+      properties:
+        id: { type: string }
+        enabled: { type: boolean }
+        title: { type: string }
+        text: { type: string }
+        buttonLabel: { type: string }
+        url: { type: string }
+        eventPath: { type: string }
+        startsAt: { type: string, description: "America/Denver local datetime, YYYY-MM-DDTHH:mm" }
+        expiresAt: { type: string, description: "America/Denver local datetime, YYYY-MM-DDTHH:mm" }
+    InquiryInput:
+      type: object
+      required: [parentName, email, grades, program]
+      properties:
+        parentName: { type: string, minLength: 1, maxLength: 150 }
+        email: { type: string, format: email, maxLength: 250 }
+        phone: { type: string, maxLength: 50 }
+        grades: { type: string, minLength: 1, maxLength: 150 }
+        program: { type: string, enum: ["Independent School", "Academy", "Diploma", "Not sure"] }
+        question: { type: string, maxLength: 4000 }
+        website: { type: string, description: "Honeypot; leave empty" }
+    InquiryRecord:
+      allOf:
+        - $ref: "#/components/schemas/InquiryInput"
+        - type: object
+          required: [id, createdAt]
+          properties:
+            id: { type: string }
+            createdAt: { type: string }
     PhotoUploadRequest:
       type: object
-      required: [data, alt]
+      required: [file, alt]
       properties:
-        data: { type: string }
+        file: { type: string, format: binary }
         alt: { type: string }
     CmsPage:
       type: object
@@ -140,10 +222,12 @@ components:
         label: { type: string }
         title: { type: string }
         description: { type: string }
+        metaDescription: { type: string }
         markdown: { type: string }
         kind: { type: string }
         documentPath: { type: string }
         externalUrl: { type: string }
+        archived: { type: boolean }
     CmsStaff:
       type: object
       required: [slug, name, role, photo, alt, bio]
@@ -154,6 +238,9 @@ components:
         administrative:
           type: boolean
           description: Include this person in the Administrative Staff directory.
+        faculty: { type: boolean }
+        board: { type: boolean }
+        boardRole: { type: string }
         photo: { type: string }
         photoPositionX:
           type: number
@@ -197,6 +284,23 @@ components:
       required: [revision, pages, staff, events, news, documents, navigation]
       properties:
         revision: { type: integer }
+        planVersion: { type: integer }
+        redirects:
+          type: object
+          additionalProperties: { type: string }
+        home: { $ref: "#/components/schemas/CmsPage" }
+        homeImage: { type: string }
+        homeImageAlt: { type: string }
+        faqs:
+          type: array
+          items: { $ref: "#/components/schemas/CmsFaq" }
+        announcements:
+          type: array
+          items: { $ref: "#/components/schemas/CmsAnnouncement" }
+        activeAnnouncements:
+          type: array
+          readOnly: true
+          items: { $ref: "#/components/schemas/CmsAnnouncement" }
         pages:
           type: array
           items: { $ref: "#/components/schemas/CmsPage" }

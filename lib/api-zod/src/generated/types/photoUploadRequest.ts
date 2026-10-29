@@ -7,6 +7,6 @@
  */
 
 export interface PhotoUploadRequest {
-  data: string;
+  file: Blob | File;
   alt: string;
 }

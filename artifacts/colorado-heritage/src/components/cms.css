@@ -174,3 +174,48 @@
 .cms-menu-children li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 8px; background: #f4f1e8; font-size: 13.5px; }
 .cms-menu-children small { color: #8a8576; margin-left: 6px; }
 .cms-add-child { margin-left: 40px; width: calc(100% - 40px); }
+
+/* ---------- v4 admin additions ---------- */
+.cms-wide { max-width: 980px; }
+.cms-row-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.cms-help { color: #4a5568; font-size: .92rem; }
+.cms-sortable { list-style: none; margin: 1rem 0; padding: 0; display: grid; gap: .75rem; }
+.cms-sortable > li { display: grid; grid-template-columns: auto 1fr; gap: .75rem; background: #fff; border: 1px solid #d6dce8; border-radius: 10px; padding: 1rem; }
+.cms-sortable > li.is-over { border-color: #1A365D; box-shadow: 0 0 0 2px #D4AF37; }
+.cms-sort-handle { display: flex; flex-direction: column; align-items: center; gap: .3rem; color: #718096; cursor: grab; }
+.cms-icon-btn { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #d6dce8; border-radius: 6px; background: #F7FAFC; color: #1A365D; cursor: pointer; }
+.cms-icon-btn:disabled { opacity: .35; cursor: default; }
+.cms-inline { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .25rem 0 .5rem; }
+.cms-inline a { color: #0D008C; display: inline-flex; gap: .3rem; align-items: center; }
+.cms-check { display: inline-flex; gap: .4rem; align-items: center; font-weight: 700; color: #1A365D; }
+.cms-pill { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .04em; padding: .2rem .55rem; border-radius: 999px; background: #eef2f7; color: #1A365D; }
+.cms-pill.is-live { background: #e3f4e8; color: #1e6b36; }
+.cms-pill.is-scheduled { background: #fff4cf; color: #7a5a00; }
+.cms-pill.is-expired { background: #f1f1f1; color: #555; }
+.cms-pill.is-off { background: #eef2f7; color: #4a5568; }
+.cms-pill.is-warn { background: #fff4cf; color: #7a5a00; }
+.cms-danger { color: #b42318 !important; }
+.cms-grid-3 { display: grid; gap: 0 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.cms-split { display: grid; gap: 1.5rem; grid-template-columns: minmax(320px, 440px) 1fr; align-items: start; }
+@media (max-width: 1000px) { .cms-split { grid-template-columns: 1fr; } }
+.cms-live-preview { position: sticky; top: 1rem; border: 1px solid #d6dce8; border-radius: 12px; overflow: hidden; background: #F7FAFC; max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.cms-preview-label { position: sticky; top: 0; z-index: 5; display: block; background: #1A365D; color: #fff; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: .45rem .9rem; }
+.cms-preview-frame { min-height: 0 !important; font-size: 16px !important; }
+.cms-preview-frame .cb-hero { min-height: 420px; }
+.cms-md { font-family: ui-monospace, Menlo, monospace; font-size: .88rem; line-height: 1.5; }
+.cms-hero-photo { display: grid; grid-template-columns: 120px 1fr; gap: 1rem; align-items: center; margin: 1rem 0; }
+.cms-hero-photo img { width: 120px; height: 80px; object-fit: cover; object-position: 50% 30%; border-radius: 8px; }
+.cms-upload-row { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .5rem 0; }
+.cms-choose { cursor: pointer; }
+.cms-upload-preview { display: flex; gap: 1rem; align-items: center; margin: .5rem 0 1rem; font-size: .9rem; color: #4a5568; }
+.cms-upload-preview img { width: 120px; height: 120px; object-fit: contain; background: #eef2f7; border-radius: 8px; }
+.cms-upload-nopreview { width: 160px; padding: .6rem; background: #eef2f7; border-radius: 8px; font-size: .82rem; }
+.cms-field-error { color: #b42318; font-weight: 700; }
+.cms-health-ok { display: inline-flex; gap: .35rem; align-items: center; color: #1e6b36; font-size: .85rem; margin: .25rem 0 .75rem; }
+.cms-inbox { list-style: none; padding: 0; margin: 1rem 0; display: grid; gap: .75rem; }
+.cms-inbox > li { background: #fff; border: 1px solid #d6dce8; border-left: 4px solid #D4AF37; border-radius: 10px; padding: 1rem 1.25rem; }
+.cms-inbox p { margin: .25rem 0; }
+.cms-inbox blockquote { margin: .5rem 0; padding-left: .75rem; border-left: 3px solid #d6dce8; white-space: pre-wrap; }
+.cms-empty-state { padding: 1.5rem; border: 1px dashed #d6dce8; border-radius: 10px; background: #fdfcf8; }
+.cms-preview-details { margin-top: 1.5rem; }
+.cms-legacy-link { margin-top: 1rem; text-align: center; }

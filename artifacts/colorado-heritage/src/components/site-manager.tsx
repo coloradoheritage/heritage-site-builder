@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getGetSiteContentQueryKey, useGetSiteContent, useSaveSiteContent, useUploadSitePhoto,
+  getGetSiteContentQueryKey, useGetSiteContent, useSaveSiteContent,
   type CmsArticle, type CmsDocument, type CmsNavigation, type CmsPage, type CmsStaff, type SiteContentState,
 } from "@workspace/api-client-react";
-import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, Check, ImagePlus, Plus, RotateCw, Save, Trash2 } from "lucide-react";
-import { DocumentsContext, MarkdownContent, resolveDocument } from "./public-site";
-import { compressImage, fixText, mediaUrl, publicAsset, publicPath } from "../lib/cms";
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, Check, Plus, RotateCw, Save, Trash2 } from "lucide-react";
+import { DocumentsContext, MarkdownContent, resolveDocument } from "./markdown";
+import { AnnouncementsEditor, FaqEditor, HomeEditor, InquiriesInbox, MediaHealthBanner, PhotoUploader } from "./site-editors";
+export { PhotoUploader } from "./site-editors";
+import { fixText, mediaUrl, publicAsset, publicPath } from "../lib/cms";
 import "./public-site.css";
 import "./cms.css";
 import { isAdministrative, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
 
-type Tab = "pages" | "staff" | "events" | "news" | "documents" | "menu";
+type Tab = "home" | "faqs" | "announcements" | "inquiries" | "pages" | "staff" | "events" | "news" | "documents" | "menu";
 const TABS: { id: Tab; label: string }[] = [
+  { id: "home", label: "Home page" }, { id: "announcements", label: "Announcements" }, { id: "faqs", label: "FAQs" }, { id: "inquiries", label: "Inquiries" },
   { id: "pages", label: "Pages" }, { id: "staff", label: "Faculty & staff" }, { id: "events", label: "Events" },
   { id: "news", label: "News & blog" }, { id: "documents", label: "Documents" }, { id: "menu", label: "Menu" },
 ];
@@ -30,6 +33,12 @@ const errStatus = (e: unknown) => (typeof e === "object" && e && "status" in e ?
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Unknown error");
 
 function validate(d: SiteContentState): string[] {
+  const extra: string[] = [];
+  (d.faqs ?? []).forEach((f, i) => { if (!f.question.trim() || !f.answer.trim()) extra.push(`FAQ ${i + 1} needs both a question and an answer.`); });
+  (d.announcements ?? []).forEach((a, i) => { if (!a.title.trim()) extra.push(`Announcement ${i + 1} needs a title.`); if (a.startsAt && a.expiresAt && a.expiresAt <= a.startsAt) extra.push(`Announcement "${a.title}" expires before it starts.`); });
+  return [...extra, ...validateBase(d)];
+}
+function validateBase(d: SiteContentState): string[] {
   const issues: string[] = [];
   const seen = new Set<string>();
   d.pages.forEach((p, i) => {
@@ -112,38 +121,6 @@ function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDes
   </div></DocumentsContext.Provider>;
 }
 
-export function PhotoUploader({ label, portrait, onUploaded, defaultAlt = "" }: { label: string; portrait?: boolean; onUploaded: (url: string, alt: string) => void; defaultAlt?: string }) {
-  const upload = useUploadSitePhoto();
-  const [alt, setAlt] = useState(defaultAlt);
-  const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<{ kind: "idle" | "busy" | "ok" | "error"; text: string }>({ kind: "idle", text: "" });
-  const inputRef = useRef<HTMLInputElement>(null);
-  const go = async () => {
-    if (!file) return setStatus({ kind: "error", text: "Choose a photo first." });
-    if (!alt.trim()) return setStatus({ kind: "error", text: "Describe the photo (alt text) before uploading. It is required for accessibility." });
-    try {
-      setStatus({ kind: "busy", text: "Resizing and uploading…" });
-      // Retain the full portrait so the saved focal point can adjust its square display later.
-      const img = await compressImage(file, portrait ? { maxSize: 1200, targetBytes: 100 * 1024 } : { maxSize: 1200, targetBytes: 450 * 1024 });
-      const res = await upload.mutateAsync({ data: { data: img.dataUrl, alt: alt.trim() } });
-      onUploaded(res.url, res.alt || alt.trim());
-      setStatus({ kind: "ok", text: `Uploaded (${img.width}x${img.height}, ${Math.round(img.bytes / 1024)} KB). Remember to save your changes.` });
-      setFile(null);
-      if (inputRef.current) inputRef.current.value = "";
-    } catch (e) {
-      const s = errStatus(e);
-      setStatus({ kind: "error", text: s === 401 || s === 403 ? "Upload refused: your account is not approved to upload photos." : s === 413 ? "Upload refused: the photo is too large." : `Upload failed: ${errMsg(e)}` });
-    }
-  };
-  return <div className="cms-uploader">
-    <strong>{label}</strong>
-    <input ref={inputRef} type="file" accept="image/*" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setStatus({ kind: "idle", text: "" }); }} data-testid="input-photo-file" />
-    <Field label="Photo description (alt text, required)" hint="Describe what is in the photo for visitors using screen readers."><input value={alt} onChange={(e) => setAlt(e.target.value)} data-testid="input-photo-alt" /></Field>
-    <button type="button" className="cms-btn" onClick={go} disabled={status.kind === "busy" || !file || !alt.trim()} data-testid="button-upload-photo"><ImagePlus size={14} /> {status.kind === "busy" ? "Uploading…" : "Upload photo"}</button>
-    {status.text && <p className={`cms-status cms-status-${status.kind}`} role={status.kind === "error" ? "alert" : "status"}>{status.text}</p>}
-  </div>;
-}
-
 /* ---------------- Editors ---------------- */
 
 function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: (d: SiteContentState) => SiteContentState) => void }) {
@@ -214,6 +191,9 @@ function StaffEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
         </div>
       </div>
       <label className="cms-check"><input type="checkbox" checked={isAdministrative(person)} onChange={(e) => set({ administrative: e.target.checked })} /> Include in Administrative Staff</label>
+      <label className="cms-check"><input type="checkbox" checked={(person as { faculty?: boolean }).faculty ?? (!isAdministrative(person) && !(person as { board?: boolean }).board)} onChange={(e) => set({ faculty: e.target.checked } as Partial<CmsStaff>)} data-testid="check-staff-faculty" /> Include in Faculty</label>
+      <label className="cms-check"><input type="checkbox" checked={Boolean((person as { board?: boolean }).board)} onChange={(e) => set({ board: e.target.checked } as Partial<CmsStaff>)} data-testid="check-staff-board" /> Include on the Board</label>
+      {(person as { board?: boolean }).board && <Field label="Board role" hint="Shown on the Board card, e.g. Chairman or Treasurer."><input value={(person as { boardRole?: string }).boardRole ?? ""} onChange={(e) => set({ boardRole: e.target.value || undefined } as Partial<CmsStaff>)} data-testid="input-staff-board-role" /></Field>}
       <PhotoUploader key={person.slug} label="Upload a portrait (full image preserved)" portrait defaultAlt={person.alt || `Portrait of ${person.name}`} onUploaded={(url, alt) => set({ photo: url, alt, photoPositionX: 50, photoPositionY: 0 })} />
       {person.photo && <fieldset>
         <legend>Photo framing</legend>
@@ -326,7 +306,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
   const qc = useQueryClient();
   const [draft, setDraft] = useState<SiteContentState | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [tab, setTab] = useState<Tab>("pages");
+  const [tab, setTab] = useState<Tab>(() => { const t = new URLSearchParams(window.location.search).get("tab"); return (TABS.some((x) => x.id === t) ? t : "home") as Tab; });
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error" | "conflict"; text: string } | null>(null);
   const initialized = useRef(false);
 
@@ -381,7 +361,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
   if (query.isPending || (!draft && !query.isError)) return <div className="admin-message"><p>Loading website content…</p></div>;
   if (query.isError || !draft) return <div className="admin-message" role="alert"><h1>Could not load the website content</h1><p>Nothing can be edited until the content loads.</p><button type="button" className="button" onClick={() => query.refetch()}>Try again</button></div>;
 
-  const counts: Record<Tab, number> = { pages: draft.pages.length, staff: draft.staff.length, events: draft.events.length, news: draft.news.length, documents: draft.documents.length, menu: draft.navigation.length };
+  const counts: Record<Tab, number | string> = { home: "", faqs: draft.faqs?.length ?? 0, announcements: draft.announcements?.length ?? 0, inquiries: "", pages: draft.pages.length, staff: draft.staff.length, events: draft.events.length, news: draft.news.length, documents: draft.documents.length, menu: draft.navigation.length };
   return <div className="cms-shell">
     <header className="cms-top">
       <div className="cms-top-id">
@@ -401,10 +381,15 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
       {feedback.kind === "conflict" && <button type="button" className="cms-btn" onClick={reload}>Reload latest</button>}
     </div>}
     {issues.length > 0 && <div className="cms-feedback cms-feedback-error"><AlertTriangle size={16} /><ul>{issues.slice(0, 6).map((t) => <li key={t}>{t}</li>)}{issues.length > 6 && <li>and {issues.length - 6} more</li>}</ul></div>}
+    <MediaHealthBanner />
     <nav className="cms-tabs" aria-label="Content type">
       {TABS.map((t) => <button type="button" key={t.id} className={tab === t.id ? "is-active" : ""} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}>{t.label}<span>{counts[t.id]}</span></button>)}
     </nav>
     <main className="cms-body">
+      {tab === "home" && <HomeEditor draft={draft} update={update} />}
+      {tab === "faqs" && <FaqEditor draft={draft} update={update} />}
+      {tab === "announcements" && <AnnouncementsEditor draft={draft} update={update} />}
+      {tab === "inquiries" && <InquiriesInbox />}
       {tab === "pages" && <PagesEditor draft={draft} update={update} />}
       {tab === "staff" && <StaffEditor draft={draft} update={update} />}
       {tab === "events" && <ArticlesEditor key="events" kind="events" draft={draft} update={update} />}
@@ -422,9 +407,10 @@ export function EditorHome({ onChoose, onSignOut, publicSiteUrl }: { onChoose: (
     <h1>What would you like to update?</h1>
     <p>Saves change the content families see. They never publish or change the website's code.</p>
     <div className="cms-home-choices">
-      <button type="button" onClick={() => onChoose("homepage")} data-testid="choose-homepage-editor"><strong>Homepage editor</strong><span>Welcome banner, notice, program cards, mission, and section order.</span></button>
-      <button type="button" onClick={() => onChoose("site")} data-testid="choose-site-manager"><strong>Full-site manager</strong><span>Every page, faculty profiles and photos, events, news, documents, and the menu.</span></button>
+      {([["home", "Home page", "Headline, hero photo, and every home section, with a live preview."], ["announcements", "Announcements", "Timed notices in the bar above the menu."], ["faqs", "FAQs", "Questions parents ask, and which show on the home page."], ["inquiries", "Inquiries", "Questions families sent from the website."], ["pages", "All pages & people", "Every page, faculty profiles and photos, events, news, documents."]] as const).map(([id, title, text]) =>
+        <button type="button" key={id} onClick={() => { const u = new URL(window.location.href); u.searchParams.set("tab", id); window.history.replaceState(null, "", u); onChoose("site"); }} data-testid={`choose-${id}`}><strong>{title}</strong><span>{text}</span></button>)}
     </div>
+    <p className="cms-legacy-link"><button type="button" className="cms-btn cms-btn-ghost" onClick={() => onChoose("homepage")} data-testid="choose-homepage-editor">Legacy homepage tool (old design)</button></p>
     <div className="cms-home-links"><a href={publicSiteUrl}>Visit the public website</a>{onSignOut && <button type="button" onClick={onSignOut}>Sign out</button>}</div>
   </div>;
 }
