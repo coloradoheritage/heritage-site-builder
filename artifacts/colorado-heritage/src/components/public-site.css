@@ -435,7 +435,7 @@ body.cb-menu-open { overflow: hidden; }
 .cb-home-section .chess-prose p > img:only-child,
 .cb-prose-wrap .chess-prose p > img:only-child { width: 100%; height: auto; border-radius: var(--radius); object-fit: cover; object-position: center 30%; }
 .cb-prose-wrap .chess-prose p:has(> img:only-child) { max-width: 620px; margin-inline: auto; }
-.cb-hero-img { object-position: center 45%; }
+.cb-hero-img { object-position: center 65%; }
 @media (max-width: 767px) {
   .cb-hero { display: flex; flex-direction: column; aspect-ratio: auto; min-height: 0; }
   .cb-hero-img { position: relative; inset: auto; height: auto; width: 100%; object-fit: cover; z-index: 0; animation: none; transform: none; }
