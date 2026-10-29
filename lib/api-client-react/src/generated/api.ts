@@ -25,6 +25,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  DocumentUploadRequest,
   EditorAccessResponse,
   GetMediaHealth200,
   HealthStatus,
@@ -39,6 +40,7 @@ import type {
   SiteContentRestoreInput,
   SiteContentState,
   SubmitInquiry201,
+  UploadSiteDocument200,
   UploadSitePhoto200
 } from './api.schemas';
 
@@ -997,6 +999,82 @@ export const useUploadSitePhoto = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUploadSitePhotoMutationOptions(options), queryClient);
+    }
+
+export const getUploadSiteDocumentUrl = () => {
+
+
+
+
+  return `/api/media/upload-document`
+}
+
+/**
+ * @summary Upload a PDF as an approved editor
+ */
+export const uploadSiteDocument = async (documentUploadRequest: DocumentUploadRequest, options?: Parameters<typeof customFetch>[1]): Promise<UploadSiteDocument200> => {
+    const formData = new FormData();
+formData.append(`file`, documentUploadRequest.file);
+
+  return customFetch<UploadSiteDocument200>(getUploadSiteDocumentUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getUploadSiteDocumentMutationKey = () => ['uploadSiteDocument'] as const;
+
+export const getUploadSiteDocumentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSiteDocument>>, TError,UploadSiteDocumentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadSiteDocument>>, TError,UploadSiteDocumentMutationVariables, TContext> => {
+
+const mutationKey = getUploadSiteDocumentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadSiteDocument>>, UploadSiteDocumentMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  uploadSiteDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadSiteDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof uploadSiteDocument>>>
+    export type UploadSiteDocumentMutationBody = BodyType<DocumentUploadRequest>
+    export type UploadSiteDocumentMutationError = ErrorType<void>
+    export type UploadSiteDocumentMutationVariables = {data: BodyType<DocumentUploadRequest>}
+
+    /**
+ * @summary Upload a PDF as an approved editor
+ */
+export const useUploadSiteDocument = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSiteDocument>>, TError,UploadSiteDocumentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof uploadSiteDocument>>,
+        TError,
+        UploadSiteDocumentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUploadSiteDocumentMutationOptions(options), queryClient);
     }
 
 export const getHealthCheckUrl = () => {

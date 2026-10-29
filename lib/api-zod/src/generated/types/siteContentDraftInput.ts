@@ -11,4 +11,5 @@ export interface SiteContentDraftInput {
   content: SiteContentState;
   /** @minimum 1 */
   expectedDraftRevision: number;
+  createVersion?: boolean;
 }

@@ -1,7 +1,7 @@
 import { Puck, RichTextMenu, type Config, type Data, type RichtextField } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
-import { useState, type ReactNode } from "react";
-import { Link as LinkIcon, Redo, Monitor, Smartphone, Undo, Unlink } from "lucide-react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { Link as LinkIcon, Redo, Monitor, Smartphone, Undo, Unlink, PanelLeftClose, PanelLeftOpen, ExternalLink } from "lucide-react";
 import { marked } from "marked";
 import Color from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
@@ -14,6 +14,17 @@ import { toMountainInput } from "./puck-time";
 import { DocumentsContext } from "./markdown";
 import { HomePage } from "./home-page";
 import type { SiteContentExt } from "../lib/cms";
+import { staffProfilePath } from "../../directory-helpers.mjs";
+
+const LinkPagesContext = createContext<CmsPage[]>([]);
+
+function safeLinkHref(value: string) {
+  const href = value.trim();
+  if (!href || /^\s*(javascript|vbscript|data):/i.test(href) || href.startsWith("//")) return "";
+  if (/^(https?:|mailto:|tel:|\/|#)/i.test(href)) return href;
+  if (/^[a-z][a-z\d+.-]*:/i.test(href)) return "";
+  return `https://${href}`;
+}
 
 function markdownToRichText(markdown: string) {
   const result = marked(markdown, { async: false, gfm: true, breaks: false });
@@ -67,14 +78,24 @@ type RichEditor = { chain: () => RichChain; isActive: (name: string, attrs?: Rec
 
 function RichTools({ editor }: { editor: RichEditor }) {
   const [href, setHref] = useState("");
+  const [pagePath, setPagePath] = useState("");
   const [newTab, setNewTab] = useState(false);
+  const [linkError, setLinkError] = useState("");
+  const pages = useContext(LinkPagesContext);
+  const linkHref = safeLinkHref(pagePath || href);
   const applyLink = () => {
-    if (!href.trim()) return;
+    if (!linkHref) {
+      setLinkError("Choose a page or enter a supported web address.");
+      return;
+    }
     editor.chain().focus().extendMarkRange("link").setLink({
-      href: href.trim(),
+      href: linkHref,
       target: newTab ? "_blank" : null,
       rel: newTab ? "noopener noreferrer" : null,
     }).run();
+    setLinkError("");
+    setHref("");
+    setPagePath("");
   };
   return <>
     <RichTextMenu.Group>
@@ -89,9 +110,14 @@ function RichTools({ editor }: { editor: RichEditor }) {
       <RichTextMenu.AlignRight />
     </RichTextMenu.Group>
     <RichTextMenu.Group>
-      <label className="puck-rich-link"><LinkIcon size={14} /><input value={href} onChange={(event) => setHref(event.target.value)} placeholder="Paste a link" aria-label="Link address" /></label>
-      <label className="puck-rich-newtab"><input type="checkbox" checked={newTab} onChange={(event) => setNewTab(event.target.checked)} /> Open in new tab</label>
+      <label className="puck-rich-link"><LinkIcon size={14} /><select value={pagePath} onChange={(event) => { setPagePath(event.target.value); setHref(""); setLinkError(""); }} aria-label="Link to a site page" data-testid="puck-link-page">
+        <option value="">Choose a page…</option>
+        {pages.map((page) => <option key={page.path} value={page.path}>{page.label || page.title || page.path}</option>)}
+      </select></label>
+      <label className="puck-rich-link"><ExternalLink size={13} /><input value={href} onChange={(event) => { setHref(event.target.value); setPagePath(""); setLinkError(""); }} placeholder="Or enter a web address" aria-label="Outside link address" data-testid="puck-link-url" /></label>
+      <label className="puck-rich-newtab"><input type="checkbox" checked={newTab} onChange={(event) => setNewTab(event.target.checked)} data-testid="puck-link-new-tab" /> Open in new tab</label>
       <RichTextMenu.Control icon={<LinkIcon size={14} />} title="Set link" onClick={applyLink} />
+      {linkError && <span className="puck-rich-link-error" role="alert">{linkError}</span>}
       <RichTextMenu.Control icon={<Unlink size={14} />} title="Remove link" onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()} />
       <RichTextMenu.Control icon={<Undo size={14} />} title="Undo" onClick={() => editor.chain().focus().undo().run()} />
       <RichTextMenu.Control icon={<Redo size={14} />} title="Redo" onClick={() => editor.chain().focus().redo().run()} />
@@ -130,7 +156,15 @@ const editorConfig = {
         imageSide: { type: "select", label: "Photo position", options: [{ label: "Left", value: "left" }, { label: "Right", value: "right" }] },
       },
     },
-    FamilyStepButton: { ...chessPuckConfig.components.FamilyStepButton, fields: { ...chessPuckConfig.components.FamilyStepButton.fields, richText: richField } },
+    FamilyStepButton: {
+      ...chessPuckConfig.components.FamilyStepButton,
+      fields: {
+        ...chessPuckConfig.components.FamilyStepButton.fields,
+        richText: richField,
+        secondaryButtonLabel: { type: "text", label: "Second button label (optional)" },
+        secondaryHref: { type: "text", label: "Second button link (optional)" },
+      },
+    },
     FaqItem: { ...chessPuckConfig.components.FaqItem, fields: { ...chessPuckConfig.components.FaqItem.fields, richText: richField } },
     StaffCard: {
       ...chessPuckConfig.components.StaffCard,
@@ -191,6 +225,7 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
 }) {
   const [selected, setSelected] = useState("home");
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const entries: Entry[] = [
     ...(draft.home ? [{ label: "Home page", subtitle: "/", kind: "home" as const }] : []),
     ...draft.pages.map((p, index) => ({ label: p.label || "Untitled page", subtitle: p.path, kind: "page" as const, index })),
@@ -232,18 +267,28 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
   return <section className="cms-visual-editor">
     <header className="cms-visual-head">
       <div><span className="cms-eyebrow">Visual page editor</span><h2>Make a change, see it in place.</h2><p>Everything here stays in your private draft until you publish.</p></div>
+      <div className="cms-visual-actions">
+      <button type="button" className="cms-preview-parent" onClick={() => setSettingsOpen((value) => !value)} data-testid="button-preview-as-parent">
+        {settingsOpen ? <ExternalLink size={15} /> : <PanelLeftOpen size={15} />}{settingsOpen ? "Preview as a parent" : "Back to editing"}
+      </button>
+      <button type="button" className="cms-settings-toggle" aria-expanded={settingsOpen} aria-controls="cms-puck-workspace" onClick={() => setSettingsOpen((value) => !value)} data-testid="toggle-page-settings">
+        {settingsOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}{settingsOpen ? "Hide section settings" : "Edit page sections"}
+      </button>
       <div className="cms-device-switch" aria-label="Preview size">
-        <button type="button" className={device === "desktop" ? "is-selected" : ""} onClick={() => setDevice("desktop")}><Monitor size={15} /> Desktop</button>
-        <button type="button" className={device === "phone" ? "is-selected" : ""} onClick={() => setDevice("phone")}><Smartphone size={15} /> Phone</button>
+        <button type="button" className={device === "desktop" ? "is-selected" : ""} onClick={() => setDevice("desktop")} data-testid="preview-desktop"><Monitor size={15} /> Desktop</button>
+        <button type="button" className={device === "phone" ? "is-selected" : ""} onClick={() => setDevice("phone")} data-testid="preview-phone"><Smartphone size={15} /> Phone</button>
+      </div>
       </div>
     </header>
-    <label className="cms-page-picker"><span>Choose content</span><select value={selected} onChange={(e) => setSelected(e.target.value)}>
+    <label className="cms-page-picker"><span>Choose content</span><select value={selected} onChange={(e) => setSelected(e.target.value)} data-testid="select-visual-content">
       {entries.map((item) => <option key={`${item.kind}:${item.index ?? ""}`} value={`${item.kind}:${item.index ?? ""}`}>{item.label} — {item.subtitle}</option>)}
     </select></label>
-    <div className={`cms-puck-stage is-${device}`}>
-      <div className="cms-puck-workspace"><Puck config={editorConfig} data={payload} onChange={saveBlocks} /></div>
+    <div className={`cms-puck-stage is-${device} ${settingsOpen ? "has-settings" : "preview-focused"}`}>
+      {settingsOpen && <div id="cms-puck-workspace" className="cms-puck-workspace">
+        <LinkPagesContext.Provider value={draft.pages}><Puck config={editorConfig} data={payload} onChange={saveBlocks} /></LinkPagesContext.Provider>
+      </div>}
       <aside className={`cms-puck-preview is-${device}`}>
-        <div className="cms-puck-preview-bar"><span>Page preview</span><span>{device === "phone" ? "Phone" : "Desktop"}</span></div>
+        <div className="cms-puck-preview-bar"><span>{settingsOpen ? "Draft page preview" : "Parent preview · private draft"}</span><span>{device === "phone" ? "Phone" : "Desktop"}</span></div>
         <DocumentsContext.Provider value={(draft as SiteContentState).documents}>
         <div className="cms-puck-viewport">
           <div className="cb-site cms-puck-public-frame">

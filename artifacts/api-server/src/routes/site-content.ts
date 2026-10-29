@@ -13,7 +13,7 @@ import { db, siteContentTable, siteContentDraftsTable, contentBackupsTable } fro
 import { and, desc, eq } from "drizzle-orm";
 import { hasEditorAccess } from "./homepage";
 import initialContent from "../data/initial-site-content.json";
-import { mediaStorage, storePhoto } from "../lib/site-media";
+import { mediaStorage, storeDocument, storePhoto } from "../lib/site-media";
 import { restoreImportedPortraits } from "../lib/portrait-content";
 import { migrateSitePlan, SITE_PLAN_VERSION } from "../lib/site-plan";
 import { activeAnnouncements, denverInstant } from "../lib/announcements";
@@ -53,6 +53,19 @@ async function ensureDraft(published: Awaited<ReturnType<typeof getSiteContent>>
     content: withoutRuntimeFields(published),
   }).onConflictDoNothing();
   const [draft] = await db.select().from(siteContentDraftsTable).where(eq(siteContentDraftsTable.id, 1));
+  if (draft && Number(draft.content.planVersion) < SITE_PLAN_VERSION) {
+    const migrated = migrateSitePlan(restoreImportedPortraits(draft.content));
+    const [updated] = await db.update(siteContentDraftsTable).set({
+      content: migrated,
+      revision: draft.revision + 1,
+      basePublishedRevision: published.revision,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(siteContentDraftsTable.id, 1),
+      eq(siteContentDraftsTable.revision, draft.revision),
+    )).returning();
+    return updated;
+  }
   return draft;
 }
 
@@ -71,7 +84,7 @@ async function getEditorState() {
   }
   const history = await db.select().from(contentBackupsTable)
     .orderBy(desc(contentBackupsTable.createdAt), desc(contentBackupsTable.id))
-    .limit(50);
+    .limit(20);
   return GetSiteContentEditorResponse.parse({
     published,
     draft: stateWithRevision(draft.content, draft.revision),
@@ -80,7 +93,6 @@ async function getEditorState() {
       id: version.id,
       revision: version.revision,
       createdAt: version.createdAt.toISOString(),
-      content: stateWithRevision(version.content, version.revision),
     })),
   });
 }
@@ -118,6 +130,9 @@ function validateBlockValues(blocks: unknown): string | null {
     if (!isRecord(block) || typeof block.type !== "string" || !isRecord(block.props)) continue;
     if (block.type === "FamilyStepButton" && block.props.href && !/^(\/(?!\/)|https?:\/\/|mailto:|tel:)/.test(String(block.props.href))) {
       return "A page button needs a safe website link.";
+    }
+    if (block.type === "FamilyStepButton" && block.props.secondaryHref && !/^(\/(?!\/)|https?:\/\/|mailto:|tel:)/.test(String(block.props.secondaryHref))) {
+      return "A second page button needs a safe website link.";
     }
     if (block.type === "VideoOrMap" && block.props.url) {
       try {
@@ -242,7 +257,7 @@ router.get("/site-content/editor", async (req, res) => {
   res.json(await getEditorState());
 });
 
-async function saveDraft(content: SiteContent, expectedDraftRevision: number) {
+async function saveDraft(content: SiteContent, expectedDraftRevision: number, createVersion: boolean) {
   const validationError = validateContent(content, false);
   if (validationError) return { kind: "invalid" as const, error: validationError };
   return db.transaction(async (tx) => {
@@ -251,13 +266,21 @@ async function saveDraft(content: SiteContent, expectedDraftRevision: number) {
     if (!current || current.revision !== expectedDraftRevision) {
       return { kind: "conflict" as const };
     }
+    const savedContent = withoutRuntimeFields(content as unknown as Record<string, unknown>);
+    const nextRevision = current.revision + 1;
     await tx.update(siteContentDraftsTable)
       .set({
-        content: withoutRuntimeFields(content as unknown as Record<string, unknown>),
-        revision: current.revision + 1,
+        content: savedContent,
+        revision: nextRevision,
         updatedAt: new Date(),
       })
       .where(and(eq(siteContentDraftsTable.id, 1), eq(siteContentDraftsTable.revision, current.revision)));
+    if (createVersion) {
+      await tx.insert(contentBackupsTable).values({
+        revision: -nextRevision,
+        content: savedContent,
+      });
+    }
     return { kind: "saved" as const };
   });
 }
@@ -267,7 +290,7 @@ router.put("/site-content/draft", async (req, res) => {
   if (!await hasEditorAccess(req)) { res.sendStatus(403); return; }
   const parsed = SaveSiteContentDraftBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const result = await saveDraft(parsed.data.content, parsed.data.expectedDraftRevision);
+  const result = await saveDraft(parsed.data.content, parsed.data.expectedDraftRevision, Boolean(parsed.data.createVersion));
   if (result.kind === "invalid") { res.status(400).json({ error: result.error }); return; }
   if (result.kind === "conflict") { res.status(409).json({ error: "Another editor saved a draft. Reload before saving." }); return; }
   res.set("Cache-Control", "no-store");
@@ -360,8 +383,8 @@ router.post("/site-content/restore", async (req, res) => {
 });
 
 const uploadRouter = ExpressRouter();
-uploadRouter.use(["/health","/upload"],async(req,res,next)=>{
-  if (!getAuth(req).userId) {res.status(401).json({error:"Sign in to upload photos."});return;}
+uploadRouter.use(["/health","/upload","/upload-document"],async(req,res,next)=>{
+  if (!getAuth(req).userId) {res.status(401).json({error:"Sign in to upload files."});return;}
   if (!await hasEditorAccess(req)) {res.status(403).json({error:"This account is not approved to edit CHESS."});return;}
   next();
 });
@@ -388,6 +411,24 @@ uploadRouter.post("/upload", (req,res,next)=>{
     res.status(storageError?500:422).json({error:storageError?"Photo storage is unavailable. Ask the administrator to check App Storage configuration.":"This image could not be decoded. Try a different JPG, PNG, WebP, HEIC, or HEIF file."});
   }
 });
+uploadRouter.post("/upload-document", (req,res,next)=>{
+  upload.single("file")(req,res,(error)=>{
+    if(error){res.status(error.code==="LIMIT_FILE_SIZE"?413:400).json({error:error.code==="LIMIT_FILE_SIZE"?"PDF is too large. Choose a file up to 15 MB.":error.message});return;}
+    next();
+  });
+}, async (req, res) => {
+  if (!process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID) {res.status(500).json({error:"Storage not configured. Ask an administrator to configure the App Storage bucket."});return;}
+  if (!req.file) {res.status(400).json({error:"Choose a PDF file up to 15 MB."});return;}
+  if (!/\.pdf$/i.test(req.file.originalname) || req.file.mimetype !== "application/pdf") {
+    res.status(415).json({error:"Choose a PDF file."});return;
+  }
+  try { res.json({ url: await storeDocument(req.file.buffer) }); }
+  catch (error) {
+    req.log.error({ err: error }, "PDF upload failed");
+    const storageError=error instanceof Error && /storage/i.test(error.message);
+    res.status(storageError?500:415).json({error:storageError?"PDF storage is unavailable. Ask the administrator to check App Storage configuration.":"The uploaded file is not a valid PDF."});
+  }
+});
 router.use("/media",uploadRouter);
 
 router.get("/media/files/:key", async (req, res) => {
@@ -395,6 +436,19 @@ router.get("/media/files/:key", async (req, res) => {
   const result = await mediaStorage.downloadAsBytes(`website/${req.params.key}`);
   if (!result.ok) { res.sendStatus(result.error.statusCode === 404 ? 404 : 503); return; }
   res.set({ "Content-Type": "image/webp", "Cache-Control": "public,max-age=31536000,immutable" });
+  res.send(result.value[0]);
+});
+
+router.get("/media/documents/:key", async (req, res) => {
+  if (!/^[a-f0-9]{64}\.pdf$/.test(req.params.key)) { res.sendStatus(404); return; }
+  const result = await mediaStorage.downloadAsBytes(`website/documents/${req.params.key}`);
+  if (!result.ok) { res.sendStatus(result.error.statusCode === 404 ? 404 : 503); return; }
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": 'inline; filename="chess-document.pdf"',
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "public,max-age=31536000,immutable",
+  });
   res.send(result.value[0]);
 });
 

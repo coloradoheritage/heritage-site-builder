@@ -179,6 +179,30 @@ paths:
                     type: string
                   alt:
                     type: string
+  /media/upload-document:
+    post:
+      operationId: uploadSiteDocument
+      summary: Upload a PDF as an approved editor
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/DocumentUploadRequest"
+      responses:
+        "200":
+          description: Stored PDF document
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url]
+                properties:
+                  url: { type: string }
+        "401": { description: Sign in required }
+        "403": { description: Approved staff only }
+        "413": { description: PDF exceeds upload size limit }
+        "415": { description: PDF file required }
   /healthz:
     get:
       operationId: healthCheck
@@ -288,6 +312,11 @@ components:
       properties:
         file: { type: string, format: binary }
         alt: { type: string }
+    DocumentUploadRequest:
+      type: object
+      required: [file]
+      properties:
+        file: { type: string, format: binary }
     CmsPage:
       type: object
       required: [path, label, title, description, markdown, kind]
@@ -406,12 +435,11 @@ components:
           items: { $ref: "#/components/schemas/CmsNavigation" }
     SiteContentVersion:
       type: object
-      required: [id, revision, createdAt, content]
+      required: [id, revision, createdAt]
       properties:
         id: { type: integer }
         revision: { type: integer }
         createdAt: { type: string }
-        content: { $ref: "#/components/schemas/SiteContentState" }
     SiteContentEditorState:
       type: object
       required: [published, draft, draftBaseRevision, versions]
@@ -428,6 +456,7 @@ components:
       properties:
         content: { $ref: "#/components/schemas/SiteContentState" }
         expectedDraftRevision: { type: integer, minimum: 1 }
+        createVersion: { type: boolean, default: false }
     SiteContentPublishInput:
       type: object
       required: [expectedDraftRevision]

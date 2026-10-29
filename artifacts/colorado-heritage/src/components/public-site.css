@@ -1,3 +1,44 @@
+/* Clear, keyboard-visible button treatments for links embedded in application copy. */
+.cb-page-diploma .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href="/contact"]),
+.cb-page[data-path="/admissions/apply"] .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href*="parent_login.php"]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  margin: 1.15rem 0;
+}
+.cb-page-diploma .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href="/contact"]) > a,
+.cb-page[data-path="/admissions/apply"] .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href*="parent_login.php"]) > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: .7rem 1rem;
+  border: 2px solid #1A365D;
+  border-radius: 6px;
+  background: #1A365D;
+  color: #FFFFFF !important;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none !important;
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease;
+}
+.cb-page-diploma .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href="/contact"]) > a:last-of-type,
+.cb-page[data-path="/admissions/apply"] .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href*="parent_login.php"]) > a:last-of-type {
+  background: #FFFFFF;
+  color: #1A365D !important;
+}
+.cb-page-diploma .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href="/contact"]) > a:hover,
+.cb-page[data-path="/admissions/apply"] .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href*="parent_login.php"]) > a:hover {
+  border-color: #D4AF37;
+  background: #2D3748;
+  color: #FFFFFF !important;
+}
+.cb-page-diploma .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href="/contact"]) > a:focus-visible,
+.cb-page[data-path="/admissions/apply"] .chess-prose p:has(> a[href*="site_login.php"]):has(> a[href*="parent_login.php"]) > a:focus-visible {
+  outline: 3px solid #D4AF37;
+  outline-offset: 3px;
+}
 /* CHESS public site — "Heritage Ledger": navy-and-parchment academic editorial.
    Navy #1A365D structure, Gold #D4AF37 accents only, CHESS Blue #0D008C links only. */
 

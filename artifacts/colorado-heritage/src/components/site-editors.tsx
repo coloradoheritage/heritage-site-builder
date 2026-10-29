@@ -195,7 +195,7 @@ export function FaqEditor({ draft, update }: { draft: SiteContentState; update: 
       <Field label="Question"><input value={f.question} onChange={(e) => patch(f.id, { question: e.target.value })} data-testid={`input-faq-q-${f.id}`} /></Field>
         <div className="cms-field">
           <span>Answer</span>
-          <VisualBodyEditor markdown={f.answer} onMarkdown={(answer) => patch(f.id, { answer })} testId={`input-faq-a-${f.id}`} ariaLabel={`Answer for ${f.question || "new question"}`} />
+          <VisualBodyEditor markdown={f.answer} onMarkdown={(answer) => patch(f.id, { answer })} pages={draft.pages} testId={`input-faq-a-${f.id}`} ariaLabel={`Answer for ${f.question || "new question"}`} />
         </div>
       <div className="cms-inline">
         <label className="cms-check"><input type="checkbox" checked={f.showOnHome} onChange={(e) => patch(f.id, { showOnHome: e.target.checked })} data-testid={`check-faq-home-${f.id}`} /> Show on home page</label>

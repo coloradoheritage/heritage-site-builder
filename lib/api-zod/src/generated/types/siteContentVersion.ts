@@ -5,11 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { SiteContentState } from './siteContentState';
 
 export interface SiteContentVersion {
   id: number;
   revision: number;
   createdAt: string;
-  content: SiteContentState;
 }

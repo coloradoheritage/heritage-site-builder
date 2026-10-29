@@ -16,7 +16,7 @@ import { FaqAccordion, HomePage, SectionBody } from "./home-page";
 import { CalendarPage, ContactPage, FaqPage, NewsIndex, PeoplePage, VisitPage } from "./special-pages";
 import { SiteImage } from "./site-image";
 import { MobileActionBar, PraxiBox, QuietVisit, VisitBand } from "./site-chrome";
-import { PuckBlockRenderer } from "./puck-render";
+import { PuckAdditionalRenderer, PuckBlockRenderer } from "./puck-render";
 
 export { DocumentsContext, resolveDocument, MarkdownContent } from "./markdown";
 export { FacultyGrid } from "./faculty-grid";
@@ -90,10 +90,14 @@ function OverviewPage({ page, content }: { page: CmsPage; content: SiteContentEx
 function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt }) {
   const path = page.path;
   let markdown = cleanFilenameCaptions(stripSourceTitle(page.markdown));
+  // This internal staff question stays in the editor until the school confirms its answer.
+  if (path === "/parents/praxi") {
+    markdown = markdown.replace(/^\[CONFIRM: whether faculty should use this parent portal or a separate staff portal\. Contact the office for staff access\.\]\s*$/mi, "").trim();
+  }
   if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
   const heroImage = path === "/gallery" ? null : markdown.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/m);
   if (heroImage) markdown = markdown.replace(heroImage[0], "");
-  if (path === "/donate") return <DonationPage page={page} markdown={markdown} />;
+  if (path === "/donate") return <DonationPage page={page} markdown={markdown} blocks={page.blocks} />;
   const docUrl = useDocUrl();
   const resourceUrl = page.externalUrl || docUrl(page.documentPath);
   const isProgram = path.startsWith("/programs/");
@@ -110,7 +114,7 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
   const firstChunk = midCta ? `${sections[0].title ? `## ${sections[0].title}\n` : ""}${sections[0].body}` : markdown;
   const rest = midCta ? sections.slice(1).map((s) => `${s.title ? `## ${s.title}\n` : ""}${s.body}`).join("\n") : "";
 
-  return <article className={`cb-page ${path === "/gallery" || path === "/about/testimonials" ? "cb-page-wide" : ""}`} data-testid={`page-${testId(path)}`}>
+  return <article className={`cb-page ${path === "/gallery" || path === "/about/testimonials" ? "cb-page-wide" : ""} ${path === "/programs/diploma" ? "cb-page-diploma" : ""}`} data-path={path} data-testid={`page-${testId(path)}`}>
     {crumbs.length > 0 && <nav className="cb-crumbs" aria-label="Breadcrumb"><Link href="/">Home</Link>{crumbs.map((c, i) => { const p = `/${crumbs.slice(0, i + 1).join("/")}`; return <span key={p}><span aria-hidden="true">/</span><Link href={p}>{fixText(content.pages.find((x) => x.path === p)?.label ?? c)}</Link></span>; })}</nav>}
     <header className="cb-page-head">
       <h1>{fixText(page.label)}</h1>
@@ -138,7 +142,7 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
   </article>;
 }
 
-function DonationPage({ page, markdown }: { page: CmsPage; markdown: string }) {
+function DonationPage({ page, markdown, blocks }: { page: CmsPage; markdown: string; blocks?: CmsPage["blocks"] }) {
   const normalized = markdown
     .replace(/^\s*(\d+)\.\s+(#{1,6})\s+/gm, "$2 $1. ")
     .replace(/^(#{1,6})\s+(\d+)\\?\.\s+/gm, "$1 $2. ")
@@ -188,6 +192,7 @@ function DonationPage({ page, markdown }: { page: CmsPage; markdown: string }) {
       <p>{cardFeeNote}</p>
       {cashContent && <MarkdownContent markdown={cashContent} />}
     </aside>
+    <PuckAdditionalRenderer blocks={blocks} />
   </article>;
 }
 
@@ -242,7 +247,7 @@ function resolve(path: string, content: SiteContentExt): Resolved {
     const person = content.staff.find((s) => s.slug === staffMatch[1]);
     return person ? { type: "staff", person } : { type: "missing" };
   }
-  const page = content.pages.find((p) => p.path === path);
+  const page = content.pages.find((p) => p.path === path && !p.archived);
   if (page) return { type: "page", page };
   for (const kind of ["news", "events"] as const) {
     const entry = content[kind].find((a) => articleHref(a, kind) === path || canonicalInternalPath(a.path) === path);

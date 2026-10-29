@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } 
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetSiteContentQueryKey, useGetSiteContentEditor, useSaveSiteContentDraft, usePublishSiteContent, useRestoreSiteContentVersion,
+  useUploadSiteDocument,
   type CmsArticle, type CmsDocument, type CmsPage, type CmsStaff, type SiteContentState, type SiteContentEditorState,
 } from "@workspace/api-client-react";
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, Check, Plus, RotateCw, Save, Send, Trash2, History } from "lucide-react";
@@ -157,12 +158,18 @@ function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDes
 function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: (d: SiteContentState) => SiteContentState) => void }) {
   const [sel, setSel] = useState(0);
   const [filter, setFilter] = useState("");
-  const page = draft.pages[sel];
+  const [showArchived, setShowArchived] = useState(false);
+  const pageIndices = useMemo(() => draft.pages.map((p, i) => ({ p, i }))
+    .filter(({ p }) => showArchived || !p.archived)
+    .filter(({ p }) => !filter || `${p.label} ${p.path}`.toLowerCase().includes(filter.toLowerCase()))
+    .map(({ i }) => i), [draft.pages, showArchived, filter]);
+  const pageIndex = pageIndices.includes(sel) ? sel : pageIndices[0] ?? -1;
+  const page = pageIndex >= 0 ? draft.pages[pageIndex] : undefined;
   const set = (patch: Partial<CmsPage>) => update((d) => {
-    const current = d.pages[sel];
+    const current = d.pages[pageIndex];
     if (!current) return d;
     const nextPath = patch.path ?? current.path;
-    const pages = d.pages.map((p, i) => i === sel ? { ...p, ...patch, ...(typeof patch.markdown === "string" ? syncLegacyMarkdown(p, patch.markdown) : {}) } : p);
+    const pages = d.pages.map((p, i) => i === pageIndex ? { ...p, ...patch, ...(typeof patch.markdown === "string" ? syncLegacyMarkdown(p, patch.markdown) : {}) } : p);
     const redirects = { ...(d.redirects ?? {}) };
     if (current.path !== nextPath) redirects[current.path] = nextPath;
     let navigation = d.navigation.map((item) => ({
@@ -190,7 +197,7 @@ function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
   const setMenuGroup = (groupPath: string) => {
     if (!page) return;
     update((d) => {
-      const pages = d.pages.map((p, i) => i === sel ? { ...p, showInMenu: Boolean(groupPath), menuOrder: groupPath ? p.menuOrder ?? 0 : p.menuOrder } : p);
+      const pages = d.pages.map((p, i) => i === pageIndex ? { ...p, showInMenu: Boolean(groupPath), menuOrder: groupPath ? p.menuOrder ?? 0 : p.menuOrder } : p);
       const navigation = d.navigation.map((group) => ({
         ...group,
         children: group.path === groupPath
@@ -207,15 +214,16 @@ function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
   };
   const remove = () => {
     if (!page || !window.confirm(`Delete the page "${page.label}" (${page.path})? Visitors will see "page not found" at this address after you save.`)) return;
-    update((d) => ({ ...d, pages: d.pages.filter((_, i) => i !== sel), navigation: d.navigation.map((n) => ({ ...n, children: n.children.filter((c) => c !== page.path) })) }));
-    setSel(Math.max(0, sel - 1));
+    update((d) => ({ ...d, pages: d.pages.filter((_, i) => i !== pageIndex), navigation: d.navigation.map((n) => ({ ...n, children: n.children.filter((c) => c !== page.path) })) }));
+    setSel(Math.max(0, pageIndex - 1));
   };
   return <div className="cms-split">
     <div>
       <input className="cms-search" placeholder="Find a page…" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Find a page" />
-      <ListRail items={draft.pages} selected={sel} onSelect={setSel} filter={filter} addLabel="Add page"
-        render={(p) => ({ title: fixText(p.label), meta: "Website page" })}
-        onMove={(a, b) => { update((d) => ({ ...d, pages: move(d.pages, a, b) })); if (a === sel) setSel(b); }} onAdd={add} />
+      <label className="cms-check"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Show archived pages</label>
+      <ListRail items={pageIndices.map((i) => draft.pages[i])} selected={pageIndices.indexOf(pageIndex)} onSelect={(i) => setSel(pageIndices[i])} addLabel="Add page"
+        render={(p) => ({ title: fixText(p.label), meta: p.archived ? "Archived · hidden from visitors" : "Website page", muted: Boolean(p.archived) })}
+        onMove={(a, b) => { const from = pageIndices[a]; const to = pageIndices[b]; if (from == null || to == null) return; update((d) => ({ ...d, pages: move(d.pages, from, to) })); if (from === pageIndex) setSel(to); }} onAdd={add} />
     </div>
     {page ? <div className="cms-editor">
       <EditablePreview documents={draft.documents} eyebrow={page.path} title={page.label} description={page.description} markdown={page.markdown}
@@ -238,6 +246,7 @@ function PagesEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
            </Field>
         </div>
          <label className="cms-check"><input type="checkbox" checked={page.showInMenu !== false && Boolean(menuGroup)} onChange={(e) => e.target.checked ? setMenuGroup(menuGroup || draft.navigation[0]?.path || "") : setMenuGroup("")} /> Show this page under its fixed menu group</label>
+        <label className="cms-check"><input type="checkbox" checked={Boolean(page.archived)} onChange={(e) => set({ archived: e.target.checked, showInMenu: e.target.checked ? false : page.showInMenu })} /> Archived: hide from visitors, keep it available to restore</label>
         <Field label="Search summary (description)"><textarea rows={2} value={page.description} onChange={(e) => set({ description: e.target.value })} /></Field>
         <button type="button" className="cms-btn cms-btn-danger" onClick={remove}><Trash2 size={14} /> Delete this page</button>
       </details>
@@ -290,20 +299,28 @@ function StaffEditor({ draft, update }: { draft: SiteContentState; update: (fn: 
 function ArticlesEditor({ kind, draft, update }: { kind: "news" | "events"; draft: SiteContentState; update: (fn: (d: SiteContentState) => SiteContentState) => void }) {
   const [sel, setSel] = useState(0);
   const list = draft[kind];
-  const item = list[sel];
+  const [showArchived, setShowArchived] = useState(false);
+  const visibleIndices = useMemo(() => list.map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => showArchived || !entry.archived)
+    .map(({ index }) => index), [list, showArchived]);
+  const selectedIndex = visibleIndices.includes(sel) ? sel : visibleIndices[0] ?? -1;
+  const item = selectedIndex >= 0 ? list[selectedIndex] : undefined;
   const setList = (fn: (l: CmsArticle[]) => CmsArticle[]) => update((d) => ({ ...d, [kind]: fn(d[kind]) }));
-  const set = (patch: Partial<CmsArticle>) => setList((l) => l.map((a, i) => (i === sel ? { ...a, ...patch, ...(typeof patch.markdown === "string" ? syncLegacyMarkdown(a, patch.markdown) : {}) } : a)));
+  const set = (patch: Partial<CmsArticle>) => setList((l) => l.map((a, i) => (i === selectedIndex ? { ...a, ...patch, ...(typeof patch.markdown === "string" ? syncLegacyMarkdown(a, patch.markdown) : {}) } : a)));
   const add = () => {
     const today = new Date().toISOString().slice(0, 10);
     const [y, m, dd] = today.split("-");
     setList((l) => [{ path: `/${kind}/${y}/${Number(m)}/${Number(dd)}/new-${kind === "news" ? "story" : "event"}-${l.length + 1}`, title: kind === "news" ? "New story" : "New event", date: today, markdown: "", archived: false }, ...l]);
     setSel(0);
   };
-  const remove = () => { if (!item || !window.confirm(`Delete "${item.title}" permanently? To hide it from listings but keep the page, use "Archived" instead.`)) return; setList((l) => l.filter((_, i) => i !== sel)); setSel(Math.max(0, sel - 1)); };
+  const remove = () => { if (!item || !window.confirm(`Delete "${item.title}" permanently? To hide it from listings but keep the page, use "Archived" instead.`)) return; setList((l) => l.filter((_, i) => i !== selectedIndex)); setSel(Math.max(0, selectedIndex - 1)); };
   return <div className="cms-split">
-    <ListRail items={list} selected={sel} onSelect={setSel} addLabel={kind === "news" ? "Add story" : "Add event"}
+    <div>
+      <label className="cms-check"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Show archived {kind === "news" ? "posts" : "events"}</label>
+    <ListRail items={visibleIndices.map((i) => list[i])} selected={visibleIndices.indexOf(selectedIndex)} onSelect={(i) => setSel(visibleIndices[i])} addLabel={kind === "news" ? "Add story" : "Add event"}
       render={(a) => ({ title: fixText(a.title), meta: `${a.date}${a.archived ? " · archived" : ""}`, muted: a.archived })}
-      onMove={(a, b) => { setList((l) => move(l, a, b)); if (a === sel) setSel(b); }} onAdd={add} />
+      onMove={(a, b) => { const from = visibleIndices[a]; const to = visibleIndices[b]; if (from == null || to == null) return; setList((l) => move(l, from, to)); if (from === selectedIndex) setSel(to); }} onAdd={add} />
+    </div>
     {item ? <div className="cms-editor">
       <div className="cms-grid2">
         <Field label="Date"><input type="date" value={/^\d{4}-\d{2}-\d{2}/.test(item.date) ? item.date.slice(0, 10) : ""} onChange={(e) => set({ date: e.target.value })} /></Field>
@@ -318,12 +335,32 @@ function ArticlesEditor({ kind, draft, update }: { kind: "news" | "events"; draf
 
 function DocumentsEditor({ draft, update }: { draft: SiteContentState; update: (fn: (d: SiteContentState) => SiteContentState) => void }) {
   const setDocs = (fn: (l: CmsDocument[]) => CmsDocument[]) => update((d) => ({ ...d, documents: fn(d.documents) }));
+  const uploadPdf = useUploadSiteDocument();
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState("");
+  const upload = async (doc: CmsDocument, file?: File) => {
+    if (!file) return;
+    setUploadError("");
+    if (!/\.pdf$/i.test(file.name)) { setUploadError("Choose a PDF file."); return; }
+    setUploading(doc.id);
+    try {
+      const result = await uploadPdf.mutateAsync({ data: { file } });
+      setDocs((items) => items.map((item) => item.id === doc.id ? { ...item, url: result.url } : item));
+    } catch (error) {
+      setUploadError(errMsg(error));
+    } finally {
+      setUploading(null);
+    }
+  };
   return <div className="cms-docs">
-    <p className="cms-muted">Documents are linked files such as the school calendar and tuition policy. Every page link that pointed at the original address now opens the current destination you set here, so updating one row updates the site everywhere. PDF uploading is not available here yet; enter a path or full link.</p>
+    <p className="cms-muted">Documents are linked files such as the school calendar and tuition policy. Every page link that points at the original address opens the destination set here. Upload a PDF up to 15 MB; it will replace the file destination in this private draft.</p>
+    {uploadError && <p className="cms-feedback cms-feedback-error" role="alert">{uploadError}</p>}
     {draft.documents.map((doc, i) => <div className="cms-doc-row" key={i}>
       <Field label="Title"><input value={doc.title} onChange={(e) => setDocs((l) => l.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} /></Field>
       <Field label="Original link (fixed)" hint="Pages refer to this; it cannot change."><input value={doc.id} readOnly aria-readonly="true" /></Field>
       <Field label="Current destination"><input value={doc.url} onChange={(e) => setDocs((l) => l.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} /></Field>
+      <Field label="Upload replacement PDF"><input type="file" accept=".pdf,application/pdf" aria-label={`Upload PDF for ${doc.title}`} disabled={uploading === doc.id} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ""; void upload(doc, file); }} /></Field>
+      {uploading === doc.id && <span className="cms-muted">Uploading PDF…</span>}
       <span className="cms-row-actions">
         <a className="cms-btn" href={/^https?:/.test(doc.url) ? doc.url : publicAsset(doc.url)} target="_blank" rel="noreferrer">Open</a>
         <button type="button" className="cms-btn" aria-label="Move up" onClick={() => setDocs((l) => move(l, i, i - 1))}><ArrowUp size={13} /></button>
@@ -447,7 +484,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
     const changesAtRequest = changeCount.current;
     if (!draft) return false;
     try {
-      const result = await save.mutateAsync({ data: { content, expectedDraftRevision: revisionRef.current } });
+      const result = await save.mutateAsync({ data: { content, expectedDraftRevision: revisionRef.current, createVersion: explicit } });
       const response = result as SiteContentEditorState;
       revisionRef.current = response.draft.revision || revisionRef.current + 1;
       setDraftRevision(revisionRef.current);
@@ -575,10 +612,10 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
       {tab === "documents" && <DocumentsEditor draft={draft} update={update} />}
       {tab === "menu" && <MenuEditor draft={draft} update={update} />}
       <section className="cms-history" aria-labelledby="cms-history-title">
-        <div><History size={17} /><div><h2 id="cms-history-title">Version history</h2><p>Restore a prior saved version into your private draft. The public site will not change until you publish.</p></div></div>
+        <div><History size={17} /><div><h2 id="cms-history-title">Version history</h2><p>Each Save Draft creates one full-site checkpoint. Autosaves do not create extra entries. Restoring changes your private draft only.</p></div></div>
         <ol>{(query.data?.versions ?? []).map((version) => <li key={version.id}>
-          <span><strong>Revision {version.revision}</strong><small>{new Date(version.createdAt).toLocaleString()}</small></span>
-          <button type="button" className="cms-btn" disabled={restore.isPending} onClick={() => void restoreVersion(version.id)}>Restore to draft</button>
+          <span><strong>{version.revision < 0 ? "Saved draft" : "Published version"} {Math.abs(version.revision)}</strong><small>{new Date(version.createdAt).toLocaleString()}</small></span>
+          <button type="button" className="cms-btn" disabled={restore.isPending} onClick={() => window.confirm("Restore this complete site snapshot into the private draft? This will replace all current draft content.") && void restoreVersion(version.id)}>Restore to draft</button>
         </li>)}</ol>
       </section>
     </main>

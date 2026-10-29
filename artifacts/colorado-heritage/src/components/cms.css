@@ -181,6 +181,17 @@
 .cms-rich-content table { width: 100%; border-collapse: collapse; }
 .cms-rich-content th, .cms-rich-content td { border: 1px solid #ded8ca; padding: 8px 10px; text-align: left; }
 .cms-rich-content blockquote { margin: 14px 0; border-left: 3px solid #b49a5a; padding-left: 14px; color: #4a4636; }
+.cms-rich-content u { text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.cms-rich-link-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 1.4fr) auto; gap: 10px 14px; align-items: end; padding: 12px; border-bottom: 1px solid #ded8ca; background: #fffaf0; }
+.cms-rich-link-form > label:not(.cms-check) { display: grid; gap: 4px; color: #4a4636; font-size: 12px; font-weight: 700; }
+.cms-rich-link-form input:not([type="checkbox"]), .cms-rich-link-form select { min-height: 38px; min-width: 0; width: 100%; padding: 7px 9px; border: 1px solid #cfc6b0; background: #fff; color: #293849; }
+.cms-rich-link-kind { display: flex; gap: 4px; }
+.cms-rich-link-kind button { min-height: 38px; padding: 6px 10px; border: 1px solid #cfc6b0; background: #fffdf8; color: #142b4a; font: 700 12px "Lato", sans-serif; cursor: pointer; }
+.cms-rich-link-kind button.is-selected { border-color: #142b4a; background: #142b4a; color: #fffdf8; }
+.cms-rich-link-form .cms-check { align-self: center; white-space: nowrap; }
+.cms-rich-link-form .cms-check input { accent-color: #142b4a; }
+.cms-rich-link-error { grid-column: 1 / -1; color: #9b2c1f; font-size: 12px; }
+.cms-rich-link-actions { display: flex; justify-content: flex-end; gap: 7px; grid-column: 1 / -1; }
 .cms-rich-source { display: block; width: 100%; min-height: 300px; padding: 14px 16px; border: 0; background: #fff; color: #293849; font: 13px/1.65 ui-monospace, "SFMono-Regular", monospace; resize: vertical; }
 .cms-rich-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 12px; border-top: 1px solid #ded8ca; color: #687584; font-size: 12px; }
 .cms-rich-footer .cms-btn { margin-left: auto; }
@@ -190,6 +201,9 @@
   .cms-rich-toolbar .cms-rich-source-toggle { margin-left: auto; font-size: 11px; padding: 0 7px; }
   .cms-rich-content { min-height: 210px; padding: 14px; }
   .cms-rich-footer { align-items: flex-start; }
+  .cms-rich-link-form { grid-template-columns: 1fr; }
+  .cms-rich-link-kind { flex-wrap: wrap; }
+  .cms-rich-link-actions { grid-column: auto; }
 }
 .cms-uploader { display: grid; gap: 8px; padding: 14px; border: 1px solid #ded8ca; background: #fffdf8; }
 .cms-uploader > strong { font-size: 13px; color: #142b4a; }

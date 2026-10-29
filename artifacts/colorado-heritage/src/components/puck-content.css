@@ -6,8 +6,9 @@
 .puck-photo-text h2, .puck-staff-card h2 { color: #1A365D; }
 .puck-family-step, .puck-tuition { margin: 1.5rem 0; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid #d6dce8; border-left: 4px solid #D4AF37; border-radius: 10px; background: #f7fafc; }
 .puck-family-step h2, .puck-tuition h2 { color: #1A365D; }
-.puck-family-step > a { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: .65rem 1rem; border-radius: 6px; background: #1A365D; color: #fff; font-weight: 700; text-decoration: none; }
-.puck-family-step > a:hover { background: #2D3748; }
+.puck-family-step-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.puck-family-step-actions > a { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: .65rem 1rem; border-radius: 6px; background: #1A365D; color: #fff; font-weight: 700; text-decoration: none; }
+.puck-family-step-actions > a:hover { background: #2D3748; }
 .puck-faq { border-top: 1px solid #d6dce8; border-bottom: 1px solid #d6dce8; padding: 1rem .25rem; }
 .puck-faq summary { color: #1A365D; font-weight: 700; cursor: pointer; }
 .puck-faq > div { padding-top: .8rem; }
@@ -32,22 +33,29 @@
 .cms-visual-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1.25rem 0 .5rem; }
 .cms-visual-head h2 { margin: .2rem 0; color: #1A365D; font: 700 clamp(1.45rem, 2vw, 2rem)/1.2 Georgia, serif; }
 .cms-visual-head p, .cms-puck-note { margin: 0; color: #4a5568; font-size: .92rem; }
+.cms-visual-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .5rem; }
+.cms-preview-parent, .cms-settings-toggle { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 38px; padding: .45rem .7rem; border: 1px solid #c5cfdd; background: #fff; color: #1A365D; font: 700 .78rem sans-serif; cursor: pointer; }
+.cms-preview-parent:hover, .cms-settings-toggle:hover { border-color: #1A365D; background: #f7fafc; }
+.cms-visual-actions .cms-device-switch { flex: none; }
 .cms-eyebrow { color: #2D3748; font-size: .72rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
 .cms-device-switch { display: inline-flex; gap: .25rem; padding: .25rem; border: 1px solid #d6dce8; border-radius: 7px; background: #f7fafc; }
 .cms-device-switch button { display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: .35rem .65rem; border: 0; background: transparent; color: #2D3748; font: 700 .8rem sans-serif; cursor: pointer; }
 .cms-device-switch button.is-selected { background: #1A365D; color: #fff; }
 .cms-page-picker { display: grid; gap: .35rem; max-width: 620px; color: #2D3748; font-size: .8rem; font-weight: 700; }
 .cms-page-picker select { min-height: 44px; width: 100%; padding: .65rem .8rem; border: 1px solid #c5cfdd; background: #fff; color: #2D3748; font: 500 .92rem sans-serif; }
-.cms-puck-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, .82fr); align-items: start; gap: 1rem; min-width: 0; }
+.cms-puck-stage { display: grid; grid-template-columns: minmax(280px, .78fr) minmax(0, 1.5fr); align-items: start; gap: 1rem; min-width: 0; }
+.cms-puck-stage.preview-focused { grid-template-columns: minmax(0, 1fr); }
 .cms-puck-workspace, .cms-puck-preview { min-width: 0; border: 1px solid #cbd5e1; background: #fff; box-shadow: 0 6px 24px -18px rgba(26,54,93,.4); }
 .cms-puck-workspace { overflow: hidden; }
 .cms-puck-preview { overflow: hidden; }
+.cms-puck-stage.preview-focused .cms-puck-preview { width: 100%; }
 .cms-puck-preview .cms-puck-public-frame { min-height: 0; display: block; background: #F7FAFC; }
 .cms-puck-preview-bar { display: flex; justify-content: space-between; padding: .6rem .8rem; background: #1A365D; color: #fff; font: 700 .72rem sans-serif; letter-spacing: .07em; text-transform: uppercase; }
 .cms-puck-viewport { overflow: auto; max-height: 78vh; background: #dfe5ed; }
 .cms-puck-preview .cms-puck-public-frame { width: 100%; min-width: 0; }
 .cms-puck-preview .cb-page { width: min(100% - 24px, 860px); padding-top: 1.5rem; }
-.cms-puck-stage.is-phone { grid-template-columns: minmax(0, 1fr) minmax(0, 390px); }
+.cms-puck-stage.is-phone.has-settings { grid-template-columns: minmax(240px, .7fr) minmax(0, 390px); }
+.cms-puck-stage.is-phone.preview-focused { grid-template-columns: minmax(0, 1fr); }
 .cms-puck-stage.is-phone .cms-puck-preview { width: 390px; max-width: 100%; margin: 0 auto; }
 .cms-puck-preview.is-phone .cms-puck-viewport { width: 390px; max-width: 100%; }
 .cms-puck-preview.is-phone .cms-puck-public-frame { width: 390px; max-width: 100%; }
@@ -67,6 +75,11 @@
 .cms-puck-preview.is-phone .cb-nav-mobile-extras { display: flex; flex-direction: column; gap: .5rem; }
 .cms-puck-preview.is-phone .cb-header { position: relative; }
 .cms-puck-preview.is-phone .cb-footer-top { grid-template-columns: 1fr; }
+.cms-puck-preview.is-phone .puck-family-step-actions { align-items: stretch; flex-direction: column; }
+.cms-puck-preview.is-phone .puck-family-step-actions > a { width: 100%; justify-content: center; }
+.cms-puck-preview .cb-nav-top, .cms-puck-preview .cb-dropdown > summary,
+.cms-puck-preview .cb-dropdown-panel a { overflow-wrap: normal; word-break: normal; hyphens: none; }
+.cms-puck-stage.preview-focused .cms-puck-preview { max-width: none; }
 .cms-puck-note { display: flex; gap: .5rem; align-items: center; }
 .puck-empty { padding: 2rem; border: 1px dashed #c5cfdd; color: #4a5568; }
 .cms-history { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #d6dce8; }
@@ -85,9 +98,10 @@
 .puck-rich-toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: .25rem; min-height: 32px; padding: .25rem .4rem; border: 1px solid #d6dce8; border-radius: 4px; background: #fff; color: #1A365D; font-size: .75rem; cursor: pointer; }
 .puck-rich-toolbar button[aria-pressed="true"] { background: #e8edf4; border-color: #1A365D; }
 .puck-rich-heading, .puck-rich-link { display: inline-flex; align-items: center; gap: .3rem; min-height: 32px; padding: 0 .35rem; border: 1px solid #d6dce8; border-radius: 4px; background: #fff; color: #1A365D; font-size: .72rem; }
-.puck-rich-heading select, .puck-rich-link input { min-width: 90px; max-width: 130px; height: 28px; border: 0; color: #2D3748; font-size: .75rem; }
+.puck-rich-heading select, .puck-rich-link input, .puck-rich-link select { min-width: 90px; max-width: 170px; height: 28px; border: 0; color: #2D3748; font-size: .75rem; background: transparent; }
 .puck-rich-link input { min-width: 110px; }
 .puck-rich-newtab { display: inline-flex; align-items: center; gap: .25rem; color: #2D3748; font-size: .72rem; }
+.puck-rich-link-error { flex-basis: 100%; color: #9b2c1f; font-size: .72rem; }
 .puck-rich-colors { display: inline-flex; gap: .2rem; }
 .puck-rich-colors button { min-width: 60px; }
 .puck-rich-colors i { display: inline-block; width: 10px; height: 10px; border: 1px solid rgba(0,0,0,.2); border-radius: 50%; }
@@ -100,18 +114,26 @@
 .puck-announcement-toggle { display: inline-flex; align-items: center; gap: .5rem; min-height: 36px; color: #2D3748; font-size: .8rem; font-weight: 700; }
 .puck-announcement-toggle input { accent-color: #1A365D; }
 .puck-rich-link input { background: transparent; }
+.puck-rich-link select { min-width: 130px; }
 .puck-rich-newtab input { accent-color: #1A365D; }
 .puck-rich-colors i { width: 16px; height: 16px; }
 .cms-puck-workspace :focus-visible, .puck-photo-field :focus-visible { outline: 3px solid #D4AF37; outline-offset: 2px; }
 @media (max-width: 1100px) {
   .cms-puck-stage, .cms-puck-stage.is-phone { grid-template-columns: minmax(0, 1fr); }
+  .cms-puck-stage.has-settings { grid-template-columns: minmax(0, 1fr); }
   .cms-puck-preview { max-width: 680px; }
   .cms-puck-stage.is-phone .cms-puck-preview { width: min(390px, 100%); }
+}
+@media (max-width: 760px) {
+  .cms-visual-actions { justify-content: flex-start; width: 100%; }
+  .cms-visual-actions .cms-device-switch { margin-left: auto; }
 }
 @media (max-width: 640px) {
   .puck-photo-text, .puck-staff-card { grid-template-columns: minmax(0, 1fr); }
   .puck-photo-text.is-right img { order: initial; }
   .puck-staff-card img { width: min(220px, 70%); }
+  .puck-family-step-actions { align-items: stretch; flex-direction: column; }
+  .puck-family-step-actions > a { width: 100%; justify-content: center; }
   .cms-history li { align-items: flex-start; flex-direction: column; }
   .cms-puck-preview .cb-page { width: calc(100% - 1.5rem); }
 }

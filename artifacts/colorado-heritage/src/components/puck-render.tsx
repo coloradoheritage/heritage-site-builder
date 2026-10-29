@@ -62,9 +62,27 @@ export const chessPuckConfig: Config = {
     },
     FamilyStepButton: {
       label: "Family step",
-      fields: { title: { type: "text", label: "Step title" }, richText: rich, buttonLabel: { type: "text", label: "Button label" }, href: { type: "text", label: "Link address" } },
+      fields: {
+        title: { type: "text", label: "Step title" },
+        richText: rich,
+        buttonLabel: { type: "text", label: "Button label" },
+        href: { type: "text", label: "Link address" },
+        secondaryButtonLabel: { type: "text", label: "Second button label (optional)" },
+        secondaryHref: { type: "text", label: "Second button link (optional)" },
+      },
       defaultProps: { title: "Your next step", richText: "<p>Tell families what to do next.</p>", buttonLabel: "Learn more", href: "/contact" },
-      render: ({ title, richText, buttonLabel, href }) => <section className="puck-family-step"><h2>{String(title ?? "")}</h2><RichHtml value={String(richText ?? "")} /><a href={safeSiteHref(href) || "/contact"}>{String(buttonLabel || "Learn more")} <ArrowRight size={16} /></a></section>,
+      render: ({ title, richText, buttonLabel, href, secondaryButtonLabel, secondaryHref }) => {
+        const secondLabel = String(secondaryButtonLabel ?? "").trim();
+        const secondUrl = safeSiteHref(secondaryHref);
+        return <section className="puck-family-step">
+          <h2>{String(title ?? "")}</h2>
+          <RichHtml value={String(richText ?? "")} />
+          <div className="puck-family-step-actions">
+            <a href={safeSiteHref(href) || "/contact"}>{String(buttonLabel || "Learn more")} <ArrowRight size={16} /></a>
+            {secondLabel && secondUrl && <a href={secondUrl}>{secondLabel} <ArrowRight size={16} /></a>}
+          </div>
+        </section>;
+      },
     },
     FaqItem: {
       label: "Question and answer",

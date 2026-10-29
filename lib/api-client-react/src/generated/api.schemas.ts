@@ -68,6 +68,10 @@ export interface PhotoUploadRequest {
   alt: string;
 }
 
+export interface DocumentUploadRequest {
+  file: Blob | File;
+}
+
 export type CmsPageBlocks = { [key: string]: unknown };
 
 export interface CmsPage {
@@ -162,7 +166,6 @@ export interface SiteContentVersion {
   id: number;
   revision: number;
   createdAt: string;
-  content: SiteContentState;
 }
 
 export interface SiteContentEditorState {
@@ -176,6 +179,7 @@ export interface SiteContentDraftInput {
   content: SiteContentState;
   /** @minimum 1 */
   expectedDraftRevision: number;
+  createVersion?: boolean;
 }
 
 export interface SiteContentPublishInput {
@@ -236,5 +240,9 @@ export type SubmitInquiry201 = {
 export type UploadSitePhoto200 = {
   url: string;
   alt: string;
+};
+
+export type UploadSiteDocument200 = {
+  url: string;
 };
 

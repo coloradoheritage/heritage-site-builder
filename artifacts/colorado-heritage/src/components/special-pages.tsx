@@ -262,7 +262,7 @@ export function PeoplePage({ page, content }: { page: CmsPage; content: SiteCont
   const admin = administrativeStaff(content.staff);
   type Ext = CmsStaff & { faculty?: boolean; board?: boolean; boardRole?: string };
   const staff = content.staff as Ext[];
-  const faculty = staff.filter((s) => s.faculty === true || (s.faculty !== false && !s.board && !isAdministrative(s)));
+  const faculty = staff.filter((s) => !isAdministrative(s) && (s.faculty === true || (s.faculty !== false && !s.board)));
   const boardPeople = staff.filter((s) => s.board).map((s) => ({ ...s, role: s.boardRole || s.role }));
   // Imported bios live on profile pages; keep only extra Board copy, minus names already shown as cards.
   const md = stripSourceTitle(page.markdown);
@@ -280,11 +280,10 @@ export function PeoplePage({ page, content }: { page: CmsPage; content: SiteCont
     <section className="cb-page-section" id="administration" aria-labelledby="h-admin"><h2 id="h-admin">Administration</h2><FacultyGrid staff={admin} /></section>
     <PuckAdditionalRenderer blocks={page.blocks} />
     <section className="cb-page-section" id="faculty" aria-labelledby="h-faculty"><h2 id="h-faculty">Faculty</h2><FacultyGrid staff={faculty} /></section>
-    <section className="cb-page-section" id="board" aria-labelledby="h-board"><h2 id="h-board">Board</h2>
+    {(boardPeople.length > 0 || board.replace(/[\s*_\-|]/g, "").length > 0) && <section className="cb-page-section" id="board" aria-labelledby="h-board"><h2 id="h-board">Board</h2>
       {boardPeople.length > 0 && <FacultyGrid staff={boardPeople} />}
       {board.replace(/[\s*_\-|]/g, "").length > 0 && <MarkdownContent markdown={board} />}
-      {!boardPeople.length && !board.trim() && <p className="cb-muted">Board members are listed here once the office adds them.</p>}
-    </section>
+    </section>}
     <VisitBand title="Meet our teachers in person" text="Schedule a visit to meet our staff and ask your questions." />
   </article>;
 }
@@ -309,6 +308,7 @@ export function CalendarPage({ page, content }: { page: CmsPage; content: SiteCo
     </section>
     {stripSourceTitle(page.markdown).trim() && <section className="cb-page-section"><MarkdownContent markdown={stripSourceTitle(page.markdown)} /></section>}
     {pdf && <object className="cb-pdf" data={`${pdf}#view=FitH`} type="application/pdf" aria-label="School calendar PDF"><p>Your browser cannot show the calendar here. <a href={pdf}>Open the calendar PDF</a>.</p></object>}
+    <PuckAdditionalRenderer blocks={page.blocks} />
     <PraxiBox />
   </article>;
 }
@@ -363,6 +363,7 @@ export function NewsIndex({ content }: { content: SiteContentExt }) {
         </Reveal>)}</ul>
         {count < list.length && <p className="cb-btn-row is-center"><Button variant="secondary" onClick={() => setCount((c) => c + 12)} testId="button-load-more-news">Show more posts</Button></p>}
       </>}
+    <PuckAdditionalRenderer blocks={content.pages.find((page) => page.path === "/news")?.blocks} />
   </article>;
 }
 

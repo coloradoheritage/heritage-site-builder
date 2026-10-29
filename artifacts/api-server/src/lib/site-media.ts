@@ -32,3 +32,13 @@ export async function storePhoto(bytes: Buffer): Promise<string> {
   if (!result.ok) throw new Error("Photo storage is unavailable");
   return `/api/media/files/${key}`;
 }
+
+export async function storeDocument(bytes: Buffer): Promise<string> {
+  if (bytes.subarray(0, 5).toString("ascii") !== "%PDF-") {
+    throw new Error("The uploaded file is not a valid PDF");
+  }
+  const key = `${createHash("sha256").update(bytes).digest("hex")}.pdf`;
+  const result = await mediaStorage.uploadFromBytes(`website/documents/${key}`, bytes, { compress: false });
+  if (!result.ok) throw new Error("Document storage is unavailable");
+  return `/api/media/documents/${key}`;
+}
