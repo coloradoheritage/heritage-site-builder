@@ -18,3 +18,8 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+CHESS_EDITOR_EMAILS = "office@coloradoheritage.org,nelsonnoah@coloradoheritage.org"

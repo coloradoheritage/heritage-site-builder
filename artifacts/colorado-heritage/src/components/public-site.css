@@ -1,0 +1,667 @@
+.chess-public {
+  --chess-navy: #142b4a;
+  --chess-blue: #173b68;
+  --chess-gold: #b49a5a;
+  --chess-gold-light: #ddca8f;
+  --chess-ink: #293849;
+  --chess-muted: #687584;
+  --chess-line: #ded8ca;
+  --chess-paper: #f7f4ec;
+  --chess-white: #fffdf8;
+  min-height: 68vh;
+  color: var(--chess-ink);
+  background: var(--chess-paper);
+  font-family: "Lato", sans-serif;
+}
+
+.chess-site-header {
+  position: relative;
+  z-index: 12;
+  color: var(--chess-white);
+  background: var(--chess-navy);
+}
+
+.chess-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px max(24px, calc((100vw - 1200px) / 2));
+  color: #d9d8d1;
+  background: #10233d;
+  font-size: 10px;
+  letter-spacing: .105em;
+  text-transform: uppercase;
+}
+
+.chess-topline a,
+.chess-footer-bottom a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chess-topline a { color: var(--chess-gold-light); }
+.chess-topline a:hover,
+.chess-site-footer a:hover { color: #f0d98f; }
+
+.chess-header-inner {
+  width: min(1200px, 100%);
+  min-height: 100px;
+  margin: 0 auto;
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.chess-brand,
+.chess-footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+}
+
+.chess-brand img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--chess-gold), 0 5px 14px #07162c66;
+}
+
+.chess-brand-copy,
+.chess-footer-brand span { display: grid; gap: 2px; }
+.chess-brand-copy strong {
+  font: 600 22px/1.04 "EB Garamond", Georgia, serif;
+  letter-spacing: .012em;
+}
+.chess-brand-copy small {
+  color: #d5c78e;
+  font: 400 11px/1.3 "Lato", sans-serif;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.chess-navigation {
+  display: flex;
+  align-items: center;
+  gap: clamp(15px, 2.05vw, 29px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.chess-navigation > a,
+.chess-nav-dropdown > summary {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #f8f5ed;
+  transition: color .18s ease;
+}
+.chess-navigation > a:hover,
+.chess-nav-dropdown > summary:hover { color: var(--chess-gold-light); }
+.chess-nav-dropdown { position: relative; }
+.chess-nav-dropdown > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.chess-nav-dropdown > summary::-webkit-details-marker { display: none; }
+.chess-nav-dropdown[open] > summary { color: var(--chess-gold-light); }
+.chess-nav-dropdown > summary svg { transition: transform .2s ease; }
+.chess-nav-dropdown[open] > summary svg { transform: rotate(180deg); }
+.chess-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -20px;
+  z-index: 8;
+  width: 275px;
+  padding: 12px;
+  display: grid;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  background: #fffdf8;
+  border: 1px solid #d8cda9;
+  box-shadow: 0 16px 38px #081a302e;
+  color: var(--chess-ink);
+  text-transform: none;
+  letter-spacing: .015em;
+  transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
+}
+.chess-nav-dropdown[open] .chess-dropdown-panel,
+.chess-nav-dropdown:hover .chess-dropdown-panel,
+.chess-nav-dropdown:focus-within .chess-dropdown-panel {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.chess-dropdown-panel a {
+  padding: 10px 11px;
+  color: var(--chess-ink);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+.chess-dropdown-panel a:hover { background: #f2eee3; color: var(--chess-blue); }
+.chess-dropdown-panel .chess-dropdown-overview {
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--chess-line);
+  color: var(--chess-blue);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+}
+.chess-navigation > .chess-nav-emphasis {
+  padding: 12px 17px;
+  color: var(--chess-navy);
+  background: var(--chess-gold-light);
+}
+.chess-navigation > .chess-nav-emphasis:hover { color: var(--chess-navy); background: #ecdcae; }
+.chess-menu-toggle { display: none; }
+
+.chess-main {
+  min-height: 68vh;
+  padding: 72px max(24px, calc((100vw - 1120px) / 2)) 100px;
+  background:
+    linear-gradient(90deg, transparent 0 50%, #e8e1d214 50% 100%),
+    var(--chess-paper);
+}
+.chess-page-intro {
+  max-width: 790px;
+  margin: 0 auto 55px;
+  text-align: center;
+}
+.chess-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #86713b;
+  font: italic 18px/1.2 "EB Garamond", Georgia, serif;
+}
+.chess-eyebrow::before,
+.chess-eyebrow::after { content: ""; width: 27px; height: 1px; background: var(--chess-gold); }
+.chess-page-intro h1,
+.chess-not-found h1 {
+  margin: 16px 0 14px;
+  color: var(--chess-navy);
+  font: 400 clamp(42px, 6vw, 68px)/.99 "EB Garamond", Georgia, serif;
+  letter-spacing: -.025em;
+}
+.chess-page-intro > p {
+  max-width: 650px;
+  margin: 0 auto;
+  color: var(--chess-muted);
+  font: 400 21px/1.55 "EB Garamond", Georgia, serif;
+}
+.chess-page-intro::after {
+  content: "";
+  display: block;
+  width: 54px;
+  height: 2px;
+  margin: 26px auto 0;
+  background: var(--chess-gold);
+}
+
+.chess-overview-main { padding-top: 78px; }
+.chess-overview-content {
+  display: grid;
+  grid-template-columns: .8fr 1.2fr;
+  gap: clamp(34px, 7vw, 94px);
+  align-items: start;
+  width: min(1020px, 100%);
+  margin: 0 auto;
+}
+.chess-overview-note {
+  padding: 30px 30px 34px;
+  border-top: 2px solid var(--chess-gold);
+  background: #eee9dc;
+}
+.chess-rule-mark { color: var(--chess-gold); font-size: 22px; }
+.chess-overview-note p {
+  margin: 15px 0 0;
+  color: var(--chess-navy);
+  font: 400 24px/1.42 "EB Garamond", Georgia, serif;
+}
+.chess-overview-links { border-top: 1px solid var(--chess-line); }
+.chess-overview-link {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 18px;
+  padding: 19px 3px;
+  border-bottom: 1px solid var(--chess-line);
+  transition: padding .2s ease, color .2s ease;
+}
+.chess-overview-link:hover { padding-left: 10px; color: var(--chess-blue); }
+.chess-link-number { color: #a08d58; font: italic 16px "EB Garamond", Georgia, serif; }
+.chess-overview-link span:nth-child(2) { display: grid; gap: 5px; }
+.chess-overview-link strong { color: var(--chess-navy); font: 600 21px/1.2 "EB Garamond", Georgia, serif; }
+.chess-overview-link small { color: var(--chess-muted); font-size: 12px; line-height: 1.5; }
+
+.chess-content-page {
+  width: min(850px, 100%);
+  margin: 0 auto;
+}
+.chess-content-heading { margin-bottom: 44px; }
+.chess-content-heading .chess-page-image {
+  position: relative;
+  margin: 34px auto 0;
+  max-width: 840px;
+  text-align: left;
+}
+.chess-content-heading .chess-page-image::before {
+  position: absolute;
+  content: "";
+  z-index: 0;
+  inset: 14px -14px -14px 14px;
+  border: 1px solid var(--chess-gold);
+}
+.chess-content-heading .chess-page-image img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+}
+.chess-content-heading figcaption {
+  position: relative;
+  z-index: 1;
+  padding-top: 9px;
+  color: var(--chess-muted);
+  font: italic 14px "EB Garamond", Georgia, serif;
+}
+.chess-prose {
+  color: #394858;
+  font: 400 17px/1.85 "Lato", sans-serif;
+}
+.chess-prose > *:first-child { margin-top: 0; }
+.chess-prose p { margin: 0 0 1.45em; }
+.chess-prose h2 {
+  margin: 2.2em 0 .7em;
+  padding-top: .85em;
+  border-top: 1px solid var(--chess-line);
+  color: var(--chess-navy);
+  font: 500 34px/1.14 "EB Garamond", Georgia, serif;
+}
+.chess-prose h3 {
+  margin: 1.8em 0 .65em;
+  color: var(--chess-navy);
+  font: 600 26px/1.2 "EB Garamond", Georgia, serif;
+}
+.chess-prose strong { color: #253a53; }
+.chess-prose a,
+.chess-bottom-nav a {
+  color: #214b76;
+  text-decoration: underline;
+  text-decoration-color: #bba66b;
+  text-underline-offset: 3px;
+}
+.chess-prose a { display: inline-flex; align-items: baseline; gap: 4px; }
+.chess-prose ul { margin: 0 0 1.5em; padding-left: 24px; }
+.chess-prose li { padding: 0 0 7px 4px; }
+.chess-prose li::marker { color: var(--chess-gold); }
+.chess-prose blockquote {
+  margin: 2em 0;
+  padding: 6px 0 6px 24px;
+  border-left: 2px solid var(--chess-gold);
+  color: var(--chess-navy);
+  font: italic 23px/1.5 "EB Garamond", Georgia, serif;
+}
+.chess-prose img {
+  max-width: 100%;
+  height: auto;
+  margin: 1em auto;
+}
+.chess-inline-image { text-align: center; }
+.chess-prose code {
+  padding: 2px 5px;
+  background: #eee8d9;
+  font-size: .9em;
+}
+.chess-content-placeholder {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  padding: 28px;
+  border-left: 2px solid var(--chess-gold);
+  background: #eee9dc;
+  color: var(--chess-muted);
+  line-height: 1.7;
+}
+.chess-content-placeholder p { margin: 0; }
+.chess-page-cta {
+  display: flex;
+  justify-content: center;
+  margin: 28px auto 0;
+}
+.chess-source-note {
+  padding: 15px 17px;
+  border-left: 2px solid var(--chess-gold);
+  background: #efe9d9;
+  color: #665b40;
+  font-size: 13px;
+}
+.chess-bottom-nav {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 25px;
+  margin-top: 50px;
+  border-top: 1px solid var(--chess-line);
+  font-size: 13px;
+}
+.chess-bottom-nav a { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; }
+
+.chess-archive-layout { width: min(1080px, 100%); margin: 0 auto; }
+.chess-archive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--chess-line);
+  border: 1px solid var(--chess-line);
+}
+.chess-archive-card {
+  position: relative;
+  min-height: 260px;
+  padding: 30px 32px 27px;
+  background: var(--chess-white);
+  transition: background .2s ease;
+}
+.chess-archive-card:hover { background: #fff; }
+.chess-card-meta {
+  display: flex;
+  gap: 10px;
+  color: #897847;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.chess-card-meta span { color: #c5baa0; }
+.chess-archive-card h2 {
+  margin: 14px 0 10px;
+  color: var(--chess-navy);
+  font: 500 28px/1.1 "EB Garamond", Georgia, serif;
+}
+.chess-archive-card h2 a:hover { color: #816b31; }
+.chess-archive-card p {
+  margin: 0 0 20px;
+  color: var(--chess-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.chess-read-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--chess-blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.chess-read-link svg { transition: transform .18s ease; }
+.chess-read-link:hover svg { transform: translateX(4px); }
+.chess-load-more {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 28px auto 0;
+  padding: 13px 18px;
+  border: 1px solid var(--chess-gold);
+  color: var(--chess-navy);
+  background: var(--chess-white);
+  font: 700 10px "Lato", sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.chess-load-more:hover { background: #efe9d9; }
+.chess-archive-detail .chess-prose { max-width: 760px; margin: 0 auto; }
+
+.chess-sitemap-page { width: min(1020px, 100%); margin: 0 auto; }
+.chess-sitemap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.chess-sitemap-group {
+  padding: 25px 28px 28px;
+  border-top: 2px solid var(--chess-gold);
+  background: #fffdf8;
+}
+.chess-sitemap-group h2 {
+  margin: 0 0 18px;
+  color: var(--chess-navy);
+  font: 500 29px "EB Garamond", Georgia, serif;
+}
+.chess-sitemap-group ul { list-style: none; margin: 0; padding: 0; }
+.chess-sitemap-group li + li { border-top: 1px solid #e9e4d9; }
+.chess-sitemap-group a {
+  display: block;
+  padding: 10px 0;
+  color: #465565;
+  font-size: 13px;
+}
+.chess-sitemap-group a:hover { color: #8b7335; }
+.chess-sitemap-archives {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 22px;
+}
+.chess-sitemap-archive {
+  border-top: 2px solid var(--chess-gold);
+  background: #fffdf8;
+}
+.chess-sitemap-archive summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 20px 24px;
+  color: var(--chess-navy);
+  font: 500 23px "EB Garamond", Georgia, serif;
+  cursor: pointer;
+}
+.chess-sitemap-archive summary span {
+  color: var(--chess-muted);
+  font: 700 9px "Lato", sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.chess-sitemap-archive ul {
+  max-height: 410px;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0 24px 18px;
+}
+.chess-sitemap-archive li + li { border-top: 1px solid #e9e4d9; }
+.chess-sitemap-archive a {
+  display: block;
+  padding: 9px 0;
+  color: #465565;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.chess-sitemap-archive a:hover { color: #8b7335; }
+.chess-not-found { width: min(700px, 100%); margin: 5vh auto; text-align: center; }
+.chess-not-found p {
+  max-width: 520px;
+  margin: 0 auto 26px;
+  color: var(--chess-muted);
+  font: 400 21px/1.55 "EB Garamond", Georgia, serif;
+}
+.chess-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 19px;
+  color: var(--chess-white);
+  background: var(--chess-navy);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.chess-button:hover { background: var(--chess-blue); }
+
+.chess-site-footer {
+  padding: 56px max(24px, calc((100vw - 1120px) / 2)) 20px;
+  color: #f7f3e8;
+  background: #122844;
+}
+.chess-footer-top {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(4, minmax(115px, .75fr));
+  gap: 35px;
+  padding-bottom: 42px;
+}
+.chess-footer-brand img {
+  width: 61px;
+  height: 61px;
+  padding: 2px;
+  border: 1px solid var(--chess-gold);
+  border-radius: 50%;
+  background: white;
+}
+.chess-footer-brand strong {
+  font: 600 21px/1 "EB Garamond", Georgia, serif;
+}
+.chess-footer-brand small {
+  color: #d0c38d;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.chess-footer-identity p {
+  max-width: 290px;
+  margin: 19px 0 10px;
+  color: #d3dbe1;
+  font-size: 13px;
+  line-height: 1.75;
+}
+.chess-footer-motto { color: var(--chess-gold-light); font: italic 19px "EB Garamond", Georgia, serif; }
+.chess-footer-group h2 {
+  margin: 7px 0 18px;
+  color: var(--chess-gold-light);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.chess-footer-group ul { display: grid; gap: 11px; list-style: none; padding: 0; margin: 0; }
+.chess-footer-group a { color: #e1e5e7; font-size: 12px; line-height: 1.4; }
+.chess-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 19px;
+  border-top: 1px solid #ffffff33;
+  color: #c7d0d8;
+  font-size: 11px;
+}
+.chess-footer-bottom a { color: var(--chess-gold-light); }
+
+@media (min-width: 851px) {
+  .chess-nav-dropdown:hover .chess-dropdown-panel { visibility: visible; opacity: 1; pointer-events: auto; transform: translateY(0); }
+}
+@media (max-width: 1000px) {
+  .chess-navigation { gap: 15px; font-size: 10px; }
+  .chess-header-inner { padding-inline: 20px; gap: 18px; }
+  .chess-footer-top { grid-template-columns: 1.35fr repeat(2, 1fr); }
+  .chess-footer-identity { grid-row: span 2; }
+}
+@media (max-width: 850px) {
+  .chess-header-inner { min-height: 86px; }
+  .chess-brand img { width: 59px; height: 59px; }
+  .chess-brand-copy strong { font-size: 20px; }
+  .chess-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 10px 10px;
+    border: 0;
+    color: var(--chess-white);
+    background: transparent;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .chess-navigation {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: none;
+    padding: 12px 22px 22px;
+    background: var(--chess-navy);
+    box-shadow: 0 16px 26px #10233d30;
+  }
+  .chess-navigation.is-open { display: grid; align-items: stretch; gap: 0; }
+  .chess-navigation > a,
+  .chess-nav-dropdown > summary {
+    min-height: 48px;
+    width: 100%;
+    justify-content: space-between;
+    border-bottom: 1px solid #ffffff1a;
+  }
+  .chess-navigation > .chess-nav-emphasis { justify-content: center; margin-top: 12px; border: 0; }
+  .chess-nav-dropdown { width: 100%; }
+  .chess-dropdown-panel {
+    position: static;
+    width: 100%;
+    margin: 0 0 10px;
+    box-shadow: none;
+    transform: none;
+  }
+  .chess-main { padding-top: 58px; padding-bottom: 76px; }
+}
+@media (max-width: 650px) {
+  .chess-topline { padding: 8px 16px; font-size: 8px; letter-spacing: .055em; }
+  .chess-topline > span { max-width: 47%; }
+  .chess-topline a { gap: 4px; }
+  .chess-header-inner { padding: 12px 16px; }
+  .chess-brand { gap: 10px; }
+  .chess-brand img { width: 51px; height: 51px; }
+  .chess-brand-copy strong { font-size: 18px; }
+  .chess-brand-copy small { font-size: 8px; letter-spacing: .09em; }
+  .chess-main { padding: 51px 18px 66px; }
+  .chess-page-intro { margin-bottom: 36px; }
+  .chess-page-intro h1,.chess-not-found h1 { font-size: clamp(40px, 13vw, 56px); }
+  .chess-page-intro > p { font-size: 19px; }
+  .chess-overview-content { grid-template-columns: 1fr; gap: 25px; }
+  .chess-overview-note { padding: 23px; }
+  .chess-overview-note p { font-size: 21px; }
+  .chess-overview-link { grid-template-columns: 27px minmax(0, 1fr) 18px; gap: 10px; }
+  .chess-overview-link strong { font-size: 19px; }
+  .chess-content-heading .chess-page-image::before { inset: 8px -8px -8px 8px; }
+  .chess-prose { font-size: 15px; line-height: 1.78; }
+  .chess-prose h2 { font-size: 29px; }
+  .chess-prose h3 { font-size: 24px; }
+  .chess-archive-grid { grid-template-columns: 1fr; }
+  .chess-archive-card { min-height: 0; padding: 25px 23px; }
+  .chess-archive-card h2 { font-size: 25px; }
+  .chess-sitemap-grid { grid-template-columns: 1fr; gap: 14px; }
+  .chess-sitemap-group { padding: 21px 22px; }
+  .chess-sitemap-archives { grid-template-columns: 1fr; }
+  .chess-footer-top { grid-template-columns: 1fr 1fr; gap: 30px 19px; }
+  .chess-footer-identity { grid-column: 1 / -1; grid-row: auto; }
+  .chess-site-footer { padding: 43px 20px 18px; }
+  .chess-footer-group h2 { font-size: 9px; }
+  .chess-footer-group a { font-size: 11px; }
+  .chess-footer-bottom { align-items: flex-start; flex-direction: column; gap: 12px; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chess-public *,
+  .chess-site-header *,
+  .chess-site-footer * { scroll-behavior: auto !important; transition: none !important; }
+}

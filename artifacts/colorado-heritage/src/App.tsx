@@ -1,7 +1,21 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react';
+import { ClerkProvider, SignIn, SignUp, useClerk, useUser } from '@clerk/react';
+import { publishableKeyFromHost } from '@clerk/react/internal';
+import { shadcn } from '@clerk/themes';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import {
+  getGetHomepageContentQueryKey,
+  useGetEditorAccess,
+  useGetHomepageContent,
+  useSaveHomepageContent,
+  type HomepageContentState,
+} from '@workspace/api-client-react';
+import { Redirect, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
+import { PublicSiteFooter, PublicSiteHeader, PublicSitePages } from './components/public-site';
+import { legacyRouteAliases } from './data/siteSitemap';
 import {
   ArrowRight, ArrowUpRight, BookOpen, Eye, EyeOff, GraduationCap,
-  HeartHandshake, Menu, Move, Pencil, RotateCcw, Save, X,
+  HeartHandshake, Move, Pencil, RotateCcw, Save,
 } from 'lucide-react';
 
 type SectionId = 'donation' | 'hero' | 'programs' | 'mission' | 'anniversary' | 'listen' | 'stories' | 'closing';
@@ -146,37 +160,87 @@ const sectionFields: Record<SectionId, { key: string; label: string; multiline?:
 
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`;
 const imageUrl = (path: string) => path.startsWith('http') ? path : asset(path);
-const donateUrl = 'https://www.coloradoheritage.org/how-to-donate-2';
+const appBasePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const publicPath = (path: string) => `${appBasePath}${path.startsWith('/') ? path : `/${path}`}` || '/';
+const donateUrl = publicPath('/donate');
+const queryClient = new QueryClient();
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const adminPath = `${appBasePath}/admin`.replace(/^$/, '/admin');
+const isAdminRoute = (
+  window.location.pathname === adminPath ||
+  window.location.pathname.startsWith(`${adminPath}/`)
+);
+const adminBasePath = isAdminRoute ? adminPath : appBasePath;
+
+function hydrateSite(content: HomepageContentState | null | undefined): SiteState {
+  if (!content) return defaultSite;
+  const savedCopy = content.copy as Partial<Copy>;
+  const copy = Object.fromEntries(
+    Object.entries(initialCopy).map(([section, fields]) => [
+      section,
+      { ...fields, ...(savedCopy[section as SectionId] ?? {}) },
+    ]),
+  ) as Copy;
+  return {
+    order: content.order as SectionId[],
+    hidden: content.hidden as SectionId[],
+    copy,
+  };
+}
+
 const programLinks = [
-  'https://www.coloradoheritage.org/independent-school-3',
-  'https://www.coloradoheritage.org/academy',
-  'https://www.coloradoheritage.org/high-school-diploma-program-copy-1',
+  publicPath('/programs/independent-school'),
+  publicPath('/programs/academy'),
+  publicPath('/programs/diploma'),
 ];
 const storyLinks = [
-  'https://www.coloradoheritage.org/news/2026/8/12/thy-word-is-a-lamp-unto-my-feet-and-a-light-unto-my-path',
-  'https://www.coloradoheritage.org/news/2026/3/27/why-christian-education-and-a-happy-35th-birthday-to-chess',
-  'https://www.coloradoheritage.org/news/2025/7/14/who-stole-the-lost-tools-of-learning',
-  'https://www.coloradoheritage.org/news/2024/6/28/do-you-love-jesus',
-  'https://www.coloradoheritage.org/news/2023/10/30/prepare-in-the-nest',
+  publicPath('/news/2026/8/12/thy-word-is-a-lamp-unto-my-feet-and-a-light-unto-my-path'),
+  publicPath('/news/2026/3/27/why-christian-education-and-a-happy-35th-birthday-to-chess'),
+  publicPath('/news/2025/7/14/who-stole-the-lost-tools-of-learning'),
+  publicPath('/news/2024/6/28/do-you-love-jesus'),
+  publicPath('/news/2023/10/30/prepare-in-the-nest'),
 ];
 
-function App() {
-  const [site, setSite] = useState<SiteState>(() => {
-    try {
-      const stored = localStorage.getItem('chess-homepage-content-v1');
-      if (stored) {
-        const parsed = JSON.parse(stored) as SiteState;
-        return { ...defaultSite, ...parsed, copy: { ...initialCopy, ...parsed.copy } };
-      }
-    } catch { /* start with the original site content when saved data is unavailable */ }
-    return defaultSite;
+function HomepageApp({
+  adminMode = false,
+  onSignOut,
+  publicSiteUrl,
+}: {
+  adminMode?: boolean;
+  onSignOut?: () => void;
+  publicSiteUrl?: string;
+}) {
+  const contentQuery = useGetHomepageContent();
+  const saveMutation = useSaveHomepageContent({
+    mutation: {
+      onSuccess: (response) => {
+        setSite(hydrateSite(response.content));
+        queryClient.setQueryData(getGetHomepageContentQueryKey(), response);
+        setIsSaved(true);
+        setToast('Changes are live on the public website.');
+      },
+      onError: () => {
+        setIsSaved(false);
+        setToast('Could not save changes. Please try again.');
+      },
+    },
   });
-  const [editing, setEditing] = useState(false);
+  const [site, setSite] = useState<SiteState>(defaultSite);
+  const [editing, setEditing] = useState(adminMode);
   const [selected, setSelected] = useState<SectionId>('hero');
-  const [menuOpen, setMenuOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
   const [toast, setToast] = useState('');
   const [dragged, setDragged] = useState<SectionId | null>(null);
+
+  useEffect(() => {
+    if (contentQuery.data && isSaved) {
+      setSite(hydrateSite(contentQuery.data.content));
+    }
+  }, [contentQuery.data, isSaved]);
 
   useEffect(() => {
     if (!toast) return;
@@ -189,21 +253,12 @@ function App() {
     setSite((current) => ({ ...current, copy: { ...current.copy, [id]: { ...current.copy[id], [key]: value } } }));
     setIsSaved(false);
   };
-  const save = () => {
-    try {
-      localStorage.setItem('chess-homepage-content-v1', JSON.stringify(site));
-      setIsSaved(true);
-      setToast('Your changes are saved on this device.');
-    } catch {
-      setToast('Could not save. Please check your browser storage settings.');
-    }
-  };
+  const save = () => saveMutation.mutate({ data: site });
   const reset = () => {
-    if (!window.confirm('Reset all edits and restore the original homepage content?')) return;
+    if (!window.confirm('Reset the live homepage to the original starter content? This removes all saved edits for everyone.')) return;
     setSite(defaultSite);
-    localStorage.removeItem('chess-homepage-content-v1');
-    setIsSaved(true);
-    setToast('Original homepage content restored.');
+    setIsSaved(false);
+    saveMutation.mutate({ data: defaultSite });
   };
   const visibleOrder = useMemo(() => site.order.filter((id) => !site.hidden.includes(id)), [site.order, site.hidden]);
   const hideToggle = (id: SectionId) => {
@@ -234,7 +289,7 @@ function App() {
     <section id="donation" className={`donation ${sectionClass('donation')}`} onClick={() => clickSection('donation')}>
       {sectionHint('donation')}
       <p>{copy.donation.notice}</p>
-      <a className="button" href={donateUrl} target="_blank" rel="noreferrer" onClick={(e) => editing && e.preventDefault()}>{copy.donation.button}</a>
+      <a className="button" href={donateUrl} onClick={(e) => editing && e.preventDefault()}>{copy.donation.button}</a>
     </section>
   );
   const renderHero = () => (
@@ -245,8 +300,8 @@ function App() {
         <h1>{copy.hero.title}</h1>
         <p className="hero-sub">{copy.hero.subtitle}<br />{copy.hero.history}</p>
         <div className="hero-actions">
-          <a className="button gold" href="#programs" onClick={(e) => editing && e.preventDefault()}>{copy.hero.primaryButton}<ArrowRight size={15} /></a>
-          <a className="button light" href="#mission" onClick={(e) => editing && e.preventDefault()}>{copy.hero.secondaryButton}</a>
+          <a className="button gold" href={publicPath('/programs')} onClick={(e) => editing && e.preventDefault()}>{copy.hero.primaryButton}<ArrowRight size={15} /></a>
+          <a className="button light" href={publicPath('/about/our-purpose')} onClick={(e) => editing && e.preventDefault()}>{copy.hero.secondaryButton}</a>
         </div>
         <div className="hero-note">Serving homeschooling families since 1991</div>
       </div>
@@ -269,7 +324,7 @@ function App() {
               <div className="program-icon"><Icon size={23} strokeWidth={1.7} /></div>
               <h3>{copy.programs[`p${n}Title`]}</h3>
               <p>{copy.programs[`p${n}Body`]}</p>
-            <a className="text-link" href={programLinks[n - 1]} target="_blank" rel="noreferrer" onClick={(e) => editing && e.preventDefault()}>{copy.programs[`p${n}Link`]} <span>→</span></a>
+            <a className="text-link" href={programLinks[n - 1]} onClick={(e) => editing && e.preventDefault()}>{copy.programs[`p${n}Link`]} <span>→</span></a>
             </article>;
           })}
         </div>
@@ -286,24 +341,19 @@ function App() {
           <h2 className="section-title">{copy.mission.title}</h2>
           <p>{copy.mission.body}</p>
           <div className="scripture">{copy.mission.quote}</div>
-          <a className="text-link" href="#closing" onClick={(e) => editing && e.preventDefault()}>{copy.mission.link} <span>→</span></a>
+          <a className="text-link" href={publicPath('/about/our-purpose')} onClick={(e) => editing && e.preventDefault()}>{copy.mission.link} <span>→</span></a>
         </div>
       </div>
     </section>
   );
   const renderAnniversary = () => (
-    <section className={`section anniversary ${sectionClass('anniversary')}`} onClick={() => clickSection('anniversary')}>
-      {sectionHint('anniversary')}
-      <div className="container">
-        <div className="anniv-number">35<small>Years of serving families</small></div>
-        <div>
-          <div className="section-kicker">Since 1991 · 2026</div>
-          <h2 className="section-title">{copy.anniversary.title}</h2>
-          <p>{copy.anniversary.body}</p>
-          <a className="button gold" href={donateUrl} target="_blank" rel="noreferrer" onClick={(e) => editing && e.preventDefault()}>{copy.anniversary.button} <ArrowRight size={15} /></a>
-        </div>
-      </div>
-    </section>
+    <AnniversarySection
+      copy={copy.anniversary}
+      editing={editing}
+      className={sectionClass('anniversary')}
+      hint={sectionHint('anniversary')}
+      onSectionClick={() => clickSection('anniversary')}
+    />
   );
   const renderListen = () => (
     <section id="listen" className={`section listen ${sectionClass('listen')}`} onClick={() => clickSection('listen')}>
@@ -315,7 +365,7 @@ function App() {
             <div className="listen-label">{copy.listen.kicker}</div>
             <h2>{copy.listen.title}</h2>
             <p>{copy.listen.body}</p>
-            <a className="text-link" href="https://www.youtube.com/watch?v=Q-C-yeSEOrQ" target="_blank" rel="noreferrer" onClick={(e) => editing && e.preventDefault()}>{copy.listen.button} <ArrowUpRight size={15} /></a>
+            <a className="text-link" href={publicPath('/listen-learn')} onClick={(e) => editing && e.preventDefault()}>{copy.listen.button} <ArrowUpRight size={15} /></a>
           </div>
         </div>
       </div>
@@ -330,10 +380,10 @@ function App() {
             <div className="section-kicker">{copy.stories.kicker}</div>
             <h2 className="section-title">{copy.stories.title}</h2>
           </div>
-          <a className="button" href="https://www.coloradoheritage.org/" target="_blank" rel="noreferrer" onClick={(e) => editing && e.preventDefault()}>{copy.stories.button}<ArrowUpRight size={14} /></a>
+          <a className="button" href={publicPath('/news')} onClick={(e) => editing && e.preventDefault()}>{copy.stories.button}<ArrowUpRight size={14} /></a>
         </div>
         <div className="story-list">
-          {[1, 2, 3, 4, 5].map((n) => <a className="story" key={n} href={storyLinks[n - 1]} target="_blank" rel="noreferrer" onClick={(e) => editing && e.preventDefault()}>
+          {[1, 2, 3, 4, 5].map((n) => <a className="story" key={n} href={storyLinks[n - 1]} onClick={(e) => editing && e.preventDefault()}>
             <div className="story-date">{copy.stories[`date${n}`]}</div>
             <h3>{copy.stories[`post${n}`]}</h3><ArrowRight className="story-arrow" size={17} />
           </a>)}
@@ -347,7 +397,7 @@ function App() {
       <div className="section-kicker">{copy.closing.kicker}</div>
       <h2 className="section-title">{copy.closing.title}</h2>
       <p>{copy.closing.body}</p>
-      <a className="button gold" href="#programs" onClick={(e) => editing && e.preventDefault()}>{copy.closing.button}<ArrowRight size={15} /></a>
+      <a className="button gold" href={donateUrl} onClick={(e) => editing && e.preventDefault()}>{copy.closing.button}<ArrowRight size={15} /></a>
     </section>
   );
 
@@ -355,6 +405,13 @@ function App() {
     donation: renderDonation, hero: renderHero, programs: renderPrograms, mission: renderMission,
     anniversary: renderAnniversary, listen: renderListen, stories: renderStories, closing: renderClosing,
   };
+
+  if (adminMode && contentQuery.isPending) {
+    return <div className="admin-message"><p>Loading the shared homepage content…</p></div>;
+  }
+  if (adminMode && contentQuery.isError) {
+    return <div className="admin-message"><h1>Could not load the website</h1><p>Check the connection and reload before editing.</p></div>;
+  }
 
   const fieldEditor = () => sectionFields[selected].map(({ key, label, multiline, image }) => (
     <div className="field" key={key}>
@@ -367,34 +424,22 @@ function App() {
   ));
 
   return (
-    <div className={`site ${editing ? 'is-editing' : ''}`}>
+    <div className={`site chess-public ${editing ? 'is-editing' : ''}`}>
+      {contentQuery.isError && !adminMode && <div className="content-warning" role="alert">The latest saved homepage could not be loaded. This view may not include recent edits.</div>}
       {!editing && <>
         <div className="announcement">{copy.donation.officeHours}<br />{copy.donation.enrollment}<br />{copy.donation.blogNotice}</div>
-        <header className="masthead">
-          <div className="nav-wrap">
-            <a className="brand" href="#home" aria-label="CHESS home">
-              <img src={asset('/images/chess-seal.png')} alt="Colorado Heritage Education School System seal" />
-              <div><div className="brand-name">Colorado Heritage<br />Education School System</div><div className="brand-tag">“Pursuing the Knowledge of God.”</div></div>
-            </a>
-            <nav className={`nav-links ${menuOpen ? 'open' : ''}`} aria-label="Main navigation">
-              <a href="#programs" onClick={() => setMenuOpen(false)}>Programs</a>
-              <a href="#mission" onClick={() => setMenuOpen(false)}>About CHESS</a>
-              <a href="#stories" onClick={() => setMenuOpen(false)}>Blog</a>
-              <a href="#listen" onClick={() => setMenuOpen(false)}>Listen &amp; Learn</a>
-              <a href={donateUrl} target="_blank" rel="noreferrer" className="nav-donate">Donate</a>
-            </nav>
-            <button className="menu-toggle" type="button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} data-testid="mobile-menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button>
-          </div>
-        </header>
+        <PublicSiteHeader />
       </>}
 
       {editing && <div className="editor-bar">
-        <div className="editor-bar-left"><span className="editor-dot" /><div><div className="editor-title">CHESS Site Editor</div><div className="editor-sub">Changes are private until you preview them.</div></div></div>
+        <div className="editor-bar-left"><span className="editor-dot" /><div><div className="editor-title">CHESS Website Editor</div><div className="editor-sub">Preview first, then publish changes to the public site.</div></div></div>
         <div className="editor-actions">
-          <span className="saved-pill">{isSaved ? 'All changes saved' : 'Unsaved changes'}</span>
-          <button type="button" data-testid="reset-site" onClick={reset}><RotateCcw size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Reset</button>
-          <button type="button" data-testid="save-site" className="primary" onClick={save}><Save size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Save</button>
+          <span className="saved-pill">{saveMutation.isPending ? 'Publishing…' : isSaved ? 'All changes saved' : 'Unsaved changes'}</span>
+          <button type="button" data-testid="reset-site" onClick={reset} disabled={saveMutation.isPending}><RotateCcw size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Reset</button>
+          <button type="button" data-testid="save-site" className="primary" onClick={save} disabled={saveMutation.isPending}><Save size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Save &amp; publish</button>
           <button type="button" data-testid="preview-site" onClick={() => setEditing(false)}><Eye size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />Preview site</button>
+          {adminMode && publicSiteUrl && <a className="editor-public-link" href={publicSiteUrl} target="_blank" rel="noreferrer">Open public site <ArrowUpRight size={13} /></a>}
+          {onSignOut && <button type="button" onClick={onSignOut}>Sign out</button>}
         </div>
       </div>}
 
@@ -428,40 +473,312 @@ function App() {
         </aside>
         <main className="editor-preview" aria-label="Homepage preview">
           <div className="announcement">{copy.donation.officeHours}<br />{copy.donation.enrollment}<br />{copy.donation.blogNotice}</div>
-          <header className="masthead">
-            <div className="nav-wrap">
-              <a className="brand" href="#home"><img src={asset('/images/chess-seal.png')} alt="CHESS seal" /><div><div className="brand-name">Colorado Heritage<br />Education School System</div><div className="brand-tag">“Pursuing the Knowledge of God.”</div></div></a>
-              <nav className="nav-links"><a href="#programs">Programs</a><a href="#mission">About CHESS</a><a href="#stories">Blog</a><a className="nav-donate" href={donateUrl}>Donate</a></nav>
-            </div>
-          </header>
+          <PublicSiteHeader editing />
           {visibleOrder.map((id) => <div key={id}>{renderSection[id]()}</div>)}
-          <Footer />
+          <PublicSiteFooter editing />
         </main>
       </div>}
 
       {!editing && <>
         {visibleOrder.map((id) => <div key={id}>{renderSection[id]()}</div>)}
-        <Footer />
-        <button className="edit-launch" type="button" data-testid="open-editor" onClick={() => setEditing(true)}><Pencil size={15} /> Edit site</button>
+        <PublicSiteFooter editing={editing} />
+        {adminMode && <button className="edit-launch" type="button" data-testid="open-editor" onClick={() => setEditing(true)}><Pencil size={15} /> Back to editor</button>}
       </>}
       {toast && <div className="toast-note" role="status">{toast}</div>}
     </div>
   );
 }
 
-function Footer() {
-  return <footer className="footer">
-    <div className="footer-main">
-      <div>
-        <div className="footer-brand"><img src={asset('/images/chess-seal.png')} alt="" /><strong>Colorado Heritage<br />Education School System</strong></div>
-        <p>A private Christian school serving homeschooling families since 1991.</p>
-        <div className="footer-tag">“Pursuing the Knowledge of God.”</div>
+function AnniversarySection({
+  copy,
+  editing,
+  className,
+  hint,
+  onSectionClick,
+}: {
+  copy: Copy['anniversary'];
+  editing: boolean;
+  className: string;
+  hint: ReactElement | null;
+  onSectionClick: () => void;
+}) {
+  const prefersReducedMotion = useRef(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [count, setCount] = useState(() => {
+    const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return editing || reduced ? 35 : 0;
+  });
+  const [revealed, setRevealed] = useState(() => {
+    const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return editing || reduced;
+  });
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    prefersReducedMotion.current = media.matches;
+    if (editing || media.matches || !('IntersectionObserver' in window)) {
+      setCount(35);
+      setRevealed(true);
+      return;
+    }
+
+    const section = sectionRef.current;
+    if (!section) return;
+    let frame = 0;
+    let observer: IntersectionObserver | undefined;
+    const handleMotionPreferenceChange = (event: MediaQueryListEvent) => {
+      prefersReducedMotion.current = event.matches;
+      if (event.matches) {
+        setCount(35);
+        setRevealed(true);
+        observer?.disconnect();
+        window.cancelAnimationFrame(frame);
+      }
+    };
+    media.addEventListener('change', handleMotionPreferenceChange);
+    const animateCount = () => {
+      const startedAt = performance.now();
+      const duration = 1250;
+      const tick = (now: number) => {
+        const progress = Math.min((now - startedAt) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setCount(Math.round(eased * 35));
+        if (progress < 1) frame = window.requestAnimationFrame(tick);
+      };
+      frame = window.requestAnimationFrame(tick);
+    };
+    observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setRevealed(true);
+      observer?.disconnect();
+      if (prefersReducedMotion.current) setCount(35);
+      else animateCount();
+    }, { threshold: 0.28 });
+    observer.observe(section);
+
+    return () => {
+      observer?.disconnect();
+      window.cancelAnimationFrame(frame);
+      media.removeEventListener('change', handleMotionPreferenceChange);
+    };
+  }, [editing]);
+
+  return (
+    <section
+      ref={sectionRef}
+      data-testid="anniversary-section"
+      className={`section anniversary ${className} ${editing ? '' : `anniversary-motion ${revealed ? 'is-visible' : ''}`}`}
+      onClick={onSectionClick}
+    >
+      {hint}
+      <div className="container">
+        <div className="anniv-number anniversary-reveal">
+          <span data-testid="anniversary-count" aria-hidden="true">{count}</span>
+          <span className="sr-only">35 years of serving families</span>
+          <small aria-hidden="true">Years of serving families</small>
+        </div>
+        <div className="anniversary-reveal">
+          <div className="section-kicker">Since 1991 · 2026</div>
+          <h2 className="section-title">{copy.title}</h2>
+          <p>{copy.body}</p>
+          <a className="button gold" href={donateUrl} onClick={(e) => editing && e.preventDefault()}>{copy.button} <ArrowRight size={15} /></a>
+        </div>
       </div>
-      <div><h3>Explore CHESS</h3><div className="footer-links"><a href="#programs">Independent School</a><a href="#programs">Academy K–12</a><a href="#programs">High School Diploma Program</a><a href="#stories">News &amp; Blog</a></div></div>
-      <div><h3>Connect</h3><div className="footer-links"><a href="https://www.coloradoheritage.org/" target="_blank" rel="noreferrer">Visit the CHESS website <ArrowUpRight size={12} /></a><a href="https://www.coloradoheritage.org/donate" target="_blank" rel="noreferrer">Donation page <ArrowUpRight size={12} /></a><span>Colorado, USA</span></div></div>
+    </section>
+  );
+}
+
+function AdminGate({ basePath, publicSiteUrl }: { basePath: string; publicSiteUrl: string }) {
+  const { isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
+  const accessQuery = useGetEditorAccess({
+    query: { enabled: Boolean(isLoaded && isSignedIn), retry: false },
+  });
+
+  if (!isLoaded) {
+    return <div className="admin-message"><p>Checking staff sign-in…</p></div>;
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="admin-message">
+        <img src={asset('/images/chess-seal.png')} alt="" />
+        <p className="section-kicker">Colorado Heritage</p>
+        <h1>Staff website editor</h1>
+        <p>Sign in with an approved staff account to edit the public website.</p>
+        <a className="button gold" href={`${basePath}/sign-in`}>Staff sign in <ArrowRight size={15} /></a>
+        <a className="admin-public-link" href={publicSiteUrl}>Visit the public website</a>
+      </div>
+    );
+  }
+
+  if (accessQuery.isPending) {
+    return <div className="admin-message"><p>Verifying editor access…</p></div>;
+  }
+
+  if (accessQuery.isError || !accessQuery.data?.allowed) {
+    return (
+      <div className="admin-message">
+        <h1>Editor access is not enabled for this account</h1>
+        <p>Ask a CHESS administrator to approve your staff email address.</p>
+        <button className="button" type="button" onClick={() => signOut({ redirectUrl: publicSiteUrl })}>Sign out</button>
+        <a className="admin-public-link" href={publicSiteUrl}>Visit the public website</a>
+      </div>
+    );
+  }
+
+  return <HomepageApp adminMode publicSiteUrl={publicSiteUrl} onSignOut={() => signOut({ redirectUrl: publicSiteUrl })} />;
+}
+
+function SignInPage({ basePath, publicSiteUrl }: { basePath: string; publicSiteUrl: string }) {
+  return (
+    <div className="admin-auth-shell">
+      <div className="admin-auth-heading">
+        <img src={asset('/images/chess-seal.png')} alt="Colorado Heritage seal" />
+        <div><strong>Colorado Heritage</strong><span>Staff website editor</span></div>
+      </div>
+      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <a className="admin-public-link" href={publicSiteUrl}>Back to public website</a>
     </div>
-    <div className="footer-bottom"><span>© {new Date().getFullYear()} Colorado Heritage Education School System</span><span>“Pursuing the Knowledge of God.”</span></div>
-  </footer>;
+  );
+}
+
+function SignUpPage({ basePath }: { basePath: string }) {
+  return (
+    <div className="admin-auth-shell">
+      <div className="admin-auth-heading">
+        <img src={asset('/images/chess-seal.png')} alt="Colorado Heritage seal" />
+        <div><strong>Colorado Heritage</strong><span>Staff website editor</span></div>
+      </div>
+      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      <p className="admin-auth-note">Only approved staff accounts can edit or publish the website.</p>
+    </div>
+  );
+}
+
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const queryCache = useQueryClient();
+  const previousUserId = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = addListener(({ user }) => {
+      const userId = user?.id ?? null;
+      if (previousUserId.current !== undefined && previousUserId.current !== userId) {
+        queryCache.clear();
+      }
+      previousUserId.current = userId;
+    });
+    return unsubscribe;
+  }, [addListener, queryCache]);
+
+  return null;
+}
+
+function ClerkAdminApp({ basePath, publicSiteUrl }: { basePath: string; publicSiteUrl: string }) {
+  const [, setLocation] = useLocation();
+  const stripBase = (path: string) =>
+    basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
+
+  return (
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
+      appearance={{
+        theme: shadcn,
+        cssLayerName: 'clerk',
+        options: {
+          logoPlacement: 'inside',
+          logoLinkUrl: publicSiteUrl,
+          logoImageUrl: `${window.location.origin}${asset('/images/chess-seal.png')}`,
+        },
+        variables: {
+          colorPrimary: '#0D008C',
+          colorForeground: '#1A365D',
+          colorMutedForeground: '#64748B',
+          colorBackground: '#FFFFFF',
+          colorInput: '#FFFFFF',
+          colorInputForeground: '#1A365D',
+          colorNeutral: '#D6DCE8',
+          borderRadius: '0.8rem',
+          fontFamily: 'Lato, sans-serif',
+        },
+        elements: {
+          socialButtonsBlockButton: {
+            color: '#1A365D',
+            backgroundColor: '#FFFFFF',
+            borderColor: '#D6DCE8',
+          },
+          socialButtonsBlockButtonText: { color: '#1A365D' },
+          formButtonPrimary: { color: '#FFFFFF', backgroundColor: '#0D008C' },
+          formFieldInput: { color: '#1A365D', backgroundColor: '#FFFFFF' },
+          footerActionLink: { color: '#0D008C' },
+        },
+      }}
+      signInUrl={`${basePath}/sign-in`}
+      signUpUrl={`${basePath}/sign-up`}
+      signInFallbackRedirectUrl={basePath || '/'}
+      signUpFallbackRedirectUrl={basePath || '/'}
+      routerPush={(to) => setLocation(stripBase(to))}
+      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+      localization={{
+        signIn: { start: { title: 'Staff sign in', subtitle: 'Sign in to edit the CHESS website.' } },
+        signUp: { start: { title: 'Staff account', subtitle: 'Create an account with an approved staff email.' } },
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <ClerkQueryClientCacheInvalidator />
+        <Switch>
+          <Route path="/sign-in/*?" component={() => <SignInPage basePath={basePath} publicSiteUrl={publicSiteUrl} />} />
+          <Route path="/sign-up/*?" component={() => <SignUpPage basePath={basePath} />} />
+          <Route path="/" component={() => <AdminGate basePath={basePath} publicSiteUrl={publicSiteUrl} />} />
+        </Switch>
+      </QueryClientProvider>
+    </ClerkProvider>
+  );
+}
+
+function PublicWebsite() {
+  const [location] = useLocation();
+  const path = decodeURI(location.split('?')[0].replace(/\/+$/, '') || '/');
+  const aliasTarget = legacyRouteAliases[path]
+    ?? (path.startsWith('/new-events/') ? path.replace(/^\/new-events/, '/events') : undefined)
+    ?? (path.startsWith('/news/category/') || path.startsWith('/news/tag/') ? '/news' : undefined);
+
+  if (aliasTarget && aliasTarget !== path) return <Redirect to={aliasTarget} />;
+  if (path === '/') return <HomepageApp />;
+
+  return (
+    <div className="chess-public chess-site-frame">
+      <PublicSiteHeader />
+      <PublicSitePages />
+      <PublicSiteFooter />
+    </div>
+  );
+}
+
+function App() {
+  const adminMode = isAdminRoute;
+  if (adminMode && !clerkPubKey) {
+    throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in the app environment.');
+  }
+
+  if (adminMode) {
+    const publicSiteUrl = new URL(appBasePath || '/', window.location.origin).toString();
+    return (
+      <WouterRouter base={adminBasePath}>
+        <ClerkAdminApp basePath={adminBasePath} publicSiteUrl={publicSiteUrl} />
+      </WouterRouter>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <WouterRouter base={appBasePath}>
+        <PublicWebsite />
+      </WouterRouter>
+    </QueryClientProvider>
+  );
 }
 
 export default App;

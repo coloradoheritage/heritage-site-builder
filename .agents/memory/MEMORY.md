@@ -1,0 +1,1 @@
+- [CHESS editor access](homepage-editor-access.md) — keep editing limited to explicitly approved staff accounts, with authorization enforced by the API.

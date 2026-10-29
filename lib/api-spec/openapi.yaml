@@ -24,6 +24,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /homepage-content:
+    get:
+      operationId: getHomepageContent
+      tags: [homepage]
+      summary: Get saved homepage content
+      description: Returns the shared homepage state, or null before the first save
+      responses:
+        "200":
+          description: Homepage content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomepageContentResponse"
+    put:
+      operationId: saveHomepageContent
+      tags: [homepage]
+      summary: Save shared homepage content
+      description: Saves the homepage state for all visitors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HomepageContentState"
+      responses:
+        "200":
+          description: Saved homepage content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomepageContentResponse"
+  /editor-access:
+    get:
+      operationId: getEditorAccess
+      tags: [homepage]
+      summary: Check homepage editor access
+      description: Returns whether the signed-in user is an approved homepage editor
+      responses:
+        "200":
+          description: Editor access status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EditorAccessResponse"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Editor access required
 components:
   schemas:
     HealthStatus:
@@ -33,4 +81,47 @@ components:
           type: string
       required:
         - status
+    HomepageSection:
+      type: string
+      enum:
+        - donation
+        - hero
+        - programs
+        - mission
+        - anniversary
+        - listen
+        - stories
+        - closing
+    HomepageContentState:
+      type: object
+      properties:
+        order:
+          type: array
+          items:
+            $ref: "#/components/schemas/HomepageSection"
+        hidden:
+          type: array
+          items:
+            $ref: "#/components/schemas/HomepageSection"
+        copy:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+      required: [order, hidden, copy]
+    HomepageContentResponse:
+      type: object
+      properties:
+        content:
+          anyOf:
+            - $ref: "#/components/schemas/HomepageContentState"
+            - type: "null"
+      required: [content]
+    EditorAccessResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+      required: [allowed]
 
