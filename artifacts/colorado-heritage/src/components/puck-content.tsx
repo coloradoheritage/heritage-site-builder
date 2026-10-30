@@ -14,6 +14,7 @@ import { toMountainInput } from "./puck-time";
 import { DocumentsContext } from "./markdown";
 import { HomePage } from "./home-page";
 import type { SiteContentExt } from "../lib/cms";
+import { splitMarkdownIntoSections, joinSections } from "../lib/sections";
 import { staffProfilePath } from "../../directory-helpers.mjs";
 
 const LinkPagesContext = createContext<CmsPage[]>([]);
@@ -189,6 +190,24 @@ const editorConfig = {
 
 function editorPayload(input: unknown, markdown: string): PuckPayload {
   const payload = asPuckPayload(input, markdown);
+  // First load of a legacy page: the whole body is one big text block. Split it at
+  // headings so each heading-led chunk becomes its own movable, in-place-editable
+  // section (the Google Sites feel). Once the page is saved it holds multiple blocks
+  // and takes the per-block normalize path below instead, so this runs only once.
+  const first = payload.content[0];
+  if (payload.content.length === 1 && first.type === "LegacyMarkdown" && first.props.richTextEdited !== true) {
+    const base = String(first.props.originalMarkdown ?? first.props.markdown ?? markdown);
+    const sections = splitMarkdownIntoSections(base);
+    if (sections.length > 1) {
+      return {
+        ...payload,
+        content: sections.map((section, index) => ({
+          type: "LegacyMarkdown",
+          props: { id: `section-${index}`, markdown: section, originalMarkdown: section, richText: markdownToRichText(section), richTextEdited: false },
+        })),
+      } as unknown as PuckPayload;
+    }
+  }
   return {
     ...payload,
     content: payload.content.map((block) => {
@@ -240,25 +259,29 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
   const payload = editorPayload(record.blocks, markdown);
   const saveBlocks = (next: Data) => {
     const blocks = next as PuckPayload;
-    const legacyBlock = blocks.content.find((item) => item.type === "LegacyMarkdown");
-    const legacyBase = legacyBlock ? String(legacyBlock.props.originalMarkdown ?? legacyBlock.props.markdown ?? "") : "";
-    const baselineRich = markdownToRichText(legacyBase);
     const savedBlocks = {
       ...blocks,
       content: blocks.content.map((block) => {
         if (block.type !== "LegacyMarkdown") return block;
+        const base = String(block.props.originalMarkdown ?? block.props.markdown ?? "");
         const richText = String(block.props.richText ?? "");
-        const edited = block.props.richTextEdited === true || richText !== baselineRich;
-        return { ...block, props: { ...block.props, markdown: legacyBase, originalMarkdown: legacyBase, richText, richTextEdited: edited } };
+        const edited = block.props.richTextEdited === true || richText !== markdownToRichText(base);
+        return { ...block, props: { ...block.props, markdown: base, originalMarkdown: base, richText, richTextEdited: edited } };
       }),
     } as unknown as PuckPayload;
-    const changedLegacy = savedBlocks.content.find((item) => item.type === "LegacyMarkdown" && item.props.richTextEdited === true);
-    const legacy = changedLegacy ? htmlToMarkdown(String(changedLegacy.props.richText ?? "")) : legacyBase;
-    if (entry.kind === "home") update((d) => ({ ...d, home: { ...d.home!, blocks: savedBlocks, ...(legacyBlock ? { markdown: legacy } : {}) } }));
-    else if (entry.kind === "page") update((d) => ({ ...d, pages: d.pages.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(legacyBlock ? { markdown: legacy } : {}) } : x) }));
-    else if (entry.kind === "staff") update((d) => ({ ...d, staff: d.staff.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(legacyBlock ? { bio: legacy } : {}) } : x) }));
-    else if (entry.kind === "news") update((d) => ({ ...d, news: d.news.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(legacyBlock ? { markdown: legacy } : {}) } : x) }));
-    else if (entry.kind === "events") update((d) => ({ ...d, events: d.events.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(legacyBlock ? { markdown: legacy } : {}) } : x) }));
+    // Rebuild the stored markdown mirror from every text section in document order,
+    // so reordered/added/removed sections stay in sync. Media blocks render from
+    // `blocks`; markdown is only the text fallback.
+    const legacyBlocks = savedBlocks.content.filter((item) => item.type === "LegacyMarkdown");
+    const hasLegacy = legacyBlocks.length > 0;
+    const legacy = joinSections(legacyBlocks.map((block) => block.props.richTextEdited === true
+      ? htmlToMarkdown(String(block.props.richText ?? ""))
+      : String(block.props.originalMarkdown ?? block.props.markdown ?? "")));
+    if (entry.kind === "home") update((d) => ({ ...d, home: { ...d.home!, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } }));
+    else if (entry.kind === "page") update((d) => ({ ...d, pages: d.pages.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } : x) }));
+    else if (entry.kind === "staff") update((d) => ({ ...d, staff: d.staff.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { bio: legacy } : {}) } : x) }));
+    else if (entry.kind === "news") update((d) => ({ ...d, news: d.news.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } : x) }));
+    else if (entry.kind === "events") update((d) => ({ ...d, events: d.events.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } : x) }));
   };
   const addPhotoBlock = (url: string, alt: string) => {
     const next: PuckPayload = { ...payload, content: [...payload.content, { type: "PhotoWithText", props: { id: `photo-${Date.now().toString(36)}`, heading: "", richText: "<p></p>", image: { url, alt, focalX: 50, focalY: 50 }, imageSide: "left" } }] };
@@ -289,7 +312,8 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
               data={payload}
               onChange={saveBlocks}
               iframe={{ enabled: false }}
-              ui={{ leftSideBarVisible: false, rightSideBarVisible: true }}
+              ui={{ leftSideBarVisible: false, rightSideBarVisible: false }}
+              overrides={{ headerActions: () => <></> }}
             />
           </LinkPagesContext.Provider>
         </div>
