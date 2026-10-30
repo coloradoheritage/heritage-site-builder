@@ -1,8 +1,12 @@
-import { Puck, RichTextMenu, type Config, type Data, type RichtextField } from "@puckeditor/core";
+import { Puck, RichTextMenu, useGetPuck, type Config, type Data, type RichtextField } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { Link as LinkIcon, Redo, Monitor, Smartphone, Undo, Unlink, PanelLeftClose, PanelLeftOpen, ExternalLink } from "lucide-react";
+import { Link as LinkIcon, Redo, Monitor, Smartphone, Undo, Unlink, PanelLeftOpen, ExternalLink, Bold, Italic, Underline as UnderlineIcon, Heading2, Heading3, List, ListOrdered, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import { marked } from "marked";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
+import StarterKit from "@tiptap/starter-kit";
+import { TextAlign } from "@tiptap/extension-text-align";
 import Color from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
 import type { CmsArticle, CmsPage, CmsStaff, SiteContentState } from "@workspace/api-client-react";
@@ -143,11 +147,119 @@ function LocalDateTimeField({ value, onChange, label }: { value: unknown; onChan
   return <label className="puck-date-field">{label}<input type="datetime-local" value={toMountainInput(value)} onChange={(event) => onChange(event.target.value)} /><small>Mountain Time (Colorado)</small></label>;
 }
 
+// --- In-canvas (Google Sites style) section editor ------------------------
+// Each text section renders its own Tiptap editor directly on the page, so staff
+// click and type in place. A floating toolbar (BubbleMenu) appears over the
+// selection. StarterKit already bundles bold/italic/underline/link/lists/headings;
+// we add alignment and brand-only text color on top. Edits are pushed back into
+// Puck's data on blur so the existing save/publish flow persists them.
+const sectionExtensions = [
+  StarterKit.configure({
+    heading: { levels: [2, 3] }, // guardrail: no H1 (reserved for the page title)
+    link: { openOnClick: false, autolink: false, HTMLAttributes: { rel: "noopener noreferrer" } },
+  }),
+  TextStyle,
+  Color,
+  TextAlign.configure({ types: ["heading", "paragraph"] }),
+];
+
+const SECTION_COLORS: Array<[string, string]> = [["Navy", "#1A365D"], ["Gold", "#D4AF37"], ["Slate", "#2D3748"]];
+
+function FmtButton({ active, onClick, title, children }: { active?: boolean; onClick: () => void; title: string; children: ReactNode }) {
+  return <button type="button" className={`cms-fmt-btn${active ? " is-active" : ""}`} title={title} aria-label={title} aria-pressed={!!active}
+    onMouseDown={(event) => event.preventDefault()} onClick={onClick}>{children}</button>;
+}
+
+function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] }) {
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [pagePath, setPagePath] = useState("");
+  const [href, setHref] = useState("");
+  const [newTab, setNewTab] = useState(false);
+  const [linkError, setLinkError] = useState("");
+  const applyLink = () => {
+    const target = safeLinkHref(pagePath || href);
+    if (!target) { setLinkError("Choose a page or enter a supported web address."); return; }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: target, target: newTab ? "_blank" : null, rel: newTab ? "noopener noreferrer" : null }).run();
+    setLinkOpen(false); setPagePath(""); setHref(""); setNewTab(false); setLinkError("");
+  };
+  return <div className="cms-fmt-bar" role="toolbar" aria-label="Text formatting" onMouseDown={(event) => event.preventDefault()}>
+    <FmtButton active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold"><Bold size={15} /></FmtButton>
+    <FmtButton active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic"><Italic size={15} /></FmtButton>
+    <FmtButton active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></FmtButton>
+    <span className="cms-fmt-sep" />
+    <FmtButton active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading"><Heading2 size={15} /></FmtButton>
+    <FmtButton active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title="Subheading"><Heading3 size={15} /></FmtButton>
+    <FmtButton active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bulleted list"><List size={15} /></FmtButton>
+    <FmtButton active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered list"><ListOrdered size={15} /></FmtButton>
+    <span className="cms-fmt-sep" />
+    <FmtButton active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()} title="Align left"><AlignLeft size={15} /></FmtButton>
+    <FmtButton active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()} title="Align center"><AlignCenter size={15} /></FmtButton>
+    <FmtButton active={editor.isActive({ textAlign: "right" })} onClick={() => editor.chain().focus().setTextAlign("right").run()} title="Align right"><AlignRight size={15} /></FmtButton>
+    <span className="cms-fmt-sep" />
+    <FmtButton active={editor.isActive("link")} onClick={() => setLinkOpen((value) => !value)} title="Add or edit link"><LinkIcon size={15} /></FmtButton>
+    <FmtButton onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()} title="Remove link"><Unlink size={15} /></FmtButton>
+    <span className="cms-fmt-colors" aria-label="Text color">
+      {SECTION_COLORS.map(([label, color]) => <button key={color} type="button" className="cms-fmt-color" title={`${label} text`} aria-label={`${label} text`}
+        onMouseDown={(event) => event.preventDefault()} onClick={() => editor.chain().focus().setColor(color).run()}><span style={{ backgroundColor: color }} /></button>)}
+    </span>
+    {linkOpen && <div className="cms-link-pop">
+      <label>Link to a page
+        <select value={pagePath} onChange={(event) => { setPagePath(event.target.value); setHref(""); setLinkError(""); }} data-testid="section-link-page">
+          <option value="">Choose a page…</option>
+          {pages.map((page) => <option key={page.path} value={page.path}>{page.label || page.title || page.path}</option>)}
+        </select>
+      </label>
+      <label>Or a web address
+        <input value={href} onChange={(event) => { setHref(event.target.value); setPagePath(""); setLinkError(""); }} placeholder="https://…" data-testid="section-link-url" />
+      </label>
+      <label className="cms-link-newtab"><input type="checkbox" checked={newTab} onChange={(event) => setNewTab(event.target.checked)} /> Open in a new tab</label>
+      {linkError && <p className="cms-link-error" role="alert">{linkError}</p>}
+      <div className="cms-link-actions">
+        <button type="button" className="cms-btn cms-btn-primary" onClick={applyLink}>Add link</button>
+        <button type="button" className="cms-btn" onClick={() => { setLinkOpen(false); setLinkError(""); }}>Cancel</button>
+      </div>
+    </div>}
+  </div>;
+}
+
+function EditableSection({ id, richText, puck }: { id?: string; richText?: string; puck: { isEditing: boolean; metadata: Record<string, unknown> } }) {
+  const getPuck = useGetPuck();
+  const pages = (puck.metadata?.linkPages as CmsPage[]) ?? [];
+  const blockId = typeof id === "string" ? id : "";
+  const editor = useEditor({
+    extensions: sectionExtensions,
+    content: typeof richText === "string" && richText.trim() ? richText : "<p></p>",
+    editable: true,
+    immediatelyRender: false,
+    editorProps: { attributes: { class: "chess-prose cms-section-editor" } },
+    onBlur: ({ editor }) => {
+      if (!blockId) return;
+      const html = editor.getHTML();
+      getPuck().dispatch({ type: "setData", data: (prev) => ({
+        ...prev,
+        content: prev.content.map((block) => (block.props as { id?: string }).id === blockId
+          ? { ...block, props: { ...block.props, richText: html, richTextEdited: true } }
+          : block),
+      }) });
+    },
+  });
+  if (!editor) return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: String(richText ?? "") }} />;
+  return <div className="cms-section">
+    <BubbleMenu editor={editor} className="cms-fmt-pop"><SectionToolbar editor={editor} pages={pages} /></BubbleMenu>
+    <EditorContent editor={editor} />
+  </div>;
+}
+
 const editorConfig = {
   ...chessPuckConfig,
   components: {
     ...chessPuckConfig.components,
-    LegacyMarkdown: { ...chessPuckConfig.components.LegacyMarkdown, fields: { richText: richField } },
+    LegacyMarkdown: {
+      ...chessPuckConfig.components.LegacyMarkdown,
+      fields: {},
+      render: ({ id, richText, puck }: { id?: string; richText?: string; puck: { isEditing: boolean; metadata: Record<string, unknown> } }) =>
+        <EditableSection id={id} richText={richText} puck={puck} />,
+    },
     PhotoWithText: {
       ...chessPuckConfig.components.PhotoWithText,
       fields: {
@@ -311,6 +423,7 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
               config={editorConfig}
               data={payload}
               onChange={saveBlocks}
+              metadata={{ linkPages: draft.pages }}
               iframe={{ enabled: false }}
               ui={{ leftSideBarVisible: false, rightSideBarVisible: false }}
               overrides={{ headerActions: () => <></> }}
