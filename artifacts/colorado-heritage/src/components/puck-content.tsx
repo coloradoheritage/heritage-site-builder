@@ -1,7 +1,10 @@
-import { Puck, RichTextMenu, useGetPuck, type Config, type Data, type RichtextField } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { Link as LinkIcon, Redo, Monitor, Smartphone, Undo, Unlink, PanelLeftOpen, ExternalLink, Bold, Italic, Underline as UnderlineIcon, Heading2, Heading3, List, ListOrdered, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
+import {
+  Link as LinkIcon, Unlink, Monitor, Smartphone, PanelLeftOpen, ExternalLink,
+  Bold, Italic, Underline as UnderlineIcon, Heading2, Heading3, List, ListOrdered,
+  AlignLeft, AlignCenter, AlignRight, Plus, ImagePlus, ArrowUp, ArrowDown, Trash2,
+} from "lucide-react";
 import { marked } from "marked";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
@@ -10,18 +13,16 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import Color from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
 import type { CmsArticle, CmsPage, CmsStaff, SiteContentState } from "@workspace/api-client-react";
-import { asPuckPayload, chessPuckConfig, PuckBlockRenderer, type PuckPayload } from "./puck-render";
+import { asPuckPayload, PuckBlockRenderer, type PuckPayload } from "./puck-render";
 import { PhotoUploader } from "./site-editors";
 import { SiteImage } from "./site-image";
 import { AnnouncementBar, PublicSiteFooter, PublicSiteHeader } from "./site-chrome";
-import { toMountainInput } from "./puck-time";
 import { DocumentsContext } from "./markdown";
 import { HomePage } from "./home-page";
 import type { SiteContentExt } from "../lib/cms";
 import { splitMarkdownIntoSections, joinSections } from "../lib/sections";
-import { staffProfilePath } from "../../directory-helpers.mjs";
 
-const LinkPagesContext = createContext<CmsPage[]>([]);
+type SectionBlock = PuckPayload["content"][number];
 
 function safeLinkHref(value: string) {
   const href = value.trim();
@@ -72,87 +73,15 @@ function htmlToMarkdown(html: string) {
   return value.replace(/\n{3,}/g, "\n\n").trim();
 }
 
-type RichChain = {
-  focus: () => RichChain; extendMarkRange: (name: string) => RichChain; setLink: (attrs: { href: string; target: string | null; rel: string | null }) => RichChain;
-  unsetLink: () => RichChain; toggleBold: () => RichChain; toggleItalic: () => RichChain; toggleUnderline: () => RichChain;
-  toggleHeading: (attrs: { level: number }) => RichChain; setParagraph: () => RichChain; toggleBulletList: () => RichChain;
-  toggleOrderedList: () => RichChain; setTextAlign: (value: "left" | "center" | "right") => RichChain;
-  undo: () => RichChain; redo: () => RichChain; setColor: (value: string) => RichChain; run: () => boolean;
-};
-type RichEditor = { chain: () => RichChain; isActive: (name: string, attrs?: Record<string, unknown>) => boolean };
-
-function RichTools({ editor }: { editor: RichEditor }) {
-  const [href, setHref] = useState("");
-  const [pagePath, setPagePath] = useState("");
-  const [newTab, setNewTab] = useState(false);
-  const [linkError, setLinkError] = useState("");
-  const pages = useContext(LinkPagesContext);
-  const linkHref = safeLinkHref(pagePath || href);
-  const applyLink = () => {
-    if (!linkHref) {
-      setLinkError("Choose a page or enter a supported web address.");
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({
-      href: linkHref,
-      target: newTab ? "_blank" : null,
-      rel: newTab ? "noopener noreferrer" : null,
-    }).run();
-    setLinkError("");
-    setHref("");
-    setPagePath("");
-  };
-  return <>
-    <RichTextMenu.Group>
-      <RichTextMenu.Bold />
-      <RichTextMenu.Italic />
-      <RichTextMenu.Underline />
-      <RichTextMenu.HeadingSelect />
-      <RichTextMenu.BulletList />
-      <RichTextMenu.OrderedList />
-      <RichTextMenu.AlignLeft />
-      <RichTextMenu.AlignCenter />
-      <RichTextMenu.AlignRight />
-    </RichTextMenu.Group>
-    <RichTextMenu.Group>
-      <label className="puck-rich-link"><LinkIcon size={14} /><select value={pagePath} onChange={(event) => { setPagePath(event.target.value); setHref(""); setLinkError(""); }} aria-label="Link to a site page" data-testid="puck-link-page">
-        <option value="">Choose a page…</option>
-        {pages.map((page) => <option key={page.path} value={page.path}>{page.label || page.title || page.path}</option>)}
-      </select></label>
-      <label className="puck-rich-link"><ExternalLink size={13} /><input value={href} onChange={(event) => { setHref(event.target.value); setPagePath(""); setLinkError(""); }} placeholder="Or enter a web address" aria-label="Outside link address" data-testid="puck-link-url" /></label>
-      <label className="puck-rich-newtab"><input type="checkbox" checked={newTab} onChange={(event) => setNewTab(event.target.checked)} data-testid="puck-link-new-tab" /> Open in new tab</label>
-      <RichTextMenu.Control icon={<LinkIcon size={14} />} title="Set link" onClick={applyLink} />
-      {linkError && <span className="puck-rich-link-error" role="alert">{linkError}</span>}
-      <RichTextMenu.Control icon={<Unlink size={14} />} title="Remove link" onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()} />
-      <RichTextMenu.Control icon={<Undo size={14} />} title="Undo" onClick={() => editor.chain().focus().undo().run()} />
-      <RichTextMenu.Control icon={<Redo size={14} />} title="Redo" onClick={() => editor.chain().focus().redo().run()} />
-      <span className="puck-rich-colors" aria-label="Text color">
-      {[["Navy", "#1A365D"], ["Gold", "#D4AF37"], ["Slate", "#2D3748"]].map(([label, color]) =>
-        <RichTextMenu.Control key={color} icon={<i style={{ backgroundColor: color }} />} title={`${label} text`} onClick={() => editor.chain().focus().setColor(color).run()} />)}
-      </span>
-    </RichTextMenu.Group>
-  </>;
-}
-
-const richField = {
-  type: "richtext",
-  contentEditable: true,
-  options: { textAlign: { types: ["heading", "paragraph"], alignments: ["left", "center", "right"], defaultAlignment: "left" } },
-  tiptap: { extensions: [TextStyle, Color] },
-  renderInlineMenu: ({ editor, readOnly }: Parameters<NonNullable<RichtextField["renderInlineMenu"]>>[0]) =>
-    <RichTextMenu>{editor && !readOnly && <RichTools editor={editor as unknown as RichEditor} />}</RichTextMenu>,
-} as unknown as RichtextField;
-
-function LocalDateTimeField({ value, onChange, label }: { value: unknown; onChange: (value: unknown) => void; label: string }) {
-  return <label className="puck-date-field">{label}<input type="datetime-local" value={toMountainInput(value)} onChange={(event) => onChange(event.target.value)} /><small>Mountain Time (Colorado)</small></label>;
-}
-
-// --- In-canvas (Google Sites style) section editor ------------------------
-// Each text section renders its own Tiptap editor directly on the page, so staff
-// click and type in place. A floating toolbar (BubbleMenu) appears over the
-// selection. StarterKit already bundles bold/italic/underline/link/lists/headings;
-// we add alignment and brand-only text color on top. Edits are pushed back into
-// Puck's data on blur so the existing save/publish flow persists them.
+// --- In-canvas (Google Sites style) editing -------------------------------
+// We render the editable page ourselves instead of inside Puck's draggable
+// canvas: Puck's block wrapper owns the click (select block) and the drag (move
+// block) on every component, which is why typing never reached the text. Here
+// each text section is its own Tiptap editor on the page, so staff click and
+// type in place. A floating toolbar (BubbleMenu) appears over the selection.
+// StarterKit already bundles bold/italic/underline/link/lists/headings; we add
+// alignment and brand-only text color. Everything saves back through the same
+// draft/publish pipeline that Puck used.
 const sectionExtensions = [
   StarterKit.configure({
     heading: { levels: [2, 3] }, // guardrail: no H1 (reserved for the page title)
@@ -202,7 +131,7 @@ function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] })
       {SECTION_COLORS.map(([label, color]) => <button key={color} type="button" className="cms-fmt-color" title={`${label} text`} aria-label={`${label} text`}
         onMouseDown={(event) => event.preventDefault()} onClick={() => editor.chain().focus().setColor(color).run()}><span style={{ backgroundColor: color }} /></button>)}
     </span>
-    {linkOpen && <div className="cms-link-pop">
+    {linkOpen && <div className="cms-link-pop" onMouseDown={(event) => event.stopPropagation()}>
       <label>Link to a page
         <select value={pagePath} onChange={(event) => { setPagePath(event.target.value); setHref(""); setLinkError(""); }} data-testid="section-link-page">
           <option value="">Choose a page…</option>
@@ -222,83 +151,157 @@ function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] })
   </div>;
 }
 
-function EditableSection({ id, richText, puck }: { id?: string; richText?: string; puck: { isEditing: boolean; metadata: Record<string, unknown> } }) {
-  const getPuck = useGetPuck();
-  const pages = (puck.metadata?.linkPages as CmsPage[]) ?? [];
-  const blockId = typeof id === "string" ? id : "";
+// One Tiptap editor on the page. Commits on blur, but only when the content
+// actually changed from the editor's own baseline — so merely clicking through a
+// section (or a stray teardown blur) never marks an untouched section as edited.
+function EditableSection({ id, richText, pages, onCommit }: {
+  id: string;
+  richText?: string;
+  pages: CmsPage[];
+  onCommit: (id: string, html: string) => void;
+}) {
+  const baseline = useRef<string>("");
   const editor = useEditor({
     extensions: sectionExtensions,
     content: typeof richText === "string" && richText.trim() ? richText : "<p></p>",
     editable: true,
     immediatelyRender: false,
     editorProps: { attributes: { class: "chess-prose cms-section-editor" } },
+    onCreate: ({ editor }) => { baseline.current = editor.getHTML(); },
     onBlur: ({ editor }) => {
-      if (!blockId) return;
+      if (!id) return;
       const html = editor.getHTML();
-      getPuck().dispatch({ type: "setData", data: (prev) => ({
-        ...prev,
-        content: prev.content.map((block) => (block.props as { id?: string }).id === blockId
-          ? { ...block, props: { ...block.props, richText: html, richTextEdited: true } }
-          : block),
-      }) });
+      if (html === baseline.current) return;
+      baseline.current = html;
+      onCommit(id, html);
     },
   });
   if (!editor) return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: String(richText ?? "") }} />;
-  return <div className="cms-section">
+  return <>
     <BubbleMenu editor={editor} className="cms-fmt-pop"><SectionToolbar editor={editor} pages={pages} /></BubbleMenu>
     <EditorContent editor={editor} />
+  </>;
+}
+
+function PhotoAssetField({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
+  const image = value && typeof value === "object" ? value as { url?: string; alt?: string; focalX?: number; focalY?: number } : {};
+  const patch = (next: Partial<typeof image>) => onChange({ ...image, ...next });
+  return <div className="puck-photo-field">
+    <PhotoUploader label="Choose or upload this photo" defaultAlt={image.alt ?? ""} onUploaded={(url, alt) => patch({ url, alt })} />
+    {image.url && <>
+      <SiteImage src={image.url} alt={image.alt ?? ""} loading="lazy" style={{ objectPosition: `${image.focalX ?? 50}% ${image.focalY ?? 50}%` }} />
+      <label>Photo description (required)<input value={image.alt ?? ""} onChange={(event) => patch({ alt: event.target.value })} required /></label>
+      <label>Horizontal crop: {image.focalX ?? 50}%<input type="range" min="0" max="100" value={image.focalX ?? 50} onChange={(event) => patch({ focalX: Number(event.target.value) })} /></label>
+      <label>Vertical crop: {image.focalY ?? 50}%<input type="range" min="0" max="100" value={image.focalY ?? 50} onChange={(event) => patch({ focalY: Number(event.target.value) })} /></label>
+      <button type="button" onClick={() => onChange({ url: "", alt: "", focalX: 50, focalY: 50 })}>Remove photo</button>
+    </>}
   </div>;
 }
 
-const editorConfig = {
-  ...chessPuckConfig,
-  components: {
-    ...chessPuckConfig.components,
-    LegacyMarkdown: {
-      ...chessPuckConfig.components.LegacyMarkdown,
-      fields: {},
-      render: ({ id, richText, puck }: { id?: string; richText?: string; puck: { isEditing: boolean; metadata: Record<string, unknown> } }) =>
-        <EditableSection id={id} richText={richText} puck={puck} />,
-    },
-    PhotoWithText: {
-      ...chessPuckConfig.components.PhotoWithText,
-      fields: {
-        heading: { type: "text", label: "Heading" },
-        richText: richField,
-        image: { type: "custom", label: "Photo and focal crop", render: ({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) => <PhotoAssetField value={value} onChange={onChange} /> },
-        imageSide: { type: "select", label: "Photo position", options: [{ label: "Left", value: "left" }, { label: "Right", value: "right" }] },
-      },
-    },
-    FamilyStepButton: {
-      ...chessPuckConfig.components.FamilyStepButton,
-      fields: {
-        ...chessPuckConfig.components.FamilyStepButton.fields,
-        richText: richField,
-        secondaryButtonLabel: { type: "text", label: "Second button label (optional)" },
-        secondaryHref: { type: "text", label: "Second button link (optional)" },
-      },
-    },
-    FaqItem: { ...chessPuckConfig.components.FaqItem, fields: { ...chessPuckConfig.components.FaqItem.fields, richText: richField } },
-    StaffCard: {
-      ...chessPuckConfig.components.StaffCard,
-      fields: {
-        ...chessPuckConfig.components.StaffCard.fields,
-        photo: { type: "custom", label: "Photo and focal crop", render: ({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) => <PhotoAssetField value={value} onChange={onChange} /> },
-        bio: richField,
-      },
-    },
-    Testimonial: { ...chessPuckConfig.components.Testimonial, fields: { ...chessPuckConfig.components.Testimonial.fields, quote: richField } },
-    Announcement: {
-      ...chessPuckConfig.components.Announcement,
-      fields: {
-        ...chessPuckConfig.components.Announcement.fields,
-        richText: richField,
-        startsAt: { type: "custom", label: "Start date and time", render: ({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) => <LocalDateTimeField value={value} onChange={onChange} label="Start date and time" /> },
-        expiresAt: { type: "custom", label: "End date and time", render: ({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) => <LocalDateTimeField value={value} onChange={onChange} label="End date and time" /> },
-      },
-    },
-  },
-} as unknown as Config;
+// A photo-with-text block, edited in place: heading, caption (its own Tiptap
+// editor), the photo picker, and which side the photo sits on.
+function PhotoBlockEditor({ block, pages, onCommit, onPatch }: {
+  block: SectionBlock;
+  pages: CmsPage[];
+  onCommit: (id: string, html: string) => void;
+  onPatch: (id: string, patch: Record<string, unknown>) => void;
+}) {
+  const id = String(block.props.id ?? "");
+  const heading = String(block.props.heading ?? "");
+  const imageSide = block.props.imageSide === "right" ? "right" : "left";
+  return <div className={`cms-photo-block is-${imageSide}`}>
+    <div className="cms-photo-media"><PhotoAssetField value={block.props.image} onChange={(value) => onPatch(id, { image: value })} /></div>
+    <div className="cms-photo-body">
+      <input className="cms-photo-heading" value={heading} placeholder="Heading (optional)" onChange={(event) => onPatch(id, { heading: event.target.value })} />
+      <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : "<p></p>"} pages={pages} onCommit={onCommit} />
+      <label className="cms-photo-side">Photo position
+        <select value={imageSide} onChange={(event) => onPatch(id, { imageSide: event.target.value })}>
+          <option value="left">Left of the text</option>
+          <option value="right">Right of the text</option>
+        </select>
+      </label>
+    </div>
+  </div>;
+}
+
+function InsertRow({ onText, onPhoto }: { onText: () => void; onPhoto: () => void }) {
+  return <div className="cms-insert-row" contentEditable={false}>
+    <button type="button" className="cms-insert-btn" onClick={onText}><Plus size={14} /> Add a text section</button>
+    <button type="button" className="cms-insert-btn" onClick={onPhoto}><ImagePlus size={14} /> Add a photo</button>
+  </div>;
+}
+
+let seq = 0;
+const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
+
+// The editable page. Internal block state is the source of truth while mounted;
+// it is persisted up through onChange (the draft/publish pipeline) but never read
+// back into state, so saving never resets a live editor's caret. The parent keys
+// this by the selected page so switching pages remounts with fresh content.
+function SectionsEditor({ initial, base, pages, onChange }: {
+  initial: SectionBlock[];
+  base: PuckPayload;
+  pages: CmsPage[];
+  onChange: (next: PuckPayload) => void;
+}) {
+  const [blocks, setBlocks] = useState<SectionBlock[]>(initial);
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
+
+  const commit = useCallback((next: SectionBlock[]) => {
+    setBlocks(next);
+    onChange({ ...base, content: next } as PuckPayload);
+  }, [base, onChange]);
+
+  const commitText = useCallback((id: string, html: string) => {
+    commit(blocksRef.current.map((b) => (String(b.props.id) === id
+      ? { ...b, props: { ...b.props, richText: html, richTextEdited: true } }
+      : b)));
+  }, [commit]);
+
+  const patchBlock = useCallback((id: string, patch: Record<string, unknown>) => {
+    commit(blocksRef.current.map((b) => (String(b.props.id) === id ? { ...b, props: { ...b.props, ...patch } } : b)));
+  }, [commit]);
+
+  const insertAt = (index: number, block: SectionBlock) => {
+    const next = [...blocksRef.current];
+    next.splice(index, 0, block);
+    commit(next);
+  };
+  const textBlock = (): SectionBlock => ({ type: "LegacyMarkdown", props: { id: newId("section"), markdown: "", originalMarkdown: "", richText: "<p></p>", richTextEdited: true } });
+  const photoBlock = (url = "", alt = ""): SectionBlock => ({ type: "PhotoWithText", props: { id: newId("photo"), heading: "", richText: "<p></p>", richTextEdited: true, image: { url, alt, focalX: 50, focalY: 50 }, imageSide: "left" } });
+  const move = (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= blocksRef.current.length) return;
+    const next = [...blocksRef.current];
+    [next[index], next[target]] = [next[target], next[index]];
+    commit(next);
+  };
+  const remove = (index: number) => {
+    if (!window.confirm("Remove this section? Nothing is published until you choose to publish.")) return;
+    commit(blocksRef.current.filter((_, i) => i !== index));
+  };
+
+  return <div className="cms-sections" data-testid="sections-editor">
+    <InsertRow onText={() => insertAt(0, textBlock())} onPhoto={() => insertAt(0, photoBlock())} />
+    {blocks.map((block, index) => {
+      const id = String(block.props.id ?? `block-${index}`);
+      return <div className="cms-section" key={id} data-testid={`section-${index}`} data-block-type={block.type}>
+        <div className="cms-section-controls" contentEditable={false}>
+          <button type="button" title="Move up" aria-label="Move section up" disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp size={14} /></button>
+          <button type="button" title="Move down" aria-label="Move section down" disabled={index === blocks.length - 1} onClick={() => move(index, 1)}><ArrowDown size={14} /></button>
+          <button type="button" title="Remove section" aria-label="Remove section" onClick={() => remove(index)}><Trash2 size={14} /></button>
+        </div>
+        {block.type === "LegacyMarkdown"
+          ? <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : undefined} pages={pages} onCommit={commitText} />
+          : block.type === "PhotoWithText"
+            ? <PhotoBlockEditor block={block} pages={pages} onCommit={commitText} onPatch={patchBlock} />
+            : <div className="cms-nontext" contentEditable={false}><PuckBlockRenderer blocks={{ ...base, content: [block] }} /></div>}
+        <InsertRow onText={() => insertAt(index + 1, textBlock())} onPhoto={() => insertAt(index + 1, photoBlock())} />
+      </div>;
+    })}
+  </div>;
+}
 
 function editorPayload(input: unknown, markdown: string): PuckPayload {
   const payload = asPuckPayload(input, markdown);
@@ -308,8 +311,8 @@ function editorPayload(input: unknown, markdown: string): PuckPayload {
   // and takes the per-block normalize path below instead, so this runs only once.
   const first = payload.content[0];
   if (payload.content.length === 1 && first.type === "LegacyMarkdown" && first.props.richTextEdited !== true) {
-    const base = String(first.props.originalMarkdown ?? first.props.markdown ?? markdown);
-    const sections = splitMarkdownIntoSections(base);
+    const bodyBase = String(first.props.originalMarkdown ?? first.props.markdown ?? markdown);
+    const sections = splitMarkdownIntoSections(bodyBase);
     if (sections.length > 1) {
       return {
         ...payload,
@@ -331,21 +334,6 @@ function editorPayload(input: unknown, markdown: string): PuckPayload {
   } as unknown as PuckPayload;
 }
 
-function PhotoAssetField({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
-  const image = value && typeof value === "object" ? value as { url?: string; alt?: string; focalX?: number; focalY?: number } : {};
-  const patch = (next: Partial<typeof image>) => onChange({ ...image, ...next });
-  return <div className="puck-photo-field">
-    <PhotoUploader label="Choose or upload this photo" defaultAlt={image.alt ?? ""} onUploaded={(url, alt) => patch({ url, alt })} />
-    {image.url && <>
-      <SiteImage src={image.url} alt={image.alt ?? ""} loading="lazy" style={{ objectPosition: `${image.focalX ?? 50}% ${image.focalY ?? 50}%` }} />
-      <label>Photo description (required)<input value={image.alt ?? ""} onChange={(event) => patch({ alt: event.target.value })} required /></label>
-      <label>Horizontal crop: {image.focalX ?? 50}%<input type="range" min="0" max="100" value={image.focalX ?? 50} onChange={(event) => patch({ focalX: Number(event.target.value) })} /></label>
-      <label>Vertical crop: {image.focalY ?? 50}%<input type="range" min="0" max="100" value={image.focalY ?? 50} onChange={(event) => patch({ focalY: Number(event.target.value) })} /></label>
-      <button type="button" onClick={() => onChange({ url: "", alt: "", focalX: 50, focalY: 50 })}>Remove photo</button>
-    </>}
-  </div>;
-}
-
 type Entry = { label: string; subtitle: string; kind: "home" | "page" | "staff" | "news" | "events"; index?: number };
 type ContentState = { home?: CmsPage; pages: CmsPage[]; staff: CmsStaff[]; news: CmsArticle[]; events: CmsArticle[] };
 
@@ -356,7 +344,7 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
 }) {
   const [selected, setSelected] = useState("home");
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const entries: Entry[] = [
     ...(draft.home ? [{ label: "Home page", subtitle: "/", kind: "home" as const }] : []),
     ...draft.pages.map((p, index) => ({ label: p.label || "Untitled page", subtitle: p.path, kind: "page" as const, index })).filter((entry) => !draft.pages[entry.index].archived),
@@ -369,11 +357,10 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
   if (!entry || !record) return <div className="puck-empty">Add a page, profile, story, or event to begin.</div>;
   const markdown = "markdown" in record ? record.markdown : "bio" in record ? record.bio : "";
   const payload = editorPayload(record.blocks, markdown);
-  const saveBlocks = (next: Data) => {
-    const blocks = next as PuckPayload;
+  const saveBlocks = (next: PuckPayload) => {
     const savedBlocks = {
-      ...blocks,
-      content: blocks.content.map((block) => {
+      ...next,
+      content: next.content.map((block) => {
         if (block.type !== "LegacyMarkdown") return block;
         const base = String(block.props.originalMarkdown ?? block.props.markdown ?? "");
         const richText = String(block.props.richText ?? "");
@@ -395,18 +382,14 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
     else if (entry.kind === "news") update((d) => ({ ...d, news: d.news.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } : x) }));
     else if (entry.kind === "events") update((d) => ({ ...d, events: d.events.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } : x) }));
   };
-  const addPhotoBlock = (url: string, alt: string) => {
-    const next: PuckPayload = { ...payload, content: [...payload.content, { type: "PhotoWithText", props: { id: `photo-${Date.now().toString(36)}`, heading: "", richText: "<p></p>", image: { url, alt, focalX: 50, focalY: 50 }, imageSide: "left" } }] };
-    saveBlocks(next);
-  };
   return <section className="cms-visual-editor">
     <header className="cms-visual-head">
       <div><span className="cms-eyebrow">Visual page editor</span><h2>Make a change, see it in place.</h2><p>Everything here stays in your private draft until you publish.</p></div>
       <div className="cms-visual-actions">
-      <button type="button" className="cms-settings-toggle" aria-expanded={settingsOpen} aria-controls="cms-puck-workspace" onClick={() => setSettingsOpen((value) => !value)} data-testid="toggle-page-settings">
-        {settingsOpen ? <><ExternalLink size={15} /> Preview as a parent</> : <><PanelLeftOpen size={15} /> Edit this page</>}
+      <button type="button" className="cms-settings-toggle" aria-pressed={editing} onClick={() => setEditing((value) => !value)} data-testid="toggle-page-settings">
+        {editing ? <><ExternalLink size={15} /> Preview as a parent</> : <><PanelLeftOpen size={15} /> Edit this page</>}
       </button>
-      {!settingsOpen && <div className="cms-device-switch" aria-label="Preview size">
+      {!editing && <div className="cms-device-switch" aria-label="Preview size">
         <button type="button" className={device === "desktop" ? "is-selected" : ""} onClick={() => setDevice("desktop")} data-testid="preview-desktop"><Monitor size={15} /> Desktop</button>
         <button type="button" className={device === "phone" ? "is-selected" : ""} onClick={() => setDevice("phone")} data-testid="preview-phone"><Smartphone size={15} /> Phone</button>
       </div>}
@@ -415,20 +398,16 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
     <label className="cms-page-picker"><span>Choose content</span><select value={selected} onChange={(e) => setSelected(e.target.value)} data-testid="select-visual-content">
       {entries.map((item) => <option key={`${item.kind}:${item.index ?? ""}`} value={`${item.kind}:${item.index ?? ""}`}>{item.label} — {item.subtitle}</option>)}
     </select></label>
-    <div className={`cms-puck-stage is-${device} ${settingsOpen ? "is-editing" : "preview-focused"}`}>
-      {settingsOpen ? (
+    <div className={`cms-puck-stage is-${device} ${editing ? "is-editing" : "preview-focused"}`}>
+      {editing ? (
         <div id="cms-puck-workspace" className="cms-puck-workspace cb-site">
-          <LinkPagesContext.Provider value={draft.pages}>
-            <Puck
-              config={editorConfig}
-              data={payload}
-              onChange={saveBlocks}
-              metadata={{ linkPages: draft.pages }}
-              iframe={{ enabled: false }}
-              ui={{ leftSideBarVisible: false, rightSideBarVisible: false }}
-              overrides={{ headerActions: () => <></> }}
-            />
-          </LinkPagesContext.Provider>
+          <main id="main" className="cb-page">
+            <header className="cb-page-head"><h1>{"label" in record ? record.label : "title" in record ? record.title : "Home page"}</h1>
+              {"description" in record && record.description && <p>{record.description}</p>}
+            </header>
+            <SectionsEditor key={selected} initial={payload.content} base={payload} pages={draft.pages} onChange={saveBlocks} />
+          </main>
+          <p className="cms-puck-note">Click any text to edit it — a formatting toolbar appears above your selection. Hover a section for its move, delete, and “add” controls.</p>
         </div>
       ) : (
         <aside className={`cms-puck-preview is-${device}`}>
@@ -453,7 +432,5 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
         </aside>
       )}
     </div>
-    {renderPhotoUploader?.(addPhotoBlock)}
-    {settingsOpen && <p className="cms-puck-note">Click any text on the page to edit it — a formatting toolbar appears above your selection. Use the sections menu (the ☰ button at the top of the canvas) to add, reorder, duplicate, or remove a section.</p>}
   </section>;
 }
