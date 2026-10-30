@@ -43,10 +43,15 @@
 .cms-device-switch button.is-selected { background: #1A365D; color: #fff; }
 .cms-page-picker { display: grid; gap: .35rem; max-width: 620px; color: #2D3748; font-size: .8rem; font-weight: 700; }
 .cms-page-picker select { min-height: 44px; width: 100%; padding: .65rem .8rem; border: 1px solid #c5cfdd; background: #fff; color: #2D3748; font: 500 .92rem sans-serif; }
-.cms-puck-stage { display: grid; grid-template-columns: minmax(280px, .78fr) minmax(0, 1.5fr); align-items: start; gap: 1rem; min-width: 0; }
-.cms-puck-stage.preview-focused { grid-template-columns: minmax(0, 1fr); }
+.cms-puck-stage { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1rem; min-width: 0; }
+.cms-puck-stage.preview-focused, .cms-puck-stage.is-editing { grid-template-columns: minmax(0, 1fr); }
 .cms-puck-workspace, .cms-puck-preview { min-width: 0; border: 1px solid #cbd5e1; background: #fff; box-shadow: 0 6px 24px -18px rgba(26,54,93,.4); }
 .cms-puck-workspace { overflow: hidden; }
+/* Single full-width editing canvas (Google Sites feel): Puck renders inline (no iframe),
+   so the global block styles in this file apply directly to the editable page. The left
+   component palette starts collapsed; reopen it with the canvas sections (☰) control. */
+.cms-puck-stage.is-editing .cms-puck-workspace { width: 100%; min-height: 72vh; overflow: visible; }
+.cms-puck-stage.is-editing .cms-puck-workspace .Puck { min-height: 72vh; }
 .cms-puck-preview { overflow: hidden; }
 .cms-puck-stage.preview-focused .cms-puck-preview { width: 100%; }
 .cms-puck-preview .cms-puck-public-frame { min-height: 0; display: block; background: #F7FAFC; }

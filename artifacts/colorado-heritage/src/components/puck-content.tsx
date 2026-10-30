@@ -268,47 +268,55 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
     <header className="cms-visual-head">
       <div><span className="cms-eyebrow">Visual page editor</span><h2>Make a change, see it in place.</h2><p>Everything here stays in your private draft until you publish.</p></div>
       <div className="cms-visual-actions">
-      <button type="button" className="cms-preview-parent" onClick={() => setSettingsOpen((value) => !value)} data-testid="button-preview-as-parent">
-        {settingsOpen ? <ExternalLink size={15} /> : <PanelLeftOpen size={15} />}{settingsOpen ? "Preview as a parent" : "Back to editing"}
-      </button>
       <button type="button" className="cms-settings-toggle" aria-expanded={settingsOpen} aria-controls="cms-puck-workspace" onClick={() => setSettingsOpen((value) => !value)} data-testid="toggle-page-settings">
-        {settingsOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}{settingsOpen ? "Hide section settings" : "Edit page sections"}
+        {settingsOpen ? <><ExternalLink size={15} /> Preview as a parent</> : <><PanelLeftOpen size={15} /> Edit this page</>}
       </button>
-      <div className="cms-device-switch" aria-label="Preview size">
+      {!settingsOpen && <div className="cms-device-switch" aria-label="Preview size">
         <button type="button" className={device === "desktop" ? "is-selected" : ""} onClick={() => setDevice("desktop")} data-testid="preview-desktop"><Monitor size={15} /> Desktop</button>
         <button type="button" className={device === "phone" ? "is-selected" : ""} onClick={() => setDevice("phone")} data-testid="preview-phone"><Smartphone size={15} /> Phone</button>
-      </div>
+      </div>}
       </div>
     </header>
     <label className="cms-page-picker"><span>Choose content</span><select value={selected} onChange={(e) => setSelected(e.target.value)} data-testid="select-visual-content">
       {entries.map((item) => <option key={`${item.kind}:${item.index ?? ""}`} value={`${item.kind}:${item.index ?? ""}`}>{item.label} — {item.subtitle}</option>)}
     </select></label>
-    <div className={`cms-puck-stage is-${device} ${settingsOpen ? "has-settings" : "preview-focused"}`}>
-      {settingsOpen && <div id="cms-puck-workspace" className="cms-puck-workspace">
-        <LinkPagesContext.Provider value={draft.pages}><Puck config={editorConfig} data={payload} onChange={saveBlocks} /></LinkPagesContext.Provider>
-      </div>}
-      <aside className={`cms-puck-preview is-${device}`}>
-        <div className="cms-puck-preview-bar"><span>{settingsOpen ? "Draft page preview" : "Parent preview · private draft"}</span><span>{device === "phone" ? "Phone" : "Desktop"}</span></div>
-        <DocumentsContext.Provider value={(draft as SiteContentState).documents}>
-        <div className="cms-puck-viewport">
-          <div className="cb-site cms-puck-public-frame">
-            <AnnouncementBar contentOverride={draft as SiteContentState} />
-            <PublicSiteHeader editing contentOverride={draft as SiteContentState} />
-            {entry.kind === "home"
-              ? <HomePage content={draft as SiteContentExt} />
-              : <main id="main" className="cb-page">
-                <header className="cb-page-head"><h1>{"label" in record ? record.label : "title" in record ? record.title : "Home page"}</h1>
-                  {"description" in record && record.description && <p>{record.description}</p>}
-                </header>
-                <PuckBlockRenderer blocks={payload} />
-              </main>}
-            <PublicSiteFooter editing />
-          </div>
+    <div className={`cms-puck-stage is-${device} ${settingsOpen ? "is-editing" : "preview-focused"}`}>
+      {settingsOpen ? (
+        <div id="cms-puck-workspace" className="cms-puck-workspace cb-site">
+          <LinkPagesContext.Provider value={draft.pages}>
+            <Puck
+              config={editorConfig}
+              data={payload}
+              onChange={saveBlocks}
+              iframe={{ enabled: false }}
+              ui={{ leftSideBarVisible: false, rightSideBarVisible: true }}
+            />
+          </LinkPagesContext.Provider>
         </div>
-        </DocumentsContext.Provider>
-      </aside>
+      ) : (
+        <aside className={`cms-puck-preview is-${device}`}>
+          <div className="cms-puck-preview-bar"><span>Parent preview · private draft</span><span>{device === "phone" ? "Phone" : "Desktop"}</span></div>
+          <DocumentsContext.Provider value={(draft as SiteContentState).documents}>
+          <div className="cms-puck-viewport">
+            <div className="cb-site cms-puck-public-frame">
+              <AnnouncementBar contentOverride={draft as SiteContentState} />
+              <PublicSiteHeader editing contentOverride={draft as SiteContentState} />
+              {entry.kind === "home"
+                ? <HomePage content={draft as SiteContentExt} />
+                : <main id="main" className="cb-page">
+                  <header className="cb-page-head"><h1>{"label" in record ? record.label : "title" in record ? record.title : "Home page"}</h1>
+                    {"description" in record && record.description && <p>{record.description}</p>}
+                  </header>
+                  <PuckBlockRenderer blocks={payload} />
+                </main>}
+              <PublicSiteFooter editing />
+            </div>
+          </div>
+          </DocumentsContext.Provider>
+        </aside>
+      )}
     </div>
     {renderPhotoUploader?.(addPhotoBlock)}
-    <p className="cms-puck-note">Select a rich-text field for formatting tools. Use the block menu to add, reorder, duplicate, or remove a section.</p>
+    {settingsOpen && <p className="cms-puck-note">Click any text on the page to edit it — a formatting toolbar appears above your selection. Use the sections menu (the ☰ button at the top of the canvas) to add, reorder, duplicate, or remove a section.</p>}
   </section>;
 }
