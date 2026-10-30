@@ -3,7 +3,7 @@ import { useCallback, useRef, useState, type ReactNode } from "react";
 import {
   Link as LinkIcon, Unlink, Monitor, Smartphone, PanelLeftOpen, ExternalLink,
   Bold, Italic, Underline as UnderlineIcon, Heading2, Heading3, List, ListOrdered,
-  AlignLeft, AlignCenter, AlignRight, Plus, ImagePlus, ArrowUp, ArrowDown, Trash2,
+  AlignLeft, AlignCenter, AlignRight, Plus, ImagePlus, ArrowUp, ArrowDown, Trash2, Check, X,
 } from "lucide-react";
 import { marked } from "marked";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
@@ -245,6 +245,7 @@ function SectionsEditor({ initial, base, pages, onChange }: {
   onChange: (next: PuckPayload) => void;
 }) {
   const [blocks, setBlocks] = useState<SectionBlock[]>(initial);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const blocksRef = useRef(blocks);
   blocksRef.current = blocks;
 
@@ -277,9 +278,9 @@ function SectionsEditor({ initial, base, pages, onChange }: {
     [next[index], next[target]] = [next[target], next[index]];
     commit(next);
   };
-  const remove = (index: number) => {
-    if (!window.confirm("Remove this section? Nothing is published until you choose to publish.")) return;
-    commit(blocksRef.current.filter((_, i) => i !== index));
+  const remove = (id: string) => {
+    commit(blocksRef.current.filter((b) => String(b.props.id) !== id));
+    setConfirmingId(null);
   };
 
   return <div className="cms-sections" data-testid="sections-editor">
@@ -287,11 +288,17 @@ function SectionsEditor({ initial, base, pages, onChange }: {
     {blocks.map((block, index) => {
       const id = String(block.props.id ?? `block-${index}`);
       return <div className="cms-section" key={id} data-testid={`section-${index}`} data-block-type={block.type}>
-        <div className="cms-section-controls" contentEditable={false}>
-          <button type="button" title="Move up" aria-label="Move section up" disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp size={14} /></button>
-          <button type="button" title="Move down" aria-label="Move section down" disabled={index === blocks.length - 1} onClick={() => move(index, 1)}><ArrowDown size={14} /></button>
-          <button type="button" title="Remove section" aria-label="Remove section" onClick={() => remove(index)}><Trash2 size={14} /></button>
-        </div>
+        {confirmingId === id
+          ? <div className="cms-section-controls is-confirm" contentEditable={false}>
+              <span>Delete this section?</span>
+              <button type="button" className="cms-confirm-yes" onClick={() => remove(id)} data-testid={`confirm-delete-${index}`}><Check size={14} /> Delete</button>
+              <button type="button" onClick={() => setConfirmingId(null)}><X size={14} /> Keep</button>
+            </div>
+          : <div className="cms-section-controls" contentEditable={false}>
+              <button type="button" title="Move up" aria-label="Move section up" disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp size={14} /></button>
+              <button type="button" title="Move down" aria-label="Move section down" disabled={index === blocks.length - 1} onClick={() => move(index, 1)}><ArrowDown size={14} /></button>
+              <button type="button" title="Remove section" aria-label="Remove section" onClick={() => setConfirmingId(id)} data-testid={`delete-${index}`}><Trash2 size={14} /></button>
+            </div>}
         {block.type === "LegacyMarkdown"
           ? <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : undefined} pages={pages} onCommit={commitText} />
           : block.type === "PhotoWithText"
