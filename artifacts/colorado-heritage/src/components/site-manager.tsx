@@ -17,6 +17,7 @@ import { isValidMountainInput, toMountainInput } from "./puck-time";
 
 type Tab = "visual" | "home" | "faqs" | "announcements" | "inquiries" | "pages" | "staff" | "events" | "news" | "documents" | "menu";
 const VisualPageEditor = lazy(() => import("./puck-content").then((module) => ({ default: module.VisualPageEditor })));
+const DraftParentPreview = lazy(() => import("./draft-parent-preview"));
 const TABS: { id: Tab; label: string }[] = [
   { id: "visual", label: "Visual editor" },
   { id: "home", label: "Home page" }, { id: "announcements", label: "Announcements" }, { id: "faqs", label: "FAQs" }, { id: "inquiries", label: "Inquiries" },
@@ -436,6 +437,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
   const [dirty, setDirty] = useState(false);
   const [draftRevision, setDraftRevision] = useState(1);
   const [tab, setTab] = useState<Tab>(() => { const t = new URLSearchParams(window.location.search).get("tab"); return (TABS.some((x) => x.id === t) ? t : "visual") as Tab; });
+  const [parentPreview, setParentPreview] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error" | "conflict"; text: string } | null>(null);
   const initialized = useRef(false);
   const currentDraft = useRef<SiteContentState | null>(null);
@@ -579,13 +581,15 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
         <div><strong>Colorado Heritage · Site editor</strong><small>Draft revision {draftRevision}{dirty ? " · changes pending" : " · draft saved"}</small></div>
       </div>
       <div className="cms-top-actions">
+        <button type="button" className="cms-btn cms-btn-ghost" onClick={() => setParentPreview(true)}>Preview as a parent</button>
         <button type="button" className="cms-btn cms-btn-ghost" onClick={reload}><RotateCw size={14} /> Reload</button>
         <a className="cms-btn cms-btn-ghost" href={publicSiteUrl} target="_blank" rel="noreferrer">Public site <ArrowUpRight size={13} /></a>
-        <button type="button" className="cms-btn cms-btn-ghost" onClick={doSave} disabled={save.isPending || !dirty} data-testid="button-save-site-content"><Save size={14} /> {save.isPending ? "Saving…" : "Save draft"}</button>
-        <button type="button" className="cms-btn cms-btn-primary" onClick={() => void doPublish()} disabled={publish.isPending || save.isPending} data-testid="button-publish-site"><Send size={14} /> {publish.isPending ? "Publishing…" : "Publish"}</button>
+        <button type="button" className="cms-btn cms-btn-ghost" onClick={doSave} disabled={save.isPending} data-testid="button-save-site-content"><Save size={14} /> {save.isPending ? "Saving…" : "Save Draft"}</button>
+        <button type="button" className="cms-btn cms-btn-primary" onClick={() => void doPublish()} disabled={publish.isPending || save.isPending} data-testid="button-publish-site"><Send size={14} /> {publish.isPending ? "Publishing…" : "Publish changes"}</button>
         {onSignOut && <button type="button" className="cms-btn cms-btn-ghost" onClick={() => { if (!dirty || window.confirm("Sign out without saving your changes?")) onSignOut(); }}>Sign out</button>}
       </div>
     </header>
+    {parentPreview && <Suspense fallback={<p role="status">Opening private preview…</p>}><DraftParentPreview draft={draft} initialPath={tab === "faqs" ? "/faq" : tab === "events" ? "/parents/calendar" : tab === "news" ? "/news" : "/"} onClose={() => setParentPreview(false)} /></Suspense>}
     <p className="cms-explainer">Edits are saved privately as a draft. Families see changes only after you choose Publish. The school header, navigation, colors, fonts, and footer remain part of the site design.</p>
     {feedback && <div className={`cms-feedback cms-feedback-${feedback.kind}`} role={feedback.kind === "ok" ? "status" : "alert"}>
       {feedback.kind === "ok" ? <Check size={16} /> : <AlertTriangle size={16} />}<span>{feedback.text}</span>

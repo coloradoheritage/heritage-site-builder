@@ -82,7 +82,11 @@ async function getEditorState() {
       content: withoutRuntimeFields(published),
     });
   }
-  const history = await db.select().from(contentBackupsTable)
+  const history = await db.select({
+    id: contentBackupsTable.id,
+    revision: contentBackupsTable.revision,
+    createdAt: contentBackupsTable.createdAt,
+  }).from(contentBackupsTable)
     .orderBy(desc(contentBackupsTable.createdAt), desc(contentBackupsTable.id))
     .limit(20);
   return GetSiteContentEditorResponse.parse({
@@ -308,7 +312,7 @@ router.put("/site-content", async (req, res) => {
   if (content.revision !== draft.basePublishedRevision) {
     res.status(409).json({ error: "Published content changed since it was loaded. Reload before saving." }); return;
   }
-  const result = await saveDraft(content, draft.revision);
+  const result = await saveDraft(content, draft.revision, true);
   if (result.kind === "invalid") { res.status(400).json({ error: result.error }); return; }
   if (result.kind === "conflict") { res.status(409).json({ error: "Another editor saved a draft. Reload before saving." }); return; }
   const state = await getEditorState();
@@ -419,7 +423,7 @@ uploadRouter.post("/upload-document", (req,res,next)=>{
 }, async (req, res) => {
   if (!process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID) {res.status(500).json({error:"Storage not configured. Ask an administrator to configure the App Storage bucket."});return;}
   if (!req.file) {res.status(400).json({error:"Choose a PDF file up to 15 MB."});return;}
-  if (!/\.pdf$/i.test(req.file.originalname) || req.file.mimetype !== "application/pdf") {
+  if (!/\.pdf$/i.test(req.file.originalname)) {
     res.status(415).json({error:"Choose a PDF file."});return;
   }
   try { res.json({ url: await storeDocument(req.file.buffer) }); }

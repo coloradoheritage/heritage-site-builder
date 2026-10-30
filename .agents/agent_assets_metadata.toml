@@ -14,3 +14,17 @@ mtime_ms = 1793294824342
 storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:1444917c-845d-40f1-9875-2dddb05f4885/f44677ee-e705-432c-962a-4a282b16dcce/9476aade-b2f4-41b0-b78b-f425ac6229af"
 storage_version_token = "1793296678712275"
 content_type = "text/html"
+
+[[outputs]]
+id = "6aouDcKLTNOtNz84qVupx"
+uri = "file://reports/chess-change-order-review.txt"
+type = "text"
+title = "CHESS change-order review and confirmation checklist"
+description = "Completed changes, staff editing instructions, verification limits, and every remaining CONFIRM item grouped by page."
+logical_id = "1e57801d-6948-4337-859c-d20018d889d3"
+content_hash = "sha256:5fef72fcb15cb79b35b917691c2dc9012a5f67b6480148cba266f8ef53194ea4"
+size = 8941
+mtime_ms = 1793321280688
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:1444917c-845d-40f1-9875-2dddb05f4885/1e57801d-6948-4337-859c-d20018d889d3/14a2db13-fb30-42d0-abeb-dfefb3d0051a"
+storage_version_token = "1793321336434643"
+content_type = "text/plain"

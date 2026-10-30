@@ -258,11 +258,11 @@ function resolve(path: string, content: SiteContentExt): Resolved {
 
 const DEFAULT_DESC = "CHESS is a private Christian K–12 school in Greeley, Colorado that has partnered with homeschooling families since 1991.";
 
-export function PublicSitePages() {
+export function PublicSitePages({ contentOverride, previewPath }: { contentOverride?: SiteContentExt; previewPath?: string } = {}) {
   const [location] = useLocation();
-  const path = decodeURI(location.split("?")[0].replace(/\/+$/, "") || "/");
+  const path = decodeURI((previewPath ?? location).split("?")[0].replace(/\/+$/, "") || "/");
   const query = useGetSiteContent();
-  const content = query.data as SiteContentExt | undefined;
+  const content = contentOverride ?? query.data as SiteContentExt | undefined;
   if (content) setContentRedirects(content.redirects);
   const resolved = content ? resolve(path, content) : null;
 
@@ -290,8 +290,8 @@ export function PublicSitePages() {
   })) : null);
   useRobots(resolved?.type === "missing");
 
-  if (query.isPending) return <main className="cb-main" id="main"><PageSkeleton /><MobileActionBar /></main>;
-  if (query.isError || !content || !resolved) return <main className="cb-main" id="main"><LoadError onRetry={() => query.refetch()} /></main>;
+  if (!contentOverride && query.isPending) return <main className="cb-main" id="main"><PageSkeleton /><MobileActionBar /></main>;
+  if ((!contentOverride && query.isError) || !content || !resolved) return <main className="cb-main" id="main"><LoadError onRetry={() => query.refetch()} /></main>;
 
   let body: ReactNode;
   switch (resolved.type) {

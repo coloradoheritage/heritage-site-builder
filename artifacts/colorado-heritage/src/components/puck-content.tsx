@@ -228,10 +228,10 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const entries: Entry[] = [
     ...(draft.home ? [{ label: "Home page", subtitle: "/", kind: "home" as const }] : []),
-    ...draft.pages.map((p, index) => ({ label: p.label || "Untitled page", subtitle: p.path, kind: "page" as const, index })),
+    ...draft.pages.map((p, index) => ({ label: p.label || "Untitled page", subtitle: p.path, kind: "page" as const, index })).filter((entry) => !draft.pages[entry.index].archived),
     ...draft.staff.map((s, index) => ({ label: s.name, subtitle: `Staff biography · ${s.role}`, kind: "staff" as const, index })),
-    ...draft.news.map((a, index) => ({ label: a.title, subtitle: `News · ${a.date}`, kind: "news" as const, index })),
-    ...draft.events.map((a, index) => ({ label: a.title, subtitle: `Event · ${a.date}`, kind: "events" as const, index })),
+    ...draft.news.map((a, index) => ({ label: a.title, subtitle: `News · ${a.date}`, kind: "news" as const, index })).filter((entry) => !draft.news[entry.index].archived),
+    ...draft.events.map((a, index) => ({ label: a.title, subtitle: `Event · ${a.date}`, kind: "events" as const, index })).filter((entry) => !draft.events[entry.index].archived),
   ];
   const entry = entries.find((item) => `${item.kind}:${item.index ?? ""}` === selected) ?? entries[0];
   const record = entry?.kind === "home" ? draft.home : entry?.kind === "page" ? draft.pages[entry.index!] : entry?.kind === "staff" ? draft.staff[entry.index!] : draft[entry?.kind ?? "page"]?.[entry?.index ?? 0];

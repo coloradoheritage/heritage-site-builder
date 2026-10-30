@@ -1,0 +1,169 @@
+CHESS CHANGE ORDER REVIEW — OCTOBER 29, 2026
+Preview only. No publish or deployment was performed.
+
+BUILT
+
+Public pages
+- Diploma: internal Statement of Faith/Acceptance Policy anchor links; Apply Now
+  and Schedule a Meeting buttons; one existing diploma-family testimonial
+  (Mary, Nunn CO) and a Read more family stories button. Removed empty secure
+  resources/graduation sections.
+- Our Beliefs: replaced dangling imported link code with real sections and a
+  local Acceptance Policy link. Approved Statement of Faith text remains a
+  confirmation placeholder because it was not in the imported content.
+- Cleaned imported stars, invisible formatting characters, malformed headings,
+  duplicate Purpose/Foundation headings, and the long heading on About.
+- Our People: Amy Kearns appears in Administration rather than twice across
+  Administration and Faculty. Empty board subheadings are suppressed.
+- Classes: course-description PDFs listed K–2, 3–5, 6–8, 9–12; clarified T/H.
+- Apply: existing Independent School application/re-enrollment portals are
+  buttons. Removed instruction-style “Ask the office about…” links; existing
+  application resources remain linked.
+- Praxi staff-only confirmation note retained in the editor, hidden publicly.
+- Added Schedule a Visit + Call blocks to Calendar, Get Involved, Praxi,
+  Donate and News. Calendar shows the new block once.
+- Added short explanations of Independent School, Praxi Parent Portal, HSLDA,
+  and Tuesday/Thursday class abbreviations.
+- Preserved existing photos, existing scroll/focal-point behavior, and the
+  site-wide footer disclaimer without rewriting it.
+
+Editor
+- Rich text link boxes offer site-page selection or an external address,
+  open-in-new-tab, and link removal without browser prompt dialogs.
+- Added underline, alignment, undo and redo controls.
+- Shared private “Preview as a parent” is available from every editor tab,
+  with page selection and desktop/phone width toggles. Preview form submission
+  and external navigation are disabled to avoid sending an inquiry accidentally.
+- Visual workspace is preview-first with collapsible editing controls; preview
+  navigation avoids breaking menu words into individual letters.
+- Save Draft creates one full-site version checkpoint. Autosaves remain private
+  and do not create a new history entry on every keystroke. History is shared
+  across content types; restore replaces the complete private draft, with a
+  confirmation, not the public website.
+- Save Draft and Publish changes are labeled separately, with a private-draft
+  explanation. The Publish changes button was not used.
+- Reduced history loading to 20 metadata-only entries instead of transferring
+  complete site copies for every version. No exact loading-time guarantee.
+- Added allowlist-protected PDF uploads (15 MB limit), PDF signature checking,
+  persistent App Storage, and replacement upload controls in Documents.
+  Existing linked PDFs stay connected to their document record for replacements.
+- Legacy pages, placeholder school-update posts and 2016–17 events are archived
+  or hidden by default, not deleted. Staff can show archived records and restore
+  them. Archived records are excluded from the normal visual content picker.
+- Existing private content is preserved: its independent draft is migrated when
+  an approved editor next loads it, rather than reset from the public content.
+
+HOW STAFF EDIT
+1. Open /admin and sign in with an approved staff account.
+2. Choose Edit any page, then select a page, biography, news story or event.
+3. Edit with the formatting tools; expand the editing controls when needed.
+4. Use Preview as a parent to review the private draft.
+5. Save Draft creates a recoverable full-site checkpoint. Autosave is private.
+6. Only Publish changes makes the draft visible to families.
+7. For PDFs, open Documents and choose Upload replacement PDF for the document.
+   Save Draft, then publish only after school review.
+
+VERIFICATION AND LIMITATIONS
+- TypeScript checks passed for the web app and API.
+- Client and server-rendered production builds passed. Build output includes a
+  non-blocking large-JavaScript-chunk warning.
+- Content migration checks passed, including repeated-run safety, preservation
+  of homepage content, retained Academy/Diploma confirmation markers, one
+  diploma-family quote, and a single visit block on each requested page.
+- Anonymous PDF upload requests return HTTP 401.
+- Browser checks: Diploma desktop and 390px mobile had no horizontal overflow;
+  phone CTAs stacked; Calendar had one Schedule a Visit link.
+- Signed-in editor verification was BLOCKED: the programmatic Clerk test login
+  did not reach /admin. No authorization was weakened, no existing draft was
+  overwritten, and no Publish action was taken.
+- Therefore the signed-in rich text interactions, private preview, Save Draft/
+  history restore, archive controls and real PDF upload have NOT been confirmed
+  end-to-end in a signed-in browser. Their code/type/build checks passed.
+- Approved school facts below still need the school's confirmation. Nothing was
+  invented to replace them.
+
+ALL REMAINING [CONFIRM] ITEMS, BY PAGE / EDITOR SECTION
+Repeated copies of the same marker in an editor block are listed once.
+
+/ — Home page
+- [CONFIRM: attribution name/town and permission before publishing. Source
+  testimonial is attributed to Michelle, Bailey CO.]
+- [CONFIRM: application portal = Praxi?]
+- [CONFIRM: step wording/deadlines]
+
+/about/beliefs
+- [CONFIRM: insert the approved CHESS Statement of Faith text or current
+  document link.]
+
+/contact
+- [CONFIRM: current-year closure dates — Memorial Day, Labor Day, Thanksgiving
+  week, Christmas December 13 [year]–January 3 [year].]
+
+/admissions
+- [CONFIRM: remaining steps and deadlines]
+
+/admissions/apply
+- [CONFIRM: application deadlines and exact payment steps]
+- K–12 Academy: [CONFIRM: New Family application portal/link and Returning
+  Family application portal/link]
+- High School Diploma Program: [CONFIRM: New Family application portal/link
+  and Returning Family application portal/link]
+  The Independent School portal marker was replaced only with links already
+  present in the imported Independent School content.
+
+/admissions/tuition
+- Academy “from $270 per class”: [CONFIRM: per school year wording]
+- [CONFIRM before publishing]: Example: a high schooler taking two 2-day
+  classes = $480 + $480 + $75 tech fee = $1,035 for the school year, payable
+  over 8 months. Office approval needed.
+- Scholarship details: [CONFIRM: how to apply, deadline, typical amounts.]
+
+/admissions/visit
+- [CONFIRM: current-year closure dates — Memorial Day, Labor Day, Thanksgiving
+  week, Christmas December 13 [year]–January 3 [year].]
+- Office reply time: [CONFIRM: 1–2] business days.
+
+/faq — FAQs editor (featured FAQs may also appear on Home)
+- “Does enrollment meet Colorado's homeschool requirements? Is CHESS
+  accredited?”:
+  [CONFIRM: accreditation status — the current site does not state one; do
+  not claim accreditation unless the office confirms.]
+- “Are there payment plans or scholarships?”:
+  [CONFIRM: how to apply for a scholarship.]
+- “Can my child take classes without enrolling in the Independent School?”:
+  [CONFIRM with office — the site does not say directly. Suggested if true:
+  "Yes. Families can register for K–12 Academy classes and choose separately
+  whether to enroll in the Independent School."]
+- “How do we get started?”:
+  [CONFIRM: remaining steps/deadlines.]
+
+/parents/praxi — internal editor note, hidden from the public page
+- [CONFIRM: whether faculty should use this parent portal or a separate staff
+  portal. Contact the office for staff access.]
+
+/about/our-people — Board profiles / Faculty & staff editor
+- Mr. Nels Nelson: [CONFIRM: board biography and photo.]
+- Mr. Clyde Brown: [CONFIRM: board biography and photo.]
+- Mr. Seth Nelson: [CONFIRM: board biography and photo.]
+
+Announcements editor
+- “Enrollment open — school starts Aug 31”:
+  [CONFIRM: school year and enrollment dates before enabling.]
+- “Sign up for choir”: [CONFIRM: date]
+
+Archived pages — Pages > Show archived pages
+- /new-page:
+  [CONFIRM: what this old URL held and whether it should redirect to the homepage.]
+- /links-not-on-website:
+  [CONFIRM: what this old URL held and whether it should redirect to the homepage.]
+
+Archived news — News & blog > Show archived posts
+- /news/school-update-2022-07-28: title contains [CONFIRM].
+- /news/school-update-2018-01-30: title contains [CONFIRM].
+
+SOURCE OF CHECKLIST
+Scanned the preview's public content and existing private draft for confirmation
+markers. The independent draft contains the same unresolved school-fact
+categories; it receives the above safe content cleanup on its next approved
+editor load. Historical version snapshots remain unchanged and can contain
+older placeholders.

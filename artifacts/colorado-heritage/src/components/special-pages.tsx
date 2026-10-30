@@ -275,6 +275,8 @@ export function PeoplePage({ page, content }: { page: CmsPage; content: SiteCont
     const names = boardPeople.map((p) => p.name.replace(/^(mr|mrs|ms|miss|dr|pastor)\.?\s+/i, "").toLowerCase());
     board = board.split("\n").filter((l) => !names.some((n) => l.toLowerCase().includes(n))).join("\n");
   }
+  board = board.replace(/^### [^\n]*\n([\s\S]*?)(?=^### |(?![\s\S]))/gm, (section, body: string) =>
+    body.replace(/[\s*_\-|]/g, "") ? section : "");
   return <article className="cb-page cb-page-wide" data-testid="page-our-people">
     <header className="cb-page-head"><Eyebrow>About CHESS</Eyebrow><h1>{fixText(page.label) || "Our People"}</h1><p>{fixText(page.description)}</p></header>
     <section className="cb-page-section" id="administration" aria-labelledby="h-admin"><h2 id="h-admin">Administration</h2><FacultyGrid staff={admin} /></section>
@@ -298,7 +300,6 @@ export function CalendarPage({ page, content }: { page: CmsPage; content: SiteCo
   return <article className="cb-page" data-testid="page-calendar">
     <header className="cb-page-head"><Eyebrow>Parents</Eyebrow><h1>{fixText(page.label) || "Calendar & Events"}</h1><p>{fixText(page.description)}</p></header>
     <PagePhoto markdown={page.markdown} />
-    <PuckAdditionalRenderer blocks={page.blocks} />
     {pdf && <div className="cb-btn-row"><Button href={pdf} testId="link-calendar-pdf"><ArrowDownTrayIcon className="cb-btn-icon" aria-hidden="true" /> Download the school calendar (PDF)</Button></div>}
     <section className="cb-page-section" aria-labelledby="h-upcoming">
       <h2 id="h-upcoming">Upcoming events</h2>

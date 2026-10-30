@@ -228,7 +228,7 @@ Although we seek to maintain our listed fee schedule, please contact us to deter
 [Frequently asked questions](/faq) · [Schedule a Visit](/admissions/visit) · [Call (970) 346-0099](tel:+19703460099)`;
 }
 
-export const SITE_PLAN_VERSION = 8;
+export const SITE_PLAN_VERSION = 9;
 function repairImportedContent(input: Content): Content {
   const content=structuredClone(input);
   content.redirects ||= {};

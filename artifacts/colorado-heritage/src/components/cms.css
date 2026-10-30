@@ -216,7 +216,13 @@
 .cms-staff-thumb { margin: 0; }
 @media (max-width: 640px) { .cms-staff-head { grid-template-columns: 1fr; } .cms-staff-thumb { width: 130px; } }
 .cms-docs, .cms-menu { display: grid; gap: 12px; max-width: 980px; }
-.cms-doc-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr auto; gap: 10px; align-items: end; padding: 12px; background: #fffdf8; border: 1px solid #ded8ca; }
+.cms-doc-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: end; padding: 12px; background: #fffdf8; border: 1px solid #ded8ca; }
+.cms-doc-row > *, .cms-doc-row input { min-width: 0; max-width: 100%; }
+.cms-parent-preview { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: #e8e7e2; }
+.cms-parent-preview-tools { position: sticky; top: 0; z-index: 110; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px; background: #fffdf8; color: #1a365d; border-bottom: 1px solid #c8c3b5; }
+.cms-parent-preview-tools select { max-width: min(360px, 80vw); }
+.cms-parent-preview-page.cms-puck-preview { position: static; max-width: 100%; max-height: none; margin: 0 auto; background: #fffdf8; border: 0; overflow: visible; }
+.cms-parent-preview-page.is-phone { width: 390px; container-type: inline-size; }
 @media (max-width: 760px) { .cms-doc-row { grid-template-columns: 1fr; } }
 .cms-menu-item { padding: 14px; background: #fffdf8; border: 1px solid #ded8ca; border-left: 3px solid #142b4a; display: grid; gap: 10px; }
 .cms-menu-item.is-overflow { border-left-color: #b23b2a; opacity: .8; }

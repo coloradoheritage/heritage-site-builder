@@ -46,8 +46,10 @@ function addVisitBlock(page: CmsPage) {
 
 function removeImportArtifacts(markdown: string) {
   return markdown
+    .replace(/\uFEFF/g, "")
     .replace(/^\s*!\s*$/gm, "")
     .replace(/^\s*(?:\\?\*\s*){2,}$/gm, "")
+    .replace(/^[ \t]*\\+[ \t]*$/gm, "")
     .replace(/^(#{1,6})\s+\*\*(.*?)\*\*\s*$/gm, (_line, hashes: string, text: string) => `${hashes} ${text}`)
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -65,6 +67,7 @@ export function applyChangeOrder(input: Content, version: number): Content {
 
   // Repair the imported dangling links; policy text not present in the source stays a visible confirmation item.
   replacePage(content, "/about/beliefs", (source) => {
+    if (/^## Statement of Faith\s*$/m.test(source) && !/\]\(https?:\/\/(?:www\.)?coloradoheritage\.org\/statement-of-faith\)/i.test(source)) return source;
     const prefix = source.split(/\]\(https?:\/\/(?:www\.)?coloradoheritage\.org\/statement-of-faith\)/i)[0].trimEnd();
     return `${prefix}
 
@@ -86,22 +89,28 @@ Read the current [Acceptance Policy](/admissions/acceptance-policy) for enrollme
     .replace(/^## INDEPENDENT school\\?\*\s*$/gmi, "## Independent School")
     .replace(/^## K–12 Academy \(K–12 Academy\)\\?\*\s*$/gmi, "## K–12 Academy")
     .replace(/^Please see\s*$/gmi, "")
+    .replace(/^# (Education is one of the greatest gifts[^\n]*)$/gm, "$1")
     .replace(/HSLDA is a non-profit advocacy organization that makes homeschooling possible by protecting homeschooling families and equipping them to provide the best educational experience for their children\./,
       "HSLDA is a nonprofit advocacy organization that supports homeschooling families and protects their freedom to homeschool.")
     .replace(/(You remain your child's primary teacher; CHESS provides private-school enrollment, classes, and accountability\.)/,
-      "$1\n\nThe CHESS Independent School is the private-school enrollment and record-keeping option for families who teach their children at home."));
+      (sentence) => source.includes("The CHESS Independent School is the private-school enrollment and record-keeping option")
+        ? sentence
+        : `${sentence}\n\nThe CHESS Independent School is the private-school enrollment and record-keeping option for families who teach their children at home.`));
 
   replacePage(content, "/programs/academy", (source) => removeImportArtifacts(source)
+    .replace(/^### Important Information About Our Academy and how to apply\s*$/gmi, "## About Our Academy and How to Apply")
+    .replace(/^### Colorado Heritage is a private Christian School\s*$/gmi, "## Colorado Heritage Is a Private Christian School")
     .replace(/^### VISION STATEMENT\s*$/gmi, "## Vision")
     .replace(/^### MISSION\s*$/gmi, "## Mission")
     .replace(/^### MOTTO\s*$/gmi, "## Motto")
     .replace(/^### Our Philosophy,\s*$/gmi, "## Our Philosophy, Statement of Faith, and Acceptance Policy")
     .replace(/^### statement of faith, and Acceptance Policy\s*$/gmi, "")
+    .replace(/^### Are you a _new family_[^\n]*$/gmi, "## New Families: How to Apply")
     .replace(/^###\s*\*\*Testimonials\*\*\s*$/gmi, "## Testimonials"));
 
   replacePage(content, "/programs/academy/classes", (source) => removeImportArtifacts(source)
-    .replace(/Tuesday \(T\) classes start September 1\./, "T means Tuesday. Tuesday (T) classes start September 1.")
-    .replace(/Thursday-only \(H\) classes start Thursday, September 3\./, "H means Thursday-only. Thursday-only (H) classes start Thursday, September 3.")
+    .replace(/(?:T means Tuesday\. )*Tuesday \(T\) classes start September 1\./, "T means Tuesday. Tuesday (T) classes start September 1.")
+    .replace(/(?:H means Thursday-only\. )*Thursday-only \(H\) classes start Thursday, September 3\./, "H means Thursday-only. Thursday-only (H) classes start Thursday, September 3.")
     .replace(/High school classes meet two days a week, Tuesday and Thursday \(T\/H\) - unless otherwise noted\./,
       "T/H means Tuesday and Thursday. High school classes meet both days unless otherwise noted.")
     .replace(/### Course Descriptions[\s\S]*?(?=\n\nNot a member of CHESS|$)/,
@@ -116,6 +125,9 @@ Read the current [Acceptance Policy](/admissions/acceptance-policy) for enrollme
     .replace(/^### group AND PRIVATE standardized Testing service\s*$/gmi, "## Group and Private Standardized Testing Service")
     .replace(/^### GROUP TESTING\s*$/gmi, "## Group Testing")
     .replace(/^### __ GROUP Testing Details\s*$/gmi, "### Group Testing Details")
+    .replace(/^### FOR Private Testing\s*$/gmi, "## Private Testing")
+    .replace(/^### FOR PERSONAL EVALUATIONS\s*$/gmi, "## Personal Evaluations")
+    .replace(/^### PROFESSIONAL EVALUATOR\/tutoring Resource\\?\*\s*$/gmi, "## Professional Evaluator and Tutoring Resource")
     .replace(/^\[CHESS FAMILIES, PLEASE CLICK HERE FOR TESTING DATES\]\(\/parents\/testing\)\s*$/gmi, "")
     .replace(/\\\*/g, ""));
 
@@ -123,7 +135,7 @@ Read the current [Acceptance Policy](/admissions/acceptance-policy) for enrollme
     let markdown = removeImportArtifacts(source)
       .replace(/^Our High School Diploma Program & How to Apply\s*$/gmi, "")
       .replace(/^### High School Diploma Program\s*$/gmi, "## High School Diploma Program")
-      .replace(/^### \*\*Please note\*\*\s*$/gmi, "### Important Information");
+      .replace(/^### Please note\s*$/gmi, "### Important Information");
 
     const applySection = `If you are a **new** family seeking enrollment in our Diploma Program, you may apply or schedule a meeting to learn more. Transcripts are not necessary for an informational meeting but could be helpful.
 
@@ -150,9 +162,11 @@ Please read our [Statement of Faith](/about/beliefs#statement-of-faith) and [Acc
   });
 
   replacePage(content, "/admissions/apply", (source) => removeImportArtifacts(source)
-    .replace("[CONFIRM: New Family application portal/link and Returning Family application portal/link]",
-      "[New Family Application](https://app.praxischool.com/site_login.php?s=1300) [Returning Family Re-Enrollment](https://app.praxischool.com/parent_login.php?s=1300)")
+    .replace(/(## Independent School\n)([\s\S]*?)(?=\n## |$)/, (_section, heading, body: string) =>
+      heading + body.replace("[CONFIRM: New Family application portal/link and Returning Family application portal/link]",
+        "[New Family Application](https://app.praxischool.com/site_login.php?s=1300) [Returning Family Re-Enrollment](https://app.praxischool.com/parent_login.php?s=1300)"))
     .replace(/^\[Ask the office about .* applications\]\(\/contact\?topic=application\)\s*$/gmi, ""));
+  replacePage(content, "/admissions/apply", removeImportArtifacts);
 
   replacePage(content, "/parents/praxi", (source) => {
     if (/Praxi is CHESS’s online parent portal/i.test(source)) return source;
@@ -171,6 +185,27 @@ Praxi is CHESS’s online parent portal for tuition payments, class registration
   }
 
   for (const page of content.pages || []) {
+    if (typeof page.markdown === "string") {
+      page.markdown = page.markdown
+        .replace(/^### 2\\?\. You can Donate to the chess General Fund for Operating Expenses\s*$/gmi, "### CHESS General Fund for Operating Expenses")
+        .replace(/^### 3\\?\. You can donate to our YEARLY Fall JOG-A-THON SCHOLARSHIP FUNDRAISER\s*$/gmi, "### Annual Fall Jog-a-Thon Scholarship Fundraiser")
+        .replace(/^### How to Donate to CHESS with cash or a check\s*$/gmi, "### How to Donate to CHESS with Cash or a Check");
+      // Keep existing file links tied to their immutable document ID, so replacing a PDF
+      // updates every page rather than leaving copies pointing at the previous file.
+      for (const doc of content.documents || []) {
+        if (doc.id && doc.url && doc.id !== doc.url) {
+          page.markdown = page.markdown.split(`](${doc.url})`).join(`](${doc.id})`);
+        }
+      }
+      for (const block of page.blocks?.content || []) {
+        if (block.type !== "LegacyMarkdown" || typeof block.props?.markdown !== "string") continue;
+        for (const doc of content.documents || []) {
+          if (doc.id && doc.url && doc.id !== doc.url) {
+            block.props.markdown = block.props.markdown.split(`](${doc.url})`).join(`](${doc.id})`);
+          }
+        }
+      }
+    }
     if (page.path === "/new-page" || page.path === "/links-not-on-website") {
       page.archived = true;
       page.showInMenu = false;
