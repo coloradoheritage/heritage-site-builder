@@ -3,7 +3,7 @@ import { useCallback, useRef, useState, type ReactNode } from "react";
 import {
   Link as LinkIcon, Unlink, Monitor, Smartphone, PanelLeftOpen, ExternalLink,
   Bold, Italic, Underline as UnderlineIcon, Heading2, Heading3, List, ListOrdered,
-  AlignLeft, AlignCenter, AlignRight, Plus, ImagePlus, ArrowUp, ArrowDown, Trash2, Check, X,
+  AlignLeft, AlignCenter, AlignRight, Plus, Minus, ImagePlus, Table as TableIcon, ArrowUp, ArrowDown, Trash2, Check, X,
 } from "lucide-react";
 import { marked } from "marked";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
@@ -224,10 +224,49 @@ function PhotoBlockEditor({ block, pages, onCommit, onPatch }: {
   </div>;
 }
 
-function InsertRow({ onText, onPhoto }: { onText: () => void; onPhoto: () => void }) {
+// Flexible table: 1-4 columns, any number of rows. Uses the same data shape the
+// public site already renders (TuitionTable render in puck-render.tsx), so a
+// pricing table OR a typed class schedule both come out as one clean, even,
+// brand-styled grid for parents.
+function TableBlockEditor({ block, onPatch }: {
+  block: SectionBlock;
+  onPatch: (id: string, patch: Record<string, unknown>) => void;
+}) {
+  const id = String(block.props.id ?? "");
+  const heading = String(block.props.heading ?? "");
+  const columns = (Array.isArray(block.props.columns) ? block.props.columns : []) as Array<{ label?: string }>;
+  const rows = (Array.isArray(block.props.rows) ? block.props.rows : []) as Array<Record<string, string>>;
+  const setCol = (i: number, label: string) => onPatch(id, { columns: columns.map((c, ci) => (ci === i ? { ...c, label } : c)) });
+  const addCol = () => { if (columns.length < 4) onPatch(id, { columns: [...columns, { label: "Column" }] }); };
+  const removeCol = () => { if (columns.length > 1) onPatch(id, { columns: columns.slice(0, -1) }); };
+  const setCell = (r: number, c: number, val: string) => onPatch(id, { rows: rows.map((row, ri) => (ri === r ? { ...row, [`cell${c + 1}`]: val } : row)) });
+  const addRow = () => onPatch(id, { rows: [...rows, { cell1: "", cell2: "", cell3: "", cell4: "" }] });
+  const removeRow = (r: number) => { if (rows.length > 1) onPatch(id, { rows: rows.filter((_, ri) => ri !== r) }); };
+  return <div className="cms-table-block" contentEditable={false}>
+    <input className="cms-table-title" value={heading} placeholder="Table title (e.g. Tuition, Weekly schedule)" onChange={(event) => onPatch(id, { heading: event.target.value })} />
+    <div className="cms-table-scroll"><table className="cms-edit-table">
+      <thead><tr>
+        {columns.map((column, ci) => <th key={ci}><input value={column.label ?? ""} placeholder={`Column ${ci + 1}`} onChange={(event) => setCol(ci, event.target.value)} aria-label={`Column ${ci + 1} heading`} /></th>)}
+        <th className="cms-table-rowctl" aria-hidden="true"></th>
+      </tr></thead>
+      <tbody>{rows.map((row, ri) => <tr key={ri}>
+        {columns.map((_column, ci) => <td key={ci}><input value={row[`cell${ci + 1}`] ?? ""} onChange={(event) => setCell(ri, ci, event.target.value)} aria-label={`Row ${ri + 1}, ${columns[ci]?.label || `column ${ci + 1}`}`} /></td>)}
+        <td className="cms-table-rowctl"><button type="button" onClick={() => removeRow(ri)} disabled={rows.length <= 1} title="Remove this row" aria-label={`Remove row ${ri + 1}`}><X size={13} /></button></td>
+      </tr>)}</tbody>
+    </table></div>
+    <div className="cms-table-controls">
+      <button type="button" onClick={addRow}><Plus size={13} /> Row</button>
+      <button type="button" onClick={addCol} disabled={columns.length >= 4}><Plus size={13} /> Column</button>
+      <button type="button" onClick={removeCol} disabled={columns.length <= 1}><Minus size={13} /> Column</button>
+    </div>
+  </div>;
+}
+
+function InsertRow({ onText, onPhoto, onTable }: { onText: () => void; onPhoto: () => void; onTable: () => void }) {
   return <div className="cms-insert-row" contentEditable={false}>
     <button type="button" className="cms-insert-btn" onClick={onText}><Plus size={14} /> Add a text section</button>
     <button type="button" className="cms-insert-btn" onClick={onPhoto}><ImagePlus size={14} /> Add a photo</button>
+    <button type="button" className="cms-insert-btn" onClick={onTable}><TableIcon size={14} /> Add a table</button>
   </div>;
 }
 
@@ -271,6 +310,7 @@ function SectionsEditor({ initial, base, pages, onChange }: {
   };
   const textBlock = (): SectionBlock => ({ type: "LegacyMarkdown", props: { id: newId("section"), markdown: "", originalMarkdown: "", richText: "<p></p>", richTextEdited: true } });
   const photoBlock = (url = "", alt = ""): SectionBlock => ({ type: "PhotoWithText", props: { id: newId("photo"), heading: "", richText: "<p></p>", richTextEdited: true, image: { url, alt, focalX: 50, focalY: 50 }, imageSide: "left" } });
+  const tableBlock = (): SectionBlock => ({ type: "TuitionTable", props: { id: newId("table"), heading: "", columns: [{ label: "Column 1" }, { label: "Column 2" }], rows: [{ cell1: "", cell2: "", cell3: "", cell4: "" }, { cell1: "", cell2: "", cell3: "", cell4: "" }] } });
   const move = (index: number, dir: -1 | 1) => {
     const target = index + dir;
     if (target < 0 || target >= blocksRef.current.length) return;
@@ -284,7 +324,7 @@ function SectionsEditor({ initial, base, pages, onChange }: {
   };
 
   return <div className="cms-sections" data-testid="sections-editor">
-    <InsertRow onText={() => insertAt(0, textBlock())} onPhoto={() => insertAt(0, photoBlock())} />
+    <InsertRow onText={() => insertAt(0, textBlock())} onPhoto={() => insertAt(0, photoBlock())} onTable={() => insertAt(0, tableBlock())} />
     {blocks.map((block, index) => {
       const id = String(block.props.id ?? `block-${index}`);
       return <div className="cms-section" key={id} data-testid={`section-${index}`} data-block-type={block.type}>
@@ -303,8 +343,10 @@ function SectionsEditor({ initial, base, pages, onChange }: {
           ? <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : undefined} pages={pages} onCommit={commitText} />
           : block.type === "PhotoWithText"
             ? <PhotoBlockEditor block={block} pages={pages} onCommit={commitText} onPatch={patchBlock} />
-            : <div className="cms-nontext" contentEditable={false}><PuckBlockRenderer blocks={{ ...base, content: [block] }} /></div>}
-        <InsertRow onText={() => insertAt(index + 1, textBlock())} onPhoto={() => insertAt(index + 1, photoBlock())} />
+            : block.type === "TuitionTable"
+              ? <TableBlockEditor block={block} onPatch={patchBlock} />
+              : <div className="cms-nontext" contentEditable={false}><PuckBlockRenderer blocks={{ ...base, content: [block] }} /></div>}
+        <InsertRow onText={() => insertAt(index + 1, textBlock())} onPhoto={() => insertAt(index + 1, photoBlock())} onTable={() => insertAt(index + 1, tableBlock())} />
       </div>;
     })}
   </div>;

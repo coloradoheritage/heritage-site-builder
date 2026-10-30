@@ -208,3 +208,23 @@
   .cms-photo-block, .cms-photo-block.is-right { grid-template-columns: minmax(0, 1fr); }
   .cms-photo-block.is-right .cms-photo-media { order: 0; }
 }
+
+/* Table block editor (pricing / class schedule) */
+.cms-table-block { padding: .6rem; }
+.cms-table-title { width: 100%; padding: .4rem .5rem; border: 1px solid #d6dce8; border-radius: 6px; font: 700 1.1rem "Playfair Display", serif; color: #1A365D; margin-bottom: .5rem; }
+.cms-table-scroll { overflow-x: auto; }
+.cms-edit-table { border-collapse: collapse; width: 100%; }
+.cms-edit-table th, .cms-edit-table td { border: 1px solid #d6dce8; padding: 0; }
+.cms-edit-table thead th { background: #1A365D; }
+.cms-edit-table input { width: 100%; min-width: 90px; border: 0; padding: .45rem .55rem; font-size: .9rem; background: transparent; color: #2D3748; }
+.cms-edit-table thead input { color: #fff; font-weight: 700; }
+.cms-edit-table thead input::placeholder { color: rgba(255,255,255,.7); }
+.cms-edit-table input:focus { outline: 2px solid #D4AF37; outline-offset: -2px; }
+.cms-table-rowctl { width: 36px; text-align: center; background: #f6f8fb; }
+.cms-table-rowctl button { border: 0; background: transparent; color: #8795a9; cursor: pointer; padding: .25rem; display: inline-flex; }
+.cms-table-rowctl button:hover:not(:disabled) { color: #9b2c1f; }
+.cms-table-rowctl button:disabled { opacity: .3; cursor: default; }
+.cms-table-controls { display: flex; gap: .5rem; margin-top: .6rem; }
+.cms-table-controls button { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .7rem; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #1A365D; font: 600 .74rem "Lato", sans-serif; cursor: pointer; }
+.cms-table-controls button:hover:not(:disabled) { border-color: #1A365D; background: #f1f5f9; }
+.cms-table-controls button:disabled { opacity: .4; cursor: default; }
