@@ -207,11 +207,18 @@ export function asPuckPayload(value: unknown, markdown: string): PuckPayload {
 export function PuckBlockRenderer({ blocks, legacyMarkdown }: { blocks?: unknown; legacyMarkdown?: string }) {
   if (!blocks || typeof blocks !== "object" || !Array.isArray((blocks as PuckPayload).content)) return null;
   const payload = blocks as PuckPayload;
-  const known = payload.content.filter((block) => Object.prototype.hasOwnProperty.call(chessPuckConfig.components, block.type)).map((block) =>
-    block.type === "LegacyMarkdown" && typeof legacyMarkdown === "string"
-      ? { ...block, props: { ...block.props, markdown: legacyMarkdown } }
-      : block,
-  );
+  // A LegacyMarkdown block renders its own richText when it has one. Only a block
+  // WITHOUT richText falls back to the shared page markdown, and only the first such
+  // block does — so a stray empty section can never re-render the whole page body a
+  // second time underneath the real content.
+  let legacyFallbackUsed = false;
+  const known = payload.content.filter((block) => Object.prototype.hasOwnProperty.call(chessPuckConfig.components, block.type)).map((block) => {
+    if (block.type !== "LegacyMarkdown" || typeof legacyMarkdown !== "string") return block;
+    if (typeof block.props.richText === "string") return block;
+    if (legacyFallbackUsed) return { ...block, props: { ...block.props, markdown: "" } };
+    legacyFallbackUsed = true;
+    return { ...block, props: { ...block.props, markdown: legacyMarkdown } };
+  });
   if (!known.length) return null;
   return <div className="chess-puck-content"><Render config={chessPuckConfig} data={{ ...payload, content: known }} /></div>;
 }

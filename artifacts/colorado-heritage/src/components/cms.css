@@ -278,3 +278,16 @@
 .cms-empty-state { padding: 1.5rem; border: 1px dashed #d6dce8; border-radius: 10px; background: #fdfcf8; }
 .cms-preview-details { margin-top: 1.5rem; }
 .cms-legacy-link { margin-top: 1rem; text-align: center; }
+
+/* ---------- v5 admin additions ---------- */
+/* Name-first "Add page" form and the follow-up "Edit this page" prompt. */
+.cms-newpage { display: grid; gap: .5rem; padding: 12px; margin-bottom: 10px; background: #fffdf8; border: 1px solid #ded8ca; }
+.cms-newpage code { background: #eef2f7; padding: .1em .4em; border-radius: 4px; font-size: .85em; color: #142b4a; }
+.cms-newpage-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cms-newpage-done { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 10px; background: #eef4ea; border: 1px solid #b8cfae; color: #2f5225; font-size: 13px; }
+/* Breathing room between stacked settings checkboxes. */
+.cms-check-spaced { margin: 6px 0 10px; }
+.cms-check-group { display: grid; gap: 12px; margin: 6px 0; }
+/* Inline delete confirmation (same pattern as section delete, no native dialog). */
+.cms-inline-confirm { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: #fbeeea; border: 1px solid #e4c3bc; color: #7d2417; font-size: 13px; }
+.cms-inline-confirm span { flex: 1 1 240px; min-width: 0; }

@@ -111,7 +111,10 @@
 .puck-rich-colors button { min-width: 60px; }
 .puck-rich-colors i { display: inline-block; width: 10px; height: 10px; border: 1px solid rgba(0,0,0,.2); border-radius: 50%; }
 .puck-photo-field { display: grid; gap: .55rem; }
-.puck-photo-field > img { width: 100%; max-height: 180px; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid #d6dce8; border-radius: 6px; }
+.puck-photo-field > img { width: 100%; max-height: 260px; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid #d6dce8; border-radius: 6px; }
+/* Keep the focal-point sliders compact so the photo panel isn't unusually tall. */
+.puck-photo-field > label:has(input[type="range"]) { gap: .1rem; font-size: .72rem; }
+.puck-photo-field input[type="range"] { margin: 0; }
 .puck-photo-field > label, .puck-date-field { display: grid; gap: .25rem; color: #2D3748; font-size: .78rem; font-weight: 700; }
 .puck-photo-field input:not([type="range"]), .puck-date-field input { min-height: 38px; padding: .4rem .55rem; border: 1px solid #c5cfdd; border-radius: 4px; }
 .puck-photo-field > button { min-height: 36px; border: 1px solid #c5cfdd; border-radius: 4px; background: #fff; color: #1A365D; cursor: pointer; }
@@ -190,16 +193,27 @@
 .cms-section-controls .cms-confirm-yes { color: #9b2c1f; border-color: #f0b4ab; }
 .cms-section-controls .cms-confirm-yes:hover { background: #fdf3f1; border-color: #9b2c1f; color: #9b2c1f; }
 
-.cms-insert-row { display: flex; justify-content: center; gap: .5rem; align-items: center; min-height: 18px; opacity: .5; transition: opacity .12s ease; }
+.cms-insert-row { display: flex; justify-content: center; gap: .5rem; align-items: center; min-height: 22px; opacity: .8; transition: opacity .12s ease; }
 .cms-section:hover > .cms-insert-row, .cms-insert-row:hover, .cms-insert-row:focus-within,
 .cms-sections > .cms-insert-row:first-child { opacity: 1; }
-.cms-insert-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .2rem .7rem; border: 1px solid #cbd5e1; border-radius: 999px; background: #fff; color: #1A365D; font: 600 .74rem "Lato", sans-serif; cursor: pointer; }
-.cms-insert-btn:hover { border-color: #1A365D; background: #f1f5f9; }
+.cms-insert-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .8rem; border: 1px solid #b7c2d3; border-radius: 999px; background: #fff; color: #1A365D; font: 600 .76rem "Lato", sans-serif; cursor: pointer; box-shadow: 0 1px 2px rgba(26,54,93,.08); }
+.cms-insert-btn:hover { border-color: #1A365D; background: #eef2f8; }
+
+/* Labelled heading buttons and a label for the brand colour swatches. */
+.cms-fmt-btn.is-wide { width: auto; gap: .3rem; padding: 0 .55rem; font: 600 .72rem "Lato", sans-serif; white-space: nowrap; }
+.cms-fmt-colors-label { color: rgba(255,255,255,.78); font: 600 .68rem "Lato", sans-serif; letter-spacing: .02em; }
+
+/* Brand link styling inside the in-place text editor (matches the public site). */
+.cms-section-editor a, .cms-photo-body .cms-section-editor a { color: #0D008C; text-decoration: underline; text-underline-offset: 2px; }
+.cms-section-editor a:hover { color: #1A365D; }
+
+/* Keep a phone-width editing canvas when Phone preview is selected while editing. */
+.cms-puck-stage.is-phone.is-editing .cms-puck-workspace { width: 440px; max-width: 100%; margin: 0 auto; }
 
 .cms-nontext { padding: .4rem .6rem; }
 
-.cms-photo-block { display: grid; gap: 1rem; padding: .6rem; align-items: start; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); }
-.cms-photo-block.is-right { grid-template-columns: minmax(0, 1fr) minmax(0, 320px); }
+.cms-photo-block { display: grid; gap: 1.5rem; padding: .6rem; align-items: start; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); }
+.cms-photo-block.is-right { grid-template-columns: minmax(0, 1fr) minmax(0, 380px); }
 .cms-photo-block.is-right .cms-photo-media { order: 2; }
 .cms-photo-heading { width: 100%; padding: .4rem .5rem; border: 1px solid #d6dce8; border-radius: 6px; font: 700 1.1rem "Playfair Display", serif; color: #1A365D; margin-bottom: .4rem; }
 .cms-photo-side { display: grid; gap: .25rem; margin-top: .5rem; color: #1A365D; font: 700 .72rem "Lato", sans-serif; }

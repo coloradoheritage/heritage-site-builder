@@ -75,6 +75,16 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    // Serve the Express API from the same origin as the dev server so browser
+    // calls to /api/* (e.g. /api/editor-access) are same-origin and never hit a
+    // cross-origin/CORS wall. Override the target with API_PROXY_TARGET if the API
+    // server runs somewhere other than http://127.0.0.1:5000 in development.
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET || 'http://127.0.0.1:5000',
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port,

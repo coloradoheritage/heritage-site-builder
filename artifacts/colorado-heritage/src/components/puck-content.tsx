@@ -1,7 +1,7 @@
 import "@puckeditor/core/puck.css";
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import {
-  Link as LinkIcon, Unlink, Monitor, Smartphone, PanelLeftOpen, ExternalLink,
+  Link as LinkIcon, Unlink, Monitor, Smartphone, PanelLeftOpen, ExternalLink, Settings,
   Bold, Italic, Underline as UnderlineIcon, Heading2, Heading3, List, ListOrdered,
   AlignLeft, AlignCenter, AlignRight, Plus, Minus, ImagePlus, Table as TableIcon, ArrowUp, ArrowDown, Trash2, Check, X,
 } from "lucide-react";
@@ -21,6 +21,7 @@ import { DocumentsContext } from "./markdown";
 import { HomePage } from "./home-page";
 import type { SiteContentExt } from "../lib/cms";
 import { splitMarkdownIntoSections, joinSections } from "../lib/sections";
+import { staffProfilePath } from "../../directory-helpers.mjs";
 
 type SectionBlock = PuckPayload["content"][number];
 
@@ -94,8 +95,8 @@ const sectionExtensions = [
 
 const SECTION_COLORS: Array<[string, string]> = [["Navy", "#1A365D"], ["Gold", "#D4AF37"], ["Slate", "#2D3748"]];
 
-function FmtButton({ active, onClick, title, children }: { active?: boolean; onClick: () => void; title: string; children: ReactNode }) {
-  return <button type="button" className={`cms-fmt-btn${active ? " is-active" : ""}`} title={title} aria-label={title} aria-pressed={!!active}
+function FmtButton({ active, onClick, title, children, wide }: { active?: boolean; onClick: () => void; title: string; children: ReactNode; wide?: boolean }) {
+  return <button type="button" className={`cms-fmt-btn${wide ? " is-wide" : ""}${active ? " is-active" : ""}`} title={title} aria-label={title} aria-pressed={!!active}
     onMouseDown={(event) => event.preventDefault()} onClick={onClick}>{children}</button>;
 }
 
@@ -116,8 +117,8 @@ function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] })
     <FmtButton active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic"><Italic size={15} /></FmtButton>
     <FmtButton active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></FmtButton>
     <span className="cms-fmt-sep" />
-    <FmtButton active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading"><Heading2 size={15} /></FmtButton>
-    <FmtButton active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title="Subheading"><Heading3 size={15} /></FmtButton>
+    <FmtButton wide active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading"><Heading2 size={15} /> Heading</FmtButton>
+    <FmtButton wide active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title="Subheading"><Heading3 size={15} /> Subheading</FmtButton>
     <FmtButton active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bulleted list"><List size={15} /></FmtButton>
     <FmtButton active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered list"><ListOrdered size={15} /></FmtButton>
     <span className="cms-fmt-sep" />
@@ -128,6 +129,7 @@ function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] })
     <FmtButton active={editor.isActive("link")} onClick={() => setLinkOpen((value) => !value)} title="Add or edit link"><LinkIcon size={15} /></FmtButton>
     <FmtButton onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()} title="Remove link"><Unlink size={15} /></FmtButton>
     <span className="cms-fmt-colors" aria-label="Text color">
+      <span className="cms-fmt-colors-label" aria-hidden="true">Color</span>
       {SECTION_COLORS.map(([label, color]) => <button key={color} type="button" className="cms-fmt-color" title={`${label} text`} aria-label={`${label} text`}
         onMouseDown={(event) => event.preventDefault()} onClick={() => editor.chain().focus().setColor(color).run()}><span style={{ backgroundColor: color }} /></button>)}
     </span>
@@ -154,11 +156,12 @@ function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] })
 // One Tiptap editor on the page. Commits on blur, but only when the content
 // actually changed from the editor's own baseline — so merely clicking through a
 // section (or a stray teardown blur) never marks an untouched section as edited.
-function EditableSection({ id, richText, pages, onCommit }: {
+function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
   id: string;
   richText?: string;
   pages: CmsPage[];
   onCommit: (id: string, html: string) => void;
+  autoFocus?: boolean;
 }) {
   const baseline = useRef<string>("");
   const editor = useEditor({
@@ -167,7 +170,10 @@ function EditableSection({ id, richText, pages, onCommit }: {
     editable: true,
     immediatelyRender: false,
     editorProps: { attributes: { class: "chess-prose cms-section-editor" } },
-    onCreate: ({ editor }) => { baseline.current = editor.getHTML(); },
+    // Move the caret into a freshly inserted section so the keyboard (and the
+    // space bar) go to the text, not to the "Add a text section" button that
+    // was just clicked — otherwise every space press re-inserts a section.
+    onCreate: ({ editor }) => { baseline.current = editor.getHTML(); if (autoFocus) editor.commands.focus("end"); },
     onBlur: ({ editor }) => {
       if (!id) return;
       const html = editor.getHTML();
@@ -178,7 +184,9 @@ function EditableSection({ id, richText, pages, onCommit }: {
   });
   if (!editor) return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: String(richText ?? "") }} />;
   return <>
-    <BubbleMenu editor={editor} className="cms-fmt-pop"><SectionToolbar editor={editor} pages={pages} /></BubbleMenu>
+    {/* Sit above the selection with a small gap; flip below automatically when there
+        is not enough room above, so the toolbar never covers the line being edited. */}
+    <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "top", offset: 10, flip: true }}><SectionToolbar editor={editor} pages={pages} /></BubbleMenu>
     <EditorContent editor={editor} />
   </>;
 }
@@ -200,19 +208,24 @@ function PhotoAssetField({ value, onChange }: { value: unknown; onChange: (value
 
 // A photo-with-text block, edited in place: heading, caption (its own Tiptap
 // editor), the photo picker, and which side the photo sits on.
-function PhotoBlockEditor({ block, pages, onCommit, onPatch }: {
+function PhotoBlockEditor({ block, pages, onCommit, onPatch, autoFocus }: {
   block: SectionBlock;
   pages: CmsPage[];
   onCommit: (id: string, html: string) => void;
   onPatch: (id: string, patch: Record<string, unknown>) => void;
+  autoFocus?: boolean;
 }) {
   const id = String(block.props.id ?? "");
   const heading = String(block.props.heading ?? "");
   const imageSide = block.props.imageSide === "right" ? "right" : "left";
+  const headingRef = useRef<HTMLInputElement | null>(null);
+  // Move focus into a freshly inserted photo block so the space bar does not
+  // re-click the "Add a photo" button.
+  useEffect(() => { if (autoFocus) headingRef.current?.focus(); }, [autoFocus]);
   return <div className={`cms-photo-block is-${imageSide}`}>
     <div className="cms-photo-media"><PhotoAssetField value={block.props.image} onChange={(value) => onPatch(id, { image: value })} /></div>
     <div className="cms-photo-body">
-      <input className="cms-photo-heading" value={heading} placeholder="Heading (optional)" onChange={(event) => onPatch(id, { heading: event.target.value })} />
+      <input ref={headingRef} className="cms-photo-heading" value={heading} placeholder="Heading (optional)" onChange={(event) => onPatch(id, { heading: event.target.value })} />
       <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : "<p></p>"} pages={pages} onCommit={onCommit} />
       <label className="cms-photo-side">Photo position
         <select value={imageSide} onChange={(event) => onPatch(id, { imageSide: event.target.value })}>
@@ -228,22 +241,31 @@ function PhotoBlockEditor({ block, pages, onCommit, onPatch }: {
 // public site already renders (TuitionTable render in puck-render.tsx), so a
 // pricing table OR a typed class schedule both come out as one clean, even,
 // brand-styled grid for parents.
-function TableBlockEditor({ block, onPatch }: {
+function TableBlockEditor({ block, onPatch, autoFocus }: {
   block: SectionBlock;
   onPatch: (id: string, patch: Record<string, unknown>) => void;
+  autoFocus?: boolean;
 }) {
   const id = String(block.props.id ?? "");
   const heading = String(block.props.heading ?? "");
   const columns = (Array.isArray(block.props.columns) ? block.props.columns : []) as Array<{ label?: string }>;
   const rows = (Array.isArray(block.props.rows) ? block.props.rows : []) as Array<Record<string, string>>;
+  const titleRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => { if (autoFocus) titleRef.current?.focus(); }, [autoFocus]);
   const setCol = (i: number, label: string) => onPatch(id, { columns: columns.map((c, ci) => (ci === i ? { ...c, label } : c)) });
   const addCol = () => { if (columns.length < 4) onPatch(id, { columns: [...columns, { label: "Column" }] }); };
   const removeCol = () => { if (columns.length > 1) onPatch(id, { columns: columns.slice(0, -1) }); };
   const setCell = (r: number, c: number, val: string) => onPatch(id, { rows: rows.map((row, ri) => (ri === r ? { ...row, [`cell${c + 1}`]: val } : row)) });
   const addRow = () => onPatch(id, { rows: [...rows, { cell1: "", cell2: "", cell3: "", cell4: "" }] });
   const removeRow = (r: number) => { if (rows.length > 1) onPatch(id, { rows: rows.filter((_, ri) => ri !== r) }); };
-  return <div className="cms-table-block" contentEditable={false}>
-    <input className="cms-table-title" value={heading} placeholder="Table title (e.g. Tuition, Weekly schedule)" onChange={(event) => onPatch(id, { heading: event.target.value })} />
+  // Focus the clicked cell input directly on pointer-down; the surrounding
+  // contentEditable=false wrapper otherwise swallows the first click.
+  const focusCell = (event: ReactMouseEvent<HTMLElement>) => {
+    const input = (event.target as HTMLElement).closest("td, th")?.querySelector("input");
+    if (input && document.activeElement !== input) (input as HTMLInputElement).focus();
+  };
+  return <div className="cms-table-block" contentEditable={false} onMouseDown={focusCell}>
+    <input ref={titleRef} className="cms-table-title" value={heading} placeholder="Table title (e.g. Tuition, Weekly schedule)" onChange={(event) => onPatch(id, { heading: event.target.value })} />
     <div className="cms-table-scroll"><table className="cms-edit-table">
       <thead><tr>
         {columns.map((column, ci) => <th key={ci}><input value={column.label ?? ""} placeholder={`Column ${ci + 1}`} onChange={(event) => setCol(ci, event.target.value)} aria-label={`Column ${ci + 1} heading`} /></th>)}
@@ -285,6 +307,9 @@ function SectionsEditor({ initial, base, pages, onChange }: {
 }) {
   const [blocks, setBlocks] = useState<SectionBlock[]>(initial);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  // Id of a just-inserted section: its editor/first field focuses on mount so the
+  // keyboard goes to the new section instead of re-triggering the "Add…" button.
+  const [focusId, setFocusId] = useState<string | null>(null);
   const blocksRef = useRef(blocks);
   blocksRef.current = blocks;
 
@@ -306,6 +331,7 @@ function SectionsEditor({ initial, base, pages, onChange }: {
   const insertAt = (index: number, block: SectionBlock) => {
     const next = [...blocksRef.current];
     next.splice(index, 0, block);
+    setFocusId(String(block.props.id ?? ""));
     commit(next);
   };
   const textBlock = (): SectionBlock => ({ type: "LegacyMarkdown", props: { id: newId("section"), markdown: "", originalMarkdown: "", richText: "<p></p>", richTextEdited: true } });
@@ -340,11 +366,11 @@ function SectionsEditor({ initial, base, pages, onChange }: {
               <button type="button" title="Remove section" aria-label="Remove section" onClick={() => setConfirmingId(id)} data-testid={`delete-${index}`}><Trash2 size={14} /></button>
             </div>}
         {block.type === "LegacyMarkdown"
-          ? <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : undefined} pages={pages} onCommit={commitText} />
+          ? <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : undefined} pages={pages} onCommit={commitText} autoFocus={focusId === id} />
           : block.type === "PhotoWithText"
-            ? <PhotoBlockEditor block={block} pages={pages} onCommit={commitText} onPatch={patchBlock} />
+            ? <PhotoBlockEditor block={block} pages={pages} onCommit={commitText} onPatch={patchBlock} autoFocus={focusId === id} />
             : block.type === "TuitionTable"
-              ? <TableBlockEditor block={block} onPatch={patchBlock} />
+              ? <TableBlockEditor block={block} onPatch={patchBlock} autoFocus={focusId === id} />
               : <div className="cms-nontext" contentEditable={false}><PuckBlockRenderer blocks={{ ...base, content: [block] }} /></div>}
         <InsertRow onText={() => insertAt(index + 1, textBlock())} onPhoto={() => insertAt(index + 1, photoBlock())} onTable={() => insertAt(index + 1, tableBlock())} />
       </div>;
@@ -386,14 +412,23 @@ function editorPayload(input: unknown, markdown: string): PuckPayload {
 type Entry = { label: string; subtitle: string; kind: "home" | "page" | "staff" | "news" | "events"; index?: number };
 type ContentState = { home?: CmsPage; pages: CmsPage[]; staff: CmsStaff[]; news: CmsArticle[]; events: CmsArticle[] };
 
-export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
+export function VisualPageEditor({ draft, update, renderPhotoUploader, requestedKey, requestedNonce, onSelectionChange, onOpenSettings }: {
   draft: ContentState;
   update: (fn: (d: ContentState) => ContentState) => void;
   renderPhotoUploader?: (onUploaded: (url: string, alt: string) => void) => ReactNode;
+  requestedKey?: string | null;
+  requestedNonce?: number;
+  onSelectionChange?: (path: string) => void;
+  onOpenSettings?: (pageIndex: number) => void;
 }) {
   const [selected, setSelected] = useState("home");
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
   const [editing, setEditing] = useState(false);
+  // When another tab asks to open a specific page here (e.g. "Edit this page"
+  // after creating one), jump to it and drop straight into the editing canvas.
+  useEffect(() => {
+    if (requestedKey) { setSelected(requestedKey); setEditing(true); }
+  }, [requestedKey, requestedNonce]);
   const entries: Entry[] = [
     ...(draft.home ? [{ label: "Home page", subtitle: "/", kind: "home" as const }] : []),
     ...draft.pages.map((p, index) => ({ label: p.label || "Untitled page", subtitle: p.path, kind: "page" as const, index })).filter((entry) => !draft.pages[entry.index].archived),
@@ -403,19 +438,36 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
   ];
   const entry = entries.find((item) => `${item.kind}:${item.index ?? ""}` === selected) ?? entries[0];
   const record = entry?.kind === "home" ? draft.home : entry?.kind === "page" ? draft.pages[entry.index!] : entry?.kind === "staff" ? draft.staff[entry.index!] : draft[entry?.kind ?? "page"]?.[entry?.index ?? 0];
+  // Report the selected content's public path so the top-bar "Preview as a parent"
+  // opens the page being edited, not the home page.
+  const currentPath = !entry || !record ? "/"
+    : entry.kind === "home" ? "/"
+    : entry.kind === "staff" ? staffProfilePath(record as CmsStaff)
+    : (record as CmsPage | CmsArticle).path;
+  useEffect(() => { onSelectionChange?.(currentPath); }, [currentPath, onSelectionChange]);
   if (!entry || !record) return <div className="puck-empty">Add a page, profile, story, or event to begin.</div>;
   const markdown = "markdown" in record ? record.markdown : "bio" in record ? record.bio : "";
   const payload = editorPayload(record.blocks, markdown);
   const saveBlocks = (next: PuckPayload) => {
+    const normalized = next.content.map((block) => {
+      if (block.type !== "LegacyMarkdown") return block;
+      const base = String(block.props.originalMarkdown ?? block.props.markdown ?? "");
+      const richText = String(block.props.richText ?? "");
+      const edited = block.props.richTextEdited === true || richText !== markdownToRichText(base);
+      return { ...block, props: { ...block.props, markdown: base, originalMarkdown: base, richText, richTextEdited: edited } };
+    });
+    // Drop blank text sections (e.g. the empty starter block a new page begins
+    // with, left behind after the real content is typed into another section) so
+    // the stored page never carries an empty section that re-renders the whole
+    // page body as a fallback. Keep every block if they are all blank, so a
+    // genuinely empty page still has one section to type into.
+    const isBlankLegacy = (block: SectionBlock) => block.type === "LegacyMarkdown"
+      && !String(block.props.richText ?? "").replace(/<p>\s*<\/p>/gi, "").replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim()
+      && !String(block.props.originalMarkdown ?? block.props.markdown ?? "").trim();
+    const pruned = normalized.filter((block) => !isBlankLegacy(block as SectionBlock));
     const savedBlocks = {
       ...next,
-      content: next.content.map((block) => {
-        if (block.type !== "LegacyMarkdown") return block;
-        const base = String(block.props.originalMarkdown ?? block.props.markdown ?? "");
-        const richText = String(block.props.richText ?? "");
-        const edited = block.props.richTextEdited === true || richText !== markdownToRichText(base);
-        return { ...block, props: { ...block.props, markdown: base, originalMarkdown: base, richText, richTextEdited: edited } };
-      }),
+      content: pruned.length ? pruned : normalized,
     } as unknown as PuckPayload;
     // Rebuild the stored markdown mirror from every text section in document order,
     // so reordered/added/removed sections stay in sync. Media blocks render from
@@ -433,15 +485,16 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader }: {
   };
   return <section className="cms-visual-editor">
     <header className="cms-visual-head">
-      <div><span className="cms-eyebrow">Visual page editor</span><h2>Make a change, see it in place.</h2><p>Everything here stays in your private draft until you publish.</p></div>
+      <div><span className="cms-eyebrow">Visual page editor</span><h2>Make a change, see it in place.</h2><p>Everything here stays in your private draft until you publish. Your changes save automatically as you type.</p></div>
       <div className="cms-visual-actions">
       <button type="button" className="cms-settings-toggle" aria-pressed={editing} onClick={() => setEditing((value) => !value)} data-testid="toggle-page-settings">
         {editing ? <><ExternalLink size={15} /> Preview as a parent</> : <><PanelLeftOpen size={15} /> Edit this page</>}
       </button>
-      {!editing && <div className="cms-device-switch" aria-label="Preview size">
+      {entry.kind === "page" && onOpenSettings && <button type="button" className="cms-settings-toggle" onClick={() => onOpenSettings(entry.index!)} data-testid="open-page-settings"><Settings size={15} /> Page settings</button>}
+      <div className="cms-device-switch" aria-label="Preview size">
         <button type="button" className={device === "desktop" ? "is-selected" : ""} onClick={() => setDevice("desktop")} data-testid="preview-desktop"><Monitor size={15} /> Desktop</button>
         <button type="button" className={device === "phone" ? "is-selected" : ""} onClick={() => setDevice("phone")} data-testid="preview-phone"><Smartphone size={15} /> Phone</button>
-      </div>}
+      </div>
       </div>
     </header>
     <label className="cms-page-picker"><span>Choose content</span><select value={selected} onChange={(e) => setSelected(e.target.value)} data-testid="select-visual-content">

@@ -151,7 +151,8 @@
 .cb-utility-link:hover { color: #fff; text-decoration: underline; }
 .cb-header-inner { width: min(1240px, calc(100% - 2rem)); margin: 0 auto; display: flex; align-items: center; gap: 1.25rem; min-height: 78px; }
 .cb-brand { text-decoration: none; flex: none; }
-.cb-menu-toggle { display: none; }
+.cb-menu-toggle { display: none; white-space: nowrap; flex: none; }
+.cb-menu-toggle span { white-space: nowrap; }
 .cb-nav { display: flex; align-items: center; gap: 1rem; flex: 1; justify-content: flex-end; }
 .cb-nav-list { list-style: none; margin: 0; padding: 0; display: flex; gap: .15rem; }
 .cb-nav-list > li { position: relative; }
