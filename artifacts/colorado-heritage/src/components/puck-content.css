@@ -68,7 +68,12 @@
 .cms-puck-preview.is-phone .cb-footer { font-size: .85rem; }
 .cms-puck-preview.is-phone .cb-utility { display: none; }
 .cms-puck-preview.is-phone .cb-header-inner { min-height: 68px; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
-.cms-puck-preview.is-phone .cb-menu-toggle { display: inline-flex; }
+/* The phone preview is container-width (390px), so the viewport @media mobile
+   styles for the menu button don't apply here — restate them so "Menu" isn't
+   clipped and the button sits fully inside the frame. */
+.cms-puck-preview.is-phone .cb-menu-toggle { display: inline-flex; align-items: center; gap: .3rem; flex: none; min-height: 40px; padding: .4rem .7rem; border: 1.5px solid rgba(255,255,255,.6); border-radius: 8px; background: transparent; color: #fff; font: 700 .9rem "Lato", sans-serif; white-space: nowrap; }
+.cms-puck-preview.is-phone .cb-menu-toggle svg { width: 20px; height: 20px; flex: none; }
+.cms-puck-preview.is-phone .cb-logo-word { max-width: 120px; }
 .cms-puck-preview.is-phone .cb-nav { display: none; position: static; inset: auto; flex: 1 0 100%; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: .5rem 0 1rem; border-top: 2px solid #D4AF37; background: #1A365D; }
 .cms-puck-preview.is-phone .cb-nav.is-open { display: flex; }
 .cms-puck-preview.is-phone .cb-nav-list { flex-direction: column; gap: 0; }
@@ -204,7 +209,7 @@
 .cms-fmt-colors-label { color: rgba(255,255,255,.78); font: 600 .68rem "Lato", sans-serif; letter-spacing: .02em; }
 
 /* Brand link styling inside the in-place text editor (matches the public site). */
-.cms-section-editor a, .cms-photo-body .cms-section-editor a { color: #0D008C; text-decoration: underline; text-underline-offset: 2px; }
+.cms-section-editor a, .cms-photo-body .cms-section-editor a { color: #1d4ed8; font-weight: 600; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; }
 .cms-section-editor a:hover { color: #1A365D; }
 
 /* Keep a phone-width editing canvas when Phone preview is selected while editing. */

@@ -184,9 +184,14 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
   });
   if (!editor) return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: String(richText ?? "") }} />;
   return <>
-    {/* Sit above the selection with a small gap; flip below automatically when there
-        is not enough room above, so the toolbar never covers the line being edited. */}
-    <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "top", offset: 10, flip: true }}><SectionToolbar editor={editor} pages={pages} /></BubbleMenu>
+    {/* Sit BELOW the selection so the toolbar (and the link popover under it) never
+        cover the line being edited or the "Add …" buttons above the section; flip
+        above only when there is no room below. shouldShow requires this editor to be
+        focused, so only the active section shows a toolbar (no stale second toolbar). */}
+    <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "bottom", offset: 8, flip: true }}
+      shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && from !== to}>
+      <SectionToolbar editor={editor} pages={pages} />
+    </BubbleMenu>
     <EditorContent editor={editor} />
   </>;
 }
@@ -378,6 +383,14 @@ function SectionsEditor({ initial, base, pages, onChange }: {
   </div>;
 }
 
+// A text section with no real content (e.g. the starter block a brand-new page
+// begins with). Used to keep empty sections out of both the editor and storage.
+function isBlankTextBlock(block: SectionBlock): boolean {
+  return block.type === "LegacyMarkdown"
+    && !String(block.props.richText ?? "").replace(/<p>\s*<\/p>/gi, "").replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim()
+    && !String(block.props.originalMarkdown ?? block.props.markdown ?? "").trim();
+}
+
 function editorPayload(input: unknown, markdown: string): PuckPayload {
   const payload = asPuckPayload(input, markdown);
   // First load of a legacy page: the whole body is one big text block. Split it at
@@ -398,32 +411,33 @@ function editorPayload(input: unknown, markdown: string): PuckPayload {
       } as unknown as PuckPayload;
     }
   }
-  return {
-    ...payload,
-    content: payload.content.map((block) => {
-      if (block.type !== "LegacyMarkdown") return block;
-      const original = String(block.props.originalMarkdown ?? block.props.markdown ?? markdown);
-      const isEdited = block.props.richTextEdited === true;
-      return { ...block, props: { ...block.props, markdown: original, originalMarkdown: original, richText: isEdited && typeof block.props.richText === "string" ? block.props.richText : markdownToRichText(original), richTextEdited: isEdited } };
-    }),
-  } as unknown as PuckPayload;
+  const normalized = payload.content.map((block) => {
+    if (block.type !== "LegacyMarkdown") return block;
+    const original = String(block.props.originalMarkdown ?? block.props.markdown ?? markdown);
+    const isEdited = block.props.richTextEdited === true;
+    return { ...block, props: { ...block.props, markdown: original, originalMarkdown: original, richText: isEdited && typeof block.props.richText === "string" ? block.props.richText : markdownToRichText(original), richTextEdited: isEdited } };
+  }) as SectionBlock[];
+  // Drop empty text sections so a brand-new page opens with no lingering blank
+  // block between the "Add …" rows (staff just pick what to add first).
+  return { ...payload, content: normalized.filter((block) => !isBlankTextBlock(block)) } as unknown as PuckPayload;
 }
 
 type Entry = { label: string; subtitle: string; kind: "home" | "page" | "staff" | "news" | "events"; index?: number };
 type ContentState = { home?: CmsPage; pages: CmsPage[]; staff: CmsStaff[]; news: CmsArticle[]; events: CmsArticle[] };
 
-export function VisualPageEditor({ draft, update, renderPhotoUploader, requestedKey, requestedNonce, onSelectionChange, onOpenSettings }: {
+export function VisualPageEditor({ draft, update, renderPhotoUploader, requestedKey, requestedNonce, onSelectionChange, renderSettings }: {
   draft: ContentState;
   update: (fn: (d: ContentState) => ContentState) => void;
   renderPhotoUploader?: (onUploaded: (url: string, alt: string) => void) => ReactNode;
   requestedKey?: string | null;
   requestedNonce?: number;
   onSelectionChange?: (path: string) => void;
-  onOpenSettings?: (pageIndex: number) => void;
+  renderSettings?: (pageIndex: number, onClose: () => void) => ReactNode;
 }) {
-  const [selected, setSelected] = useState("home");
+  const [selected, setSelected] = useState(() => requestedKey ?? "home");
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(() => Boolean(requestedKey));
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // When another tab asks to open a specific page here (e.g. "Edit this page"
   // after creating one), jump to it and drop straight into the editing canvas.
   useEffect(() => {
@@ -458,16 +472,10 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
     });
     // Drop blank text sections (e.g. the empty starter block a new page begins
     // with, left behind after the real content is typed into another section) so
-    // the stored page never carries an empty section that re-renders the whole
-    // page body as a fallback. Keep every block if they are all blank, so a
-    // genuinely empty page still has one section to type into.
-    const isBlankLegacy = (block: SectionBlock) => block.type === "LegacyMarkdown"
-      && !String(block.props.richText ?? "").replace(/<p>\s*<\/p>/gi, "").replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim()
-      && !String(block.props.originalMarkdown ?? block.props.markdown ?? "").trim();
-    const pruned = normalized.filter((block) => !isBlankLegacy(block as SectionBlock));
+    // the stored page never carries an empty section.
     const savedBlocks = {
       ...next,
-      content: pruned.length ? pruned : normalized,
+      content: normalized.filter((block) => !isBlankTextBlock(block as SectionBlock)),
     } as unknown as PuckPayload;
     // Rebuild the stored markdown mirror from every text section in document order,
     // so reordered/added/removed sections stay in sync. Media blocks render from
@@ -490,7 +498,7 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
       <button type="button" className="cms-settings-toggle" aria-pressed={editing} onClick={() => setEditing((value) => !value)} data-testid="toggle-page-settings">
         {editing ? <><ExternalLink size={15} /> Preview as a parent</> : <><PanelLeftOpen size={15} /> Edit this page</>}
       </button>
-      {entry.kind === "page" && onOpenSettings && <button type="button" className="cms-settings-toggle" onClick={() => onOpenSettings(entry.index!)} data-testid="open-page-settings"><Settings size={15} /> Page settings</button>}
+      {entry.kind === "page" && renderSettings && <button type="button" className="cms-settings-toggle" aria-pressed={settingsOpen} onClick={() => setSettingsOpen((v) => !v)} data-testid="open-page-settings"><Settings size={15} /> Page settings</button>}
       <div className="cms-device-switch" aria-label="Preview size">
         <button type="button" className={device === "desktop" ? "is-selected" : ""} onClick={() => setDevice("desktop")} data-testid="preview-desktop"><Monitor size={15} /> Desktop</button>
         <button type="button" className={device === "phone" ? "is-selected" : ""} onClick={() => setDevice("phone")} data-testid="preview-phone"><Smartphone size={15} /> Phone</button>
@@ -534,5 +542,9 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
         </aside>
       )}
     </div>
+    {settingsOpen && entry.kind === "page" && renderSettings && <div className="cms-settings-drawer" role="dialog" aria-label="Page settings" onKeyDown={(e) => { if (e.key === "Escape") setSettingsOpen(false); }}>
+      <button type="button" className="cms-settings-drawer-scrim" aria-label="Close page settings" onClick={() => setSettingsOpen(false)} />
+      <div className="cms-settings-drawer-panel">{renderSettings(entry.index!, () => setSettingsOpen(false))}</div>
+    </div>}
   </section>;
 }

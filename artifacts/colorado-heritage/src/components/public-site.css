@@ -357,7 +357,7 @@ body.cb-menu-open { overflow: hidden; }
 /* prose */
 .chess-prose { color: var(--slate); }
 /* Low-specificity prose links must never override a component's own palette. */
-:where(.chess-prose) a:not(:where(.cb-btn, .button, [role="button"], nav a, header a, footer a, .cb-band a, .cb-hero a)) { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+:where(.chess-prose) a:not(:where(.cb-btn, .button, [role="button"], nav a, header a, footer a, .cb-band a, .cb-hero a)) { color: #1d4ed8; font-weight: 600; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; }
 :where(.chess-prose) a:not(:where(.cb-btn, .button, [role="button"], nav a, header a, footer a, .cb-band a, .cb-hero a)):hover { color: var(--navy); }
 .chess-prose h2 { margin-top: 2.2rem; scroll-margin-top: 120px; }
 .chess-prose h3, .chess-prose h4 { margin-top: 1.6rem; scroll-margin-top: 120px; }

@@ -25,6 +25,12 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "news", label: "News & blog" }, { id: "documents", label: "Documents" }, { id: "menu", label: "Menu links" },
 ];
 const PAGE_KINDS = ["content", "overview", "contact", "donate", "gallery", "video", "protected", "archive", "sitemap"];
+// Plain-language names for the page layout menu (value stays the internal kind).
+const PAGE_KIND_LABELS: Record<string, string> = {
+  content: "Standard page", overview: "Section overview", contact: "Contact page", donate: "Donation page",
+  gallery: "Photo gallery", video: "Video or map", protected: "Members only", archive: "Archive", sitemap: "Sitemap",
+};
+const pageKindLabel = (k: string) => PAGE_KIND_LABELS[k] ?? k;
 
 function move<T>(list: T[], from: number, to: number): T[] {
   if (to < 0 || to >= list.length) return list;
@@ -148,7 +154,7 @@ function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDes
       </header>
       <div className="cms-editable-body cms-body-readonly">
         {markdown.trim() ? <MarkdownContent markdown={markdown} /> : <p className="cms-muted">No body text yet.</p>}
-        <p className="cms-preview-help">Edit page text in the Visual editor tab with the formatting toolbar.</p>
+        <p className="cms-preview-help">This is a preview. To change the words and photos, use the “Edit this page” button.</p>
       </div>
     </article>
   </div></DocumentsContext.Provider>;
@@ -156,14 +162,16 @@ function EditablePreview({ eyebrow, title, description, markdown, onTitle, onDes
 
 /* ---------------- Editors ---------------- */
 
-function PagesEditor({ draft, update, onEditInCanvas, requestedIndex, onSelectPath }: {
+export function PagesEditor({ draft, update, onEditInCanvas, requestedIndex, onSelectPath, settingsOnly, onClose }: {
   draft: SiteContentState;
   update: (fn: (d: SiteContentState) => SiteContentState) => void;
   onEditInCanvas?: (pageIndex: number) => void;
   requestedIndex?: number | null;
   onSelectPath?: (path: string) => void;
+  settingsOnly?: boolean;
+  onClose?: () => void;
 }) {
-  const [sel, setSel] = useState(0);
+  const [sel, setSel] = useState(() => (typeof requestedIndex === "number" ? requestedIndex : 0));
   const [filter, setFilter] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -244,7 +252,43 @@ function PagesEditor({ draft, update, onEditInCanvas, requestedIndex, onSelectPa
     update((d) => ({ ...d, pages: d.pages.filter((_, i) => i !== pageIndex), navigation: d.navigation.map((n) => ({ ...n, children: n.children.filter((c) => c !== page.path) })) }));
     setSel(Math.max(0, pageIndex - 1));
     setConfirmingDelete(false);
+    onClose?.();
   };
+  // The settings fields, shared between the Pages tab and the canvas settings drawer.
+  const settingsBody = page ? <>
+    <div className="cms-grid2">
+      <Field label="Web address" hint="The old address redirects to the new one when renamed."><input value={page.path} onChange={(e) => set({ path: e.target.value.startsWith("/") ? e.target.value : `/${e.target.value}` })} /></Field>
+      <Field label="Page name" hint="Shown in the menu. The web address updates from it after you finish editing."><input value={page.label} onChange={(e) => set({ label: e.target.value })} onBlur={autoRenameFromLabel} /></Field>
+      <Field label="Browser tab title" hint="Shown on the browser tab and as the headline in search results."><input value={page.title} onChange={(e) => set({ title: e.target.value })} /></Field>
+      <Field label="Short description (shown in Google)" hint="One sentence shown under the page title and in search results."><textarea rows={2} value={page.description} onChange={(e) => set({ description: e.target.value })} /></Field>
+      <Field label="Page layout" hint="Most pages are “Standard page”. Change only if you know you need another layout."><select value={page.kind} onChange={(e) => set({ kind: e.target.value })}>{[...new Set([...PAGE_KINDS, page.kind])].map((k) => <option key={k} value={k}>{pageKindLabel(k)}</option>)}</select></Field>
+      <Field label="Attached document (PDF path)" hint="For example /documents/school-calendar.pdf"><input value={page.documentPath ?? ""} onChange={(e) => set({ documentPath: e.target.value || undefined })} /></Field>
+      <Field label="External link" hint="Opens another website from this page."><input value={page.externalUrl ?? ""} onChange={(e) => set({ externalUrl: e.target.value || undefined })} /></Field>
+      <Field label="Menu group" hint="Which of the six top-level menus this page appears under. New top-level menus cannot be added.">
+        <select value={menuGroup} onChange={(e) => setMenuGroup(e.target.value)}><option value="">Not in the menu</option>{draft.navigation.slice(0, 6).map((group) => <option key={group.path} value={group.path}>{group.label}</option>)}</select>
+      </Field>
+      <Field label="Order in its menu" hint="Lower numbers appear first."><input type="number" min="0" step="1" value={page.menuOrder ?? sel} onChange={(e) => set({ menuOrder: Number(e.target.value) })} /></Field>
+    </div>
+    <div className="cms-check-group">
+      <label className="cms-check"><input type="checkbox" checked={page.showInMenu !== false && Boolean(menuGroup)} onChange={(e) => e.target.checked ? setMenuGroup(menuGroup || draft.navigation[0]?.path || "") : setMenuGroup("")} /> Show this page in its menu group</label>
+      <label className="cms-check"><input type="checkbox" checked={Boolean(page.archived)} onChange={(e) => set({ archived: e.target.checked, showInMenu: e.target.checked ? false : page.showInMenu })} /> Archived: hide from visitors, keep it available to restore</label>
+    </div>
+    {confirmingDelete
+      ? <div className="cms-inline-confirm"><span>Delete “{fixText(page.label)}” ({page.path})? Visitors will see “page not found” here after you save.</span>
+          <button type="button" className="cms-btn cms-btn-danger" onClick={remove} data-testid="confirm-delete-page"><Check size={14} /> Delete page</button>
+          <button type="button" className="cms-btn" onClick={() => setConfirmingDelete(false)}><X size={14} /> Keep</button>
+        </div>
+      : <button type="button" className="cms-btn cms-btn-danger" onClick={() => setConfirmingDelete(true)} data-testid="button-delete-page"><Trash2 size={14} /> Delete this page</button>}
+  </> : null;
+
+  // Canvas settings drawer: just the fields, no rail or preview.
+  if (settingsOnly) {
+    return <div className="cms-settings-drawer-body">
+      <div className="cms-settings-drawer-head"><h3>Page settings</h3>{onClose && <button type="button" className="cms-btn" onClick={onClose}><X size={14} /> Done</button>}</div>
+      {page ? settingsBody : <p className="cms-muted">Select a page to edit its settings.</p>}
+    </div>;
+  }
+
   return <div className="cms-split">
     <div>
       <input className="cms-search" placeholder="Find a page…" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Find a page" />
@@ -266,36 +310,14 @@ function PagesEditor({ draft, update, onEditInCanvas, requestedIndex, onSelectPa
         onMove={(a, b) => { const from = pageIndices[a]; const to = pageIndices[b]; if (from == null || to == null) return; update((d) => ({ ...d, pages: move(d.pages, from, to) })); if (from === pageIndex) setSel(to); }} onAdd={() => { if (adding) { setAdding(false); setNewName(""); } else { setAdding(true); setJustAdded(null); } }} />
     </div>
     {page ? <div className="cms-editor">
-      <EditablePreview documents={draft.documents} eyebrow={page.path} title={page.label} description={page.description} markdown={page.markdown}
+      <EditablePreview documents={draft.documents} eyebrow="Website page" title={page.label} description={page.description} markdown={page.markdown}
         onTitle={(label) => set({ label })} onDescription={(description) => set({ description })}
         publicUrl={publicPath(page.path)} />
+      {onEditInCanvas && <p className="cms-inline"><button type="button" className="cms-btn" onClick={() => onEditInCanvas(pageIndex)} data-testid="button-edit-content"><ArrowUpRight size={14} /> Edit this page’s words and photos</button></p>}
       {page.documentPath && <p className="cms-muted">Attached document: {page.documentPath} currently opens {resolveDocument(page.documentPath, draft.documents)}. Change the destination on the Documents tab.</p>}
       <details className="cms-settings" open={false}>
         <summary>Page settings: web address, menu placement, search text</summary>
-        <div className="cms-grid2">
-          <Field label="Web address" hint="The old address redirects to the new one when renamed."><input value={page.path} onChange={(e) => set({ path: e.target.value.startsWith("/") ? e.target.value : `/${e.target.value}` })} /></Field>
-          <Field label="Page name" hint="Shown in the menu. The web address updates from it after you finish editing."><input value={page.label} onChange={(e) => set({ label: e.target.value })} onBlur={autoRenameFromLabel} /></Field>
-          <Field label="Browser tab title" hint="Shown on the browser tab and as the headline in search results."><input value={page.title} onChange={(e) => set({ title: e.target.value })} /></Field>
-          <Field label="Page summary" hint="One sentence shown under the page title. Also used for search when no search description is set below."><textarea rows={2} value={page.description} onChange={(e) => set({ description: e.target.value })} /></Field>
-          <Field label="Search description" hint="Optional. The sentence Google shows under the title. Leave blank to use the page summary."><textarea rows={2} maxLength={155} value={page.metaDescription ?? ""} onChange={(e) => set({ metaDescription: e.target.value || undefined })} /></Field>
-          <Field label="Page layout" hint="Most pages are “content”. Change only if you know you need another layout."><select value={page.kind} onChange={(e) => set({ kind: e.target.value })}>{[...new Set([...PAGE_KINDS, page.kind])].map((k) => <option key={k}>{k}</option>)}</select></Field>
-          <Field label="Attached document (PDF path)" hint="For example /documents/school-calendar.pdf"><input value={page.documentPath ?? ""} onChange={(e) => set({ documentPath: e.target.value || undefined })} /></Field>
-          <Field label="External link" hint="Opens another website from this page."><input value={page.externalUrl ?? ""} onChange={(e) => set({ externalUrl: e.target.value || undefined })} /></Field>
-           <Field label="Menu group" hint="Which of the six top-level menus this page appears under. New top-level menus cannot be added.">
-             <select value={menuGroup} onChange={(e) => setMenuGroup(e.target.value)}><option value="">Not in the menu</option>{draft.navigation.slice(0, 6).map((group) => <option key={group.path} value={group.path}>{group.label}</option>)}</select>
-           </Field>
-           <Field label="Order in its menu" hint="Lower numbers appear first."><input type="number" min="0" step="1" value={page.menuOrder ?? sel} onChange={(e) => set({ menuOrder: Number(e.target.value) })} /></Field>
-        </div>
-        <div className="cms-check-group">
-          <label className="cms-check"><input type="checkbox" checked={page.showInMenu !== false && Boolean(menuGroup)} onChange={(e) => e.target.checked ? setMenuGroup(menuGroup || draft.navigation[0]?.path || "") : setMenuGroup("")} /> Show this page in its menu group</label>
-          <label className="cms-check"><input type="checkbox" checked={Boolean(page.archived)} onChange={(e) => set({ archived: e.target.checked, showInMenu: e.target.checked ? false : page.showInMenu })} /> Archived: hide from visitors, keep it available to restore</label>
-        </div>
-        {confirmingDelete
-          ? <div className="cms-inline-confirm"><span>Delete “{fixText(page.label)}” ({page.path})? Visitors will see “page not found” here after you save.</span>
-              <button type="button" className="cms-btn cms-btn-danger" onClick={remove} data-testid="confirm-delete-page"><Check size={14} /> Delete page</button>
-              <button type="button" className="cms-btn" onClick={() => setConfirmingDelete(false)}><X size={14} /> Keep</button>
-            </div>
-          : <button type="button" className="cms-btn cms-btn-danger" onClick={() => setConfirmingDelete(true)} data-testid="button-delete-page"><Trash2 size={14} /> Delete this page</button>}
+        {settingsBody}
       </details>
     </div> : <div className="cms-empty"><strong>No pages yet.</strong><p>Add one to get started.</p></div>}
   </div>;
@@ -488,10 +510,8 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
   // Cross-tab coordination: open a page in the canvas, open a page's settings, and
   // track the selected page's path so "Preview as a parent" opens the right page.
   const [visualRequest, setVisualRequest] = useState<{ key: string; nonce: number } | null>(null);
-  const [pagesRequest, setPagesRequest] = useState<number | null>(null);
   const [previewPath, setPreviewPath] = useState("/");
   const openInCanvas = (pageIndex: number) => { setVisualRequest({ key: `page:${pageIndex}`, nonce: Date.now() }); setTab("visual"); };
-  const openPageSettings = (pageIndex: number) => { setPagesRequest(pageIndex); setTab("pages"); };
   const initialized = useRef(false);
   const currentDraft = useRef<SiteContentState | null>(null);
   const revisionRef = useRef(1);
@@ -656,14 +676,16 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
     <main className="cms-body">
       {tab === "visual" && <Suspense fallback={<div className="cms-puck-loading" aria-busy="true"><span /><span /><span /></div>}>
         <VisualPageEditor draft={draft} update={update} requestedKey={visualRequest?.key} requestedNonce={visualRequest?.nonce}
-          onSelectionChange={setPreviewPath} onOpenSettings={openPageSettings} renderPhotoUploader={(onUploaded) =>
+          onSelectionChange={setPreviewPath}
+          renderSettings={(pageIndex, onClose) => <PagesEditor draft={draft} update={update} settingsOnly requestedIndex={pageIndex} onClose={onClose} />}
+          renderPhotoUploader={(onUploaded) =>
           <PhotoUploader label="Add an accessible photo block" onUploaded={onUploaded} defaultAlt="" />} />
       </Suspense>}
       {tab === "home" && <HomeEditor draft={draft} update={update} />}
       {tab === "faqs" && <FaqEditor draft={draft} update={update} />}
       {tab === "announcements" && <AnnouncementsEditor draft={draft} update={update} />}
       {tab === "inquiries" && <InquiriesInbox />}
-      {tab === "pages" && <PagesEditor draft={draft} update={update} onEditInCanvas={openInCanvas} requestedIndex={pagesRequest} onSelectPath={setPreviewPath} />}
+      {tab === "pages" && <PagesEditor draft={draft} update={update} onEditInCanvas={openInCanvas} onSelectPath={setPreviewPath} />}
       {tab === "staff" && <StaffEditor draft={draft} update={update} />}
       {tab === "events" && <ArticlesEditor key="events" kind="events" draft={draft} update={update} />}
       {tab === "news" && <ArticlesEditor key="news" kind="news" draft={draft} update={update} />}

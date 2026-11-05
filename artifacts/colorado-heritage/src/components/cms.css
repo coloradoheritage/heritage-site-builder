@@ -117,6 +117,9 @@
 .cms-feedback ul { margin: 0; padding-left: 16px; }
 .cms-feedback svg { flex: none; margin-top: 2px; }
 .cms-feedback-ok { background: #eef4ea; border-color: #b8cfae; color: #2f5225; }
+/* Success/autosave feedback floats as a fixed toast so it never shifts the layout
+   (the autosave banner used to appear and disappear and shove content up/down). */
+.cms-feedback.cms-feedback-ok { position: fixed; bottom: 16px; right: 16px; left: auto; margin: 0; z-index: 2000; max-width: min(420px, calc(100% - 32px)); box-shadow: 0 10px 30px -12px rgba(20, 43, 74, .5); }
 .cms-feedback-error, .cms-feedback-conflict { background: #fbeeea; border-color: #e4c3bc; color: #7d2417; }
 .cms-feedback .cms-btn { margin-left: auto; }
 .cms-tabs { display: flex; gap: 2px; overflow-x: auto; padding: 14px 22px 0; border-bottom: 1px solid #ded8ca; }
@@ -291,3 +294,11 @@
 /* Inline delete confirmation (same pattern as section delete, no native dialog). */
 .cms-inline-confirm { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: #fbeeea; border: 1px solid #e4c3bc; color: #7d2417; font-size: 13px; }
 .cms-inline-confirm span { flex: 1 1 240px; min-width: 0; }
+/* Page-settings drawer opened from the canvas (settings stay on the canvas). */
+.cms-settings-drawer { position: fixed; inset: 0; z-index: 10001; display: flex; justify-content: flex-end; }
+.cms-settings-drawer-scrim { position: absolute; inset: 0; border: 0; background: rgba(20, 43, 74, .35); cursor: pointer; }
+.cms-settings-drawer-panel { position: relative; width: min(560px, 100%); max-width: 100%; height: 100%; overflow-y: auto; background: #f4f1e8; box-shadow: -12px 0 32px -16px rgba(20, 43, 74, .6); padding: 16px 18px 40px; }
+.cms-settings-drawer-body { display: grid; gap: 14px; }
+.cms-settings-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; position: sticky; top: 0; background: #f4f1e8; padding: 2px 0 10px; border-bottom: 1px solid #ded8ca; }
+.cms-settings-drawer-head h3 { margin: 0; font-family: "Merriweather", serif; font-weight: 400; color: #142b4a; font-size: 18px; }
+@media (max-width: 640px) { .cms-settings-drawer-panel { width: 100%; } }

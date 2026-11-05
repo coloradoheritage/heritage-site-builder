@@ -31,7 +31,12 @@ function safeEmbedUrl(value: unknown): string {
   }
 }
 
-const rich = { type: "richtext", contentEditable: true } as const;
+// Was Puck's built-in "richtext" field, but Puck's <Render> coerces a "richtext"
+// value into a structured object — which turned our stored HTML strings into
+// "[object Object]" (and made LegacyMarkdown fall back to its markdown mirror).
+// Editing no longer happens inside Puck (we use our own SectionsEditor), so a
+// plain string field is all <Render> needs: it passes richText through untouched.
+const rich = { type: "textarea" } as const;
 export const chessPuckConfig: Config = {
   components: {
     LegacyMarkdown: {
