@@ -188,7 +188,7 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
         cover the line being edited or the "Add …" buttons above the section; flip
         above only when there is no room below. shouldShow requires this editor to be
         focused, so only the active section shows a toolbar (no stale second toolbar). */}
-    <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "bottom", offset: 8, flip: true }}
+    <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "bottom", offset: 28, flip: true, shift: { padding: 8 } }}
       shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && from !== to}>
       <SectionToolbar editor={editor} pages={pages} />
     </BubbleMenu>
@@ -517,7 +517,7 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
             </header>
             <SectionsEditor key={selected} initial={payload.content} base={payload} pages={draft.pages} onChange={saveBlocks} />
           </main>
-          <p className="cms-puck-note">Click any text to edit it — a formatting toolbar appears above your selection. Hover a section for its move, delete, and “add” controls.</p>
+          <p className="cms-puck-note">Click any text to edit it — a formatting toolbar appears below your selection. Hover a section for its move, delete, and “add” controls.</p>
         </div>
       ) : (
         <aside className={`cms-puck-preview is-${device}`}>
