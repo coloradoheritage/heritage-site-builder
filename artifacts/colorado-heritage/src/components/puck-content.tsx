@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, Plus, Minus, ImagePlus, Table as TableIcon, ArrowUp, ArrowDown, Trash2, Check, X,
 } from "lucide-react";
 import { marked } from "marked";
-import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { useEditor, EditorContent, Node, mergeAttributes, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { TextAlign } from "@tiptap/extension-text-align";
@@ -83,6 +83,27 @@ function htmlToMarkdown(html: string) {
 // StarterKit already bundles bold/italic/underline/link/lists/headings; we add
 // alignment and brand-only text color. Everything saves back through the same
 // draft/publish pipeline that Puck used.
+//
+// A minimal inline image node so photos already in a page's text (markdown `![](…)`)
+// are represented in the editor instead of being silently dropped on load and lost on
+// save. It is selectable and atomic, so clicking a photo selects it and the image chip
+// (ImageBubble) can replace it, edit its description, or remove it. Round-trips to
+// `<img src alt>`, which htmlToMarkdown turns back into markdown. (No @tiptap extension
+// dependency — this is built on @tiptap/core, already installed.)
+const InlineImage = Node.create({
+  name: "image",
+  inline: true,
+  group: "inline",
+  draggable: true,
+  selectable: true,
+  atom: true,
+  addAttributes() {
+    return { src: { default: null }, alt: { default: null }, title: { default: null } };
+  },
+  parseHTML() { return [{ tag: "img[src]" }]; },
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) { return ["img", mergeAttributes(HTMLAttributes)]; },
+});
+
 const sectionExtensions = [
   StarterKit.configure({
     heading: { levels: [2, 3] }, // guardrail: no H1 (reserved for the page title)
@@ -91,6 +112,7 @@ const sectionExtensions = [
   TextStyle,
   Color,
   TextAlign.configure({ types: ["heading", "paragraph"] }),
+  InlineImage,
 ];
 
 const SECTION_COLORS: Array<[string, string]> = [["Navy", "#1A365D"], ["Gold", "#D4AF37"], ["Slate", "#2D3748"]];
@@ -153,12 +175,26 @@ function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] })
   </div>;
 }
 
+// A BubbleMenu renders its children into a portal that does NOT re-render when the
+// editor selection changes, so a chip that reads node/mark attributes would show stale
+// data when the caret moves to a different link/photo. Subscribing to transactions
+// forces the chip to re-read on every selection change.
+function useEditorTick(editor: Editor) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const cb = () => force((value) => value + 1);
+    editor.on("transaction", cb);
+    return () => { editor.off("transaction", cb); };
+  }, [editor]);
+}
+
 // The link chip shown when the caret is inside an existing link. Lets staff see the
 // destination and retarget ("Change link"), open, or remove it. Buttons use mousedown
 // preventDefault to keep the editor's selection (so extendMarkRange still covers the
 // whole link); the edit form's inputs are left free to focus — Tiptap's BubbleMenu
 // keeps the chip open while focus is on a field inside it.
 function LinkBubble({ editor, pages }: { editor: Editor; pages: CmsPage[] }) {
+  useEditorTick(editor);
   const [editing, setEditing] = useState(false);
   const [pagePath, setPagePath] = useState("");
   const [href, setHref] = useState("");
@@ -195,6 +231,36 @@ function LinkBubble({ editor, pages }: { editor: Editor; pages: CmsPage[] }) {
     <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => { setPagePath(current.startsWith("/") ? current : ""); setHref(current.startsWith("/") || current.startsWith("#") ? "" : current); setEditing(true); }} data-testid="linkchip-change">Change link</button>
     <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => { const target = safeLinkHref(current); if (target) window.open(target, "_blank", "noopener,noreferrer"); }}>Open</button>
     <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()} data-testid="linkchip-remove">Remove link</button>
+  </div>;
+}
+
+// The photo chip shown when a photo in the text is selected (clicked). Lets staff edit
+// its description (alt text), replace it (upload or pick from the CHESS library via the
+// shared PhotoUploader), or remove it. Replace/remove operate on the selected image
+// node; updateAttributes is called without focus() so the photo stays selected and the
+// chip stays open after a replace.
+function ImageBubble({ editor }: { editor: Editor }) {
+  useEditorTick(editor);
+  const attrs = editor.getAttributes("image");
+  const src = typeof attrs.src === "string" ? attrs.src : "";
+  const currentAlt = typeof attrs.alt === "string" ? attrs.alt : "";
+  const [alt, setAlt] = useState(currentAlt);
+  const [replacing, setReplacing] = useState(false);
+  useEffect(() => { setAlt(currentAlt); }, [currentAlt]);
+  const keepFocus = (event: ReactMouseEvent) => event.preventDefault();
+  const commitAlt = () => { if (alt !== currentAlt) editor.chain().updateAttributes("image", { alt }).run(); };
+  return <div className="cms-imagechip">
+    <div className="cms-imagechip-row">
+      <label className="cms-imagechip-altfield">Photo description
+        <input value={alt} placeholder="Describe this photo for screen readers" onChange={(event) => setAlt(event.target.value)} onBlur={commitAlt} data-testid="imagechip-alt" />
+      </label>
+      <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => setReplacing((value) => !value)} data-testid="imagechip-replace">{replacing ? "Close" : "Replace photo"}</button>
+      <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => editor.chain().focus().deleteSelection().run()} data-testid="imagechip-remove">Remove photo</button>
+    </div>
+    {src && <div className="cms-imagechip-src" title={src}>{src.length > 56 ? `…${src.slice(-54)}` : src}</div>}
+    {replacing && <div className="cms-imagechip-uploader">
+      <PhotoUploader label="Replace this photo" defaultAlt={alt} onUploaded={(url, uploadedAlt) => { const nextAlt = uploadedAlt || alt; editor.chain().updateAttributes("image", { src: url, alt: nextAlt }).run(); setAlt(nextAlt); setReplacing(false); }} />
+    </div>}
   </div>;
 }
 
@@ -240,7 +306,7 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
         shouldShow requires this editor to be focused, so only the active section shows a
         toolbar (no stale second toolbar). */}
     <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "top", offset: 8, flip: true, shift: { padding: 8 } }}
-      shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && from !== to}>
+      shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && from !== to && !editor.isActive("image")}>
       <SectionToolbar editor={editor} pages={pages} />
     </BubbleMenu>
     {/* A separate chip that appears when the caret sits inside an existing link (no
@@ -251,6 +317,13 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
     <BubbleMenu editor={editor} pluginKey="cmsLinkChip" className="cms-fmt-pop" options={{ placement: "bottom", offset: 8, flip: true, shift: { padding: 8 } }}
       shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && editor.isActive("link") && from === to}>
       <LinkBubble editor={editor} pages={pages} />
+    </BubbleMenu>
+    {/* Photo chip: appears when a photo in the text is selected. Does not require editor
+        focus, because interacting with the uploader panel moves focus out of the editor
+        while the photo stays selected. */}
+    <BubbleMenu editor={editor} pluginKey="cmsImageChip" className="cms-fmt-pop" options={{ placement: "bottom", offset: 8, flip: true, shift: { padding: 8 } }}
+      shouldShow={({ editor }) => editor.isEditable && editor.isActive("image")}>
+      <ImageBubble editor={editor} />
     </BubbleMenu>
     <EditorContent editor={editor} />
   </>;
