@@ -5,8 +5,8 @@ import { DocumentsContext } from "./markdown";
 import { PublicSitePages } from "./public-site";
 import { AnnouncementBar, PublicSiteFooter, PublicSiteHeader } from "./site-chrome";
 
-export default function DraftParentPreview({ draft, initialPath = "/", onClose }: {
-  draft: SiteContentState; initialPath?: string; onClose: () => void;
+export default function DraftParentPreview({ draft, initialPath = "/", onClose, onEditPage }: {
+  draft: SiteContentState; initialPath?: string; onClose: () => void; onEditPage?: (path: string) => void;
 }) {
   const [path, setPath] = useState(initialPath);
   const [phone, setPhone] = useState(false);
@@ -20,6 +20,10 @@ export default function DraftParentPreview({ draft, initialPath = "/", onClose }
           <option key={page.path} value={page.path}>{page.label}</option>)}
       </select></label>
       <button className="cms-btn" type="button" onClick={() => setPhone(!phone)}>{phone ? "Desktop preview" : "Phone preview"}</button>
+      {/* Click around the site like a parent would; this opens whatever page is on
+          screen straight into the editor, instead of closing and hunting for it in the
+          "Choose content" dropdown. */}
+      {onEditPage && <button className="cms-btn cms-btn-primary" type="button" onClick={() => onEditPage(path)} data-testid="preview-edit-this-page">Edit this page</button>}
       <button className="cms-btn" type="button" autoFocus onClick={onClose}>Back to editing</button>
     </div>
     <div className={`cms-parent-preview-page cms-puck-preview ${phone ? "is-phone" : ""}`}

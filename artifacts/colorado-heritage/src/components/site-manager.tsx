@@ -24,6 +24,26 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "pages", label: "Pages" }, { id: "staff", label: "Faculty & staff" }, { id: "events", label: "Events" },
   { id: "news", label: "News & blog" }, { id: "documents", label: "Documents" }, { id: "menu", label: "Menu links" },
 ];
+// Map a public path (the page the staff member is looking at in the parent preview)
+// to where it is edited: a key the Visual editor opens directly, or a management tab.
+// Returns {} when nothing specific matches, so the caller just opens the Visual editor.
+function resolveEditTarget(path: string, draft: SiteContentState): { key?: string; tab?: Tab } {
+  const clean = path.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+  if (clean === "/") return { key: "home" };
+  const page = draft.pages.findIndex((p) => p.path === clean);
+  if (page >= 0) return { key: `page:${page}` };
+  const staff = draft.staff.findIndex((s) => staffProfilePath(s) === clean);
+  if (staff >= 0) return { key: `staff:${staff}` };
+  const news = draft.news.findIndex((a) => a.path === clean);
+  if (news >= 0) return { key: `news:${news}` };
+  const ev = draft.events.findIndex((a) => a.path === clean);
+  if (ev >= 0) return { key: `events:${ev}` };
+  if (clean === "/faq") return { tab: "faqs" };
+  if (clean === "/news") return { tab: "news" };
+  if (clean.startsWith("/parents/calendar")) return { tab: "events" };
+  return {};
+}
+
 const PAGE_KINDS = ["content", "overview", "contact", "donate", "gallery", "video", "protected", "archive", "sitemap"];
 // Plain-language names for the page layout menu (value stays the internal kind).
 const PAGE_KIND_LABELS: Record<string, string> = {
@@ -662,7 +682,14 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
         {onSignOut && <button type="button" className="cms-btn cms-btn-ghost" onClick={() => { if (!dirty || window.confirm("Sign out without saving your changes?")) onSignOut(); }}>Sign out</button>}
       </div>
     </header>
-    {parentPreview && <Suspense fallback={<p role="status">Opening private preview…</p>}><DraftParentPreview draft={draft} initialPath={tab === "visual" || tab === "pages" ? previewPath : tab === "faqs" ? "/faq" : tab === "events" ? "/parents/calendar" : tab === "news" ? "/news" : "/"} onClose={() => setParentPreview(false)} /></Suspense>}
+    {parentPreview && <Suspense fallback={<p role="status">Opening private preview…</p>}><DraftParentPreview draft={draft} initialPath={tab === "visual" || tab === "pages" ? previewPath : tab === "faqs" ? "/faq" : tab === "events" ? "/parents/calendar" : tab === "news" ? "/news" : "/"} onClose={() => setParentPreview(false)}
+      onEditPage={(path) => {
+        const target = resolveEditTarget(path, draft);
+        setParentPreview(false);
+        if (target.key) { setVisualRequest({ key: target.key, nonce: Date.now() }); setTab("visual"); }
+        else if (target.tab) setTab(target.tab);
+        else { setVisualRequest({ key: "home", nonce: Date.now() }); setTab("visual"); }
+      }} /></Suspense>}
     <p className="cms-explainer">Edits are saved privately as a draft. Families see changes only after you choose Publish. The school header, navigation, colors, fonts, and footer remain part of the site design.</p>
     {feedback && <div className={`cms-feedback cms-feedback-${feedback.kind}`} role={feedback.kind === "ok" ? "status" : "alert"}>
       {feedback.kind === "ok" ? <Check size={16} /> : <AlertTriangle size={16} />}<span>{feedback.text}</span>
