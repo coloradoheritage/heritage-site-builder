@@ -153,6 +153,51 @@ function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] })
   </div>;
 }
 
+// The link chip shown when the caret is inside an existing link. Lets staff see the
+// destination and retarget ("Change link"), open, or remove it. Buttons use mousedown
+// preventDefault to keep the editor's selection (so extendMarkRange still covers the
+// whole link); the edit form's inputs are left free to focus — Tiptap's BubbleMenu
+// keeps the chip open while focus is on a field inside it.
+function LinkBubble({ editor, pages }: { editor: Editor; pages: CmsPage[] }) {
+  const [editing, setEditing] = useState(false);
+  const [pagePath, setPagePath] = useState("");
+  const [href, setHref] = useState("");
+  const [error, setError] = useState("");
+  const keepFocus = (event: ReactMouseEvent) => event.preventDefault();
+  const attr = editor.getAttributes("link").href;
+  const current = typeof attr === "string" ? attr : "";
+  const apply = () => {
+    const target = safeLinkHref(pagePath || href);
+    if (!target) { setError("Choose a page or enter a supported web address."); return; }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: target }).run();
+    setEditing(false); setError(""); setPagePath(""); setHref("");
+  };
+  if (editing) {
+    return <div className="cms-linkchip cms-linkchip-edit">
+      <label>Link to a page
+        <select value={pagePath} onChange={(event) => { setPagePath(event.target.value); setHref(""); setError(""); }} data-testid="linkchip-page">
+          <option value="">Choose a page…</option>
+          {pages.map((page) => <option key={page.path} value={page.path}>{page.label || page.title || page.path}</option>)}
+        </select>
+      </label>
+      <label>Or a web address
+        <input value={href} onChange={(event) => { setHref(event.target.value); setPagePath(""); setError(""); }} placeholder="https://…" data-testid="linkchip-url" />
+      </label>
+      {error && <p className="cms-linkchip-error" role="alert">{error}</p>}
+      <div className="cms-linkchip-actions">
+        <button type="button" className="cms-btn cms-btn-primary" onMouseDown={keepFocus} onClick={apply}>Save link</button>
+        <button type="button" className="cms-btn" onMouseDown={keepFocus} onClick={() => { setEditing(false); setError(""); }}>Cancel</button>
+      </div>
+    </div>;
+  }
+  return <div className="cms-linkchip" role="group" aria-label="Link options">
+    <span className="cms-linkchip-url" title={current}>{current.length > 42 ? `${current.slice(0, 40)}…` : (current || "No address")}</span>
+    <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => { setPagePath(current.startsWith("/") ? current : ""); setHref(current.startsWith("/") || current.startsWith("#") ? "" : current); setEditing(true); }} data-testid="linkchip-change">Change link</button>
+    <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => { const target = safeLinkHref(current); if (target) window.open(target, "_blank", "noopener,noreferrer"); }}>Open</button>
+    <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()} data-testid="linkchip-remove">Remove link</button>
+  </div>;
+}
+
 // One Tiptap editor on the page. Commits on blur, but only when the content
 // actually changed from the editor's own baseline — so merely clicking through a
 // section (or a stray teardown blur) never marks an untouched section as edited.
@@ -197,6 +242,15 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
     <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "top", offset: 8, flip: true, shift: { padding: 8 } }}
       shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && from !== to}>
       <SectionToolbar editor={editor} pages={pages} />
+    </BubbleMenu>
+    {/* A separate chip that appears when the caret sits inside an existing link (no
+        selection), so staff can see where a link goes and retarget, open, or remove it
+        without reselecting the text. Distinct pluginKey so it coexists with the format
+        toolbar above; the two never show together (one needs a selection, this needs a
+        collapsed caret). Placed below the link, the conventional spot for a link chip. */}
+    <BubbleMenu editor={editor} pluginKey="cmsLinkChip" className="cms-fmt-pop" options={{ placement: "bottom", offset: 8, flip: true, shift: { padding: 8 } }}
+      shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && editor.isActive("link") && from === to}>
+      <LinkBubble editor={editor} pages={pages} />
     </BubbleMenu>
     <EditorContent editor={editor} />
   </>;

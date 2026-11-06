@@ -192,6 +192,17 @@
 .cms-link-newtab input { accent-color: #1A365D; }
 .cms-link-error { margin: 0; color: #9b2c1f; font-size: .72rem; }
 .cms-link-actions { display: flex; gap: .5rem; }
+
+/* Link chip: shown when the caret is inside an existing link. */
+.cms-linkchip { display: inline-flex; align-items: center; gap: .25rem; padding: .3rem .35rem; background: #fff; border: 1px solid #d6dce8; border-radius: 8px; box-shadow: 0 10px 28px -12px rgba(0,0,0,.4); }
+.cms-linkchip-url { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 .35rem; color: #1d4ed8; font-size: .82rem; }
+.cms-linkchip-btn { border: 0; background: #eef2f7; border-radius: 5px; padding: .3rem .55rem; color: #1A365D; font: 600 .78rem "Lato", sans-serif; cursor: pointer; }
+.cms-linkchip-btn:hover { background: #dde5ef; }
+.cms-linkchip-edit { display: grid; gap: .5rem; min-width: 260px; max-width: 320px; padding: .7rem; }
+.cms-linkchip-edit label { display: grid; gap: .25rem; color: #1A365D; font: 700 .72rem "Lato", sans-serif; }
+.cms-linkchip-edit select, .cms-linkchip-edit input { min-height: 34px; padding: .35rem .5rem; border: 1px solid #c5cfdd; border-radius: 4px; color: #2D3748; font-size: .85rem; }
+.cms-linkchip-error { margin: 0; color: #9b2c1f; font-size: .72rem; }
+.cms-linkchip-actions { display: flex; gap: .5rem; }
 .cms-link-actions .cms-btn { min-height: 34px; padding: .35rem .75rem; border: 1px solid #c5cfdd; border-radius: 5px; background: #fff; color: #1A365D; font-weight: 700; cursor: pointer; }
 .cms-link-actions .cms-btn-primary { background: #1A365D; border-color: #1A365D; color: #fff; }
 
