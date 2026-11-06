@@ -151,6 +151,14 @@
   .cms-puck-preview .cb-page { width: calc(100% - 1.5rem); }
 }
 
+/* Inline-editable page headline + intro at the top of the canvas. These keep the real
+   h1/p tags (so they match the live page's type exactly) and add an edit affordance.
+   The placeholder shows only while the field is truly empty. */
+.cms-inline-edit { cursor: text; border-radius: 6px; padding: .1rem .35rem; margin: -.1rem -.35rem; transition: box-shadow .12s ease, background .12s ease; }
+.cms-inline-edit:hover { box-shadow: inset 0 0 0 1px #d6dce8; }
+.cms-inline-edit:focus { outline: none; box-shadow: inset 0 0 0 2px #D4AF37; background: #fff; }
+.cms-inline-edit:empty::before { content: attr(data-placeholder); color: #9aa6b6; font-weight: 400; }
+
 /* --- In-canvas section editing (Google Sites style) ---------------------- */
 .cms-section { position: relative; }
 .cms-section-editor:focus { outline: none; }
@@ -164,7 +172,7 @@
 
 /* Floating formatting toolbar (BubbleMenu) */
 .cms-fmt-pop { z-index: 60; }
-.cms-fmt-bar { display: flex; align-items: center; flex-wrap: wrap; gap: .15rem; padding: .3rem; background: #1A365D; border-radius: 8px; box-shadow: 0 8px 24px -8px rgba(26,54,93,.55); }
+.cms-fmt-bar { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: .15rem; padding: .3rem; background: #1A365D; border-radius: 8px; box-shadow: 0 8px 24px -8px rgba(26,54,93,.55); }
 .cms-fmt-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 5px; background: transparent; color: #fff; cursor: pointer; }
 .cms-fmt-btn:hover { background: rgba(255,255,255,.14); }
 .cms-fmt-btn.is-active { background: #D4AF37; color: #1A365D; }
@@ -173,8 +181,11 @@
 .cms-fmt-color { display: inline-flex; width: 24px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 5px; background: transparent; cursor: pointer; }
 .cms-fmt-color:hover { background: rgba(255,255,255,.14); }
 .cms-fmt-color span { display: block; width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(255,255,255,.5); }
-/* Link popover inside the floating toolbar */
-.cms-link-pop { flex-basis: 100%; display: grid; gap: .5rem; margin-top: .35rem; padding: .7rem; background: #fff; border-radius: 6px; box-shadow: 0 10px 28px -10px rgba(0,0,0,.4); }
+/* Link popover inside the floating toolbar. Absolutely positioned opening UPWARD, so
+   it never grows the bar downward over the selection and the line being edited (the
+   toolbar sits above the selection; the popover opens further up, over already-read
+   text). Falls back to the bar width but never narrower than a usable form. */
+.cms-link-pop { position: absolute; left: 0; bottom: calc(100% + .35rem); min-width: 260px; max-width: 320px; display: grid; gap: .5rem; padding: .7rem; background: #fff; border-radius: 6px; box-shadow: 0 10px 28px -10px rgba(0,0,0,.4); z-index: 2; }
 .cms-link-pop label { display: grid; gap: .25rem; color: #1A365D; font: 700 .72rem "Lato", sans-serif; }
 .cms-link-pop select, .cms-link-pop input[type="text"], .cms-link-pop input:not([type]) { min-height: 34px; padding: .35rem .5rem; border: 1px solid #c5cfdd; border-radius: 4px; color: #2D3748; font-size: .85rem; }
 .cms-link-newtab { display: flex; flex-direction: row; align-items: center; gap: .4rem; font-weight: 400 !important; }

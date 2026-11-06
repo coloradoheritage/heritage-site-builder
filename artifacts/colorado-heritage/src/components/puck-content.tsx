@@ -1,5 +1,5 @@
 import "@puckeditor/core/puck.css";
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import {
   Link as LinkIcon, Unlink, Monitor, Smartphone, PanelLeftOpen, ExternalLink, Settings,
   Bold, Italic, Underline as UnderlineIcon, Heading2, Heading3, List, ListOrdered,
@@ -184,16 +184,63 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
   });
   if (!editor) return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: String(richText ?? "") }} />;
   return <>
-    {/* Sit BELOW the selection so the toolbar (and the link popover under it) never
-        cover the line being edited or the "Add …" buttons above the section; flip
-        above only when there is no room below. shouldShow requires this editor to be
-        focused, so only the active section shows a toolbar (no stale second toolbar). */}
-    <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "bottom", offset: 28, flip: true, shift: { padding: 8 } }}
+    {/* Sit ABOVE the selection. "Below" can never guarantee the following line stays
+        visible: in a multi-line block (a bulleted list especially) the lines below the
+        selection are spaced further apart than one line-height, so any offset large
+        enough to clear the next line lands on the one after it. Above the selection the
+        toolbar only ever covers the line the reader just left, so the text they are
+        reading toward is always clear, in every block type. flip drops it below only
+        when the selection is at the very top with no room above. The link popover opens
+        upward (see .cms-link-pop) so it never grows the bar down over the text either.
+        shouldShow requires this editor to be focused, so only the active section shows a
+        toolbar (no stale second toolbar). */}
+    <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "top", offset: 8, flip: true, shift: { padding: 8 } }}
       shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && from !== to}>
       <SectionToolbar editor={editor} pages={pages} />
     </BubbleMenu>
     <EditorContent editor={editor} />
   </>;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// The page headline and intro at the top of the canvas, edited in place. They are
+// plain text (the hero/page header renders them without markup), so this is a plain
+// contentEditable, not a rich Tiptap editor — no formatting toolbar, because
+// formatting here would show up as literal tags on the live page. Uncontrolled: the
+// initial text is written once (keyed by page), so typing never fights React, and it
+// commits on blur only when the text actually changed. Enter commits; Escape reverts.
+function InlineHeadField({ tag, initial, placeholder, ariaLabel, onCommit }: {
+  tag: "h1" | "p";
+  initial: string;
+  placeholder: string;
+  ariaLabel: string;
+  onCommit: (text: string) => void;
+}) {
+  const base = useRef(initial);
+  const props = {
+    className: "cms-inline-edit",
+    contentEditable: true,
+    suppressContentEditableWarning: true,
+    role: "textbox",
+    "aria-label": ariaLabel,
+    "data-placeholder": placeholder,
+    spellCheck: true,
+    onBlur: (event: ReactFocusEvent<HTMLElement>) => {
+      const text = (event.currentTarget.textContent ?? "").replace(/\s+/g, " ").trim();
+      if (text === base.current) return;
+      base.current = text;
+      onCommit(text);
+    },
+    onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => {
+      if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
+      else if (event.key === "Escape") { event.currentTarget.textContent = base.current; event.currentTarget.blur(); }
+    },
+    dangerouslySetInnerHTML: { __html: escapeHtml(initial) },
+  };
+  return tag === "h1" ? <h1 {...props} /> : <p {...props} />;
 }
 
 function PhotoAssetField({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
@@ -491,6 +538,12 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
     else if (entry.kind === "news") update((d) => ({ ...d, news: d.news.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } : x) }));
     else if (entry.kind === "events") update((d) => ({ ...d, events: d.events.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } : x) }));
   };
+  // Patch plain fields on the current record (used by the inline-editable page
+  // headline and intro at the top of the canvas). Same draft/publish pipeline.
+  const patchRecord = (patch: Record<string, unknown>) => {
+    if (entry.kind === "home") update((d) => ({ ...d, home: { ...d.home!, ...patch } }));
+    else if (entry.kind === "page") update((d) => ({ ...d, pages: d.pages.map((x, i) => i === entry.index ? { ...x, ...patch } : x) }));
+  };
   return <section className="cms-visual-editor">
     <header className="cms-visual-head">
       <div><span className="cms-eyebrow">Visual page editor</span><h2>Make a change, see it in place.</h2><p>Everything here stays in your private draft until you publish. Your changes save automatically as you type.</p></div>
@@ -512,12 +565,17 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
       {editing ? (
         <div id="cms-puck-workspace" className="cms-puck-workspace cb-site">
           <main id="main" className="cb-page">
-            <header className="cb-page-head"><h1>{"label" in record ? record.label : "title" in record ? record.title : "Home page"}</h1>
-              {"description" in record && record.description && <p>{record.description}</p>}
-            </header>
+            {entry.kind === "home" || entry.kind === "page"
+              ? <header className="cb-page-head">
+                  <InlineHeadField key={`title:${selected}`} tag="h1" initial={"label" in record ? record.label : ""} placeholder="Page headline" ariaLabel="Page headline" onCommit={(text) => patchRecord({ label: text })} />
+                  <InlineHeadField key={`intro:${selected}`} tag="p" initial={"description" in record && record.description ? record.description : ""} placeholder="Add a short intro sentence (optional)" ariaLabel="Page intro" onCommit={(text) => patchRecord({ description: text })} />
+                </header>
+              : <header className="cb-page-head"><h1>{"label" in record ? record.label : "title" in record ? record.title : "Home page"}</h1>
+                  {"description" in record && record.description && <p>{record.description}</p>}
+                </header>}
             <SectionsEditor key={selected} initial={payload.content} base={payload} pages={draft.pages} onChange={saveBlocks} />
           </main>
-          <p className="cms-puck-note">Click any text to edit it — a formatting toolbar appears below your selection. Hover a section for its move, delete, and “add” controls.</p>
+          <p className="cms-puck-note">Click any text to edit it — a formatting toolbar appears just above your selection. The page headline and intro at the top edit in place too. Hover a section for its move, delete, and “add” controls.</p>
         </div>
       ) : (
         <aside className={`cms-puck-preview is-${device}`}>
