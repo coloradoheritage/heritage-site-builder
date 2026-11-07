@@ -222,6 +222,104 @@ await run("F1c4", "1-inline-photos", "WORKAROUND: replace via upload, click into
   expect(photoMd(c).includes("![Uploaded replacement description](/api/media/files/fixture-replacement-1.svg)"), `replacement not saved: ${photoMd(c)}`);
 });
 
+// ---- Bug A regression coverage (photo edits must reach Save Draft / preview / page switch / publish at once)
+const switchPageAndBack = async (page, otherLabel, backLabel) => {
+  const pick = async (label) => {
+    const v = await page.$$eval('[data-testid="select-visual-content"] option', (os, l) => os.find((o) => o.textContent.includes(l))?.value, label);
+    await page.selectOption('[data-testid="select-visual-content"]', v);
+    await page.waitForSelector('[data-testid="sections-editor"] .ProseMirror');
+  };
+  await pick(otherLabel); await pick(backLabel);
+};
+const previewSrcs = async (page) => {
+  await page.getByRole("button", { name: "Preview as a parent" }).first().click();
+  await page.waitForSelector('[data-testid="preview-edit-this-page"]');
+  return page.locator('.cms-parent-preview-page img[src*="/api/media/files/"]').evaluateAll((els) => els.map((e) => ({ src: e.getAttribute("src"), alt: e.getAttribute("alt") })));
+};
+const editorPhoto = (page) => page.locator('.cms-section .ProseMirror img[src*="/api/media/files/"]').first();
+
+await run("A1", "bug-A", "Edit alt and click Save Draft directly (alt field still focused, no manual blur) -> saved", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await page.fill('[data-testid="imagechip-alt"]', "Typed then straight to Save Draft");
+  await saveDraftClick(page);
+  expect(photoMd(lastDraft(state)).includes("![Typed then straight to Save Draft](/api/media/files/fixture-geese.svg)"), `saved: ${photoMd(lastDraft(state))}`);
+});
+await run("A2", "bug-A", "Clear alt (empty) then Save Draft -> photo kept with empty description", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await page.fill('[data-testid="imagechip-alt"]', "");
+  await page.locator('[data-testid="imagechip-alt"]').blur();
+  await saveDraftClick(page);
+  expect(photoMd(lastDraft(state)) === "![](/api/media/files/fixture-geese.svg)", `saved: ${photoMd(lastDraft(state))}`);
+});
+await run("A3", "bug-A", "Edit alt then open Parent preview -> preview shows new description", async ({ page }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  const imgs = await previewSrcs(page);
+  expect(imgs.some((i) => i.alt === "Brand new description"), `preview images: ${JSON.stringify(imgs)}`);
+});
+await run("A4", "bug-A", "Edit alt, switch to another page and back -> new description still there and saved", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  await switchPageAndBack(page, "Our Beliefs", "Independent School");
+  expect((await editorPhoto(page).getAttribute("alt")) === "Brand new description", "description lost after switching pages");
+  await saveDraftClick(page);
+  expect(photoMd(lastDraft(state)).includes("![Brand new description]"), `saved: ${photoMd(lastDraft(state))}`);
+});
+await run("A5", "bug-A", "Upload-replace, then switch page and back -> new photo kept", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await uploadReplace(page);
+  await switchPageAndBack(page, "Our Beliefs", "Independent School");
+  expect(((await editorPhoto(page).getAttribute("src")) ?? "").includes("fixture-replacement-1"), "replacement lost after switching pages");
+  await saveDraftClick(page);
+  expect(photoMd(lastDraft(state)).includes("fixture-replacement-1"), `saved: ${photoMd(lastDraft(state))}`);
+});
+await run("A6", "bug-A", "Library-replace, then open Parent preview -> preview shows library photo, not the old one", async ({ page }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await libraryReplace(page);
+  const imgs = await previewSrcs(page);
+  expect(imgs.length > 0 && !imgs.some((i) => i.src.includes("fixture-geese")), `preview images: ${JSON.stringify(imgs)}`);
+});
+await run("A7", "bug-A", "Upload-replace, then Publish -> published content has the new photo (mock publish)", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await uploadReplace(page);
+  await page.getByRole("button", { name: "Publish changes" }).click();
+  await page.waitForTimeout(1500);
+  expect(state.publishes.length === 1, `publish calls: ${state.publishes.length}`);
+  const pub = state.editor.published.pages.find((p) => p.path === IS).markdown;
+  expect(pub.includes("fixture-replacement-1") && !pub.includes("fixture-geese"), `published markdown: ${pub}`);
+});
+await run("A8", "bug-A", "Remove photo then Save Draft directly (no manual blur) -> photo gone in saved draft", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await page.locator('[data-testid="imagechip-remove"]').click();
+  await saveDraftClick(page);
+  expect(!pageMd(lastDraft(state), IS).includes("fixture-geese"), `saved: ${pageMd(lastDraft(state), IS)}`);
+});
+await run("A9", "bug-A", "Intended behavior kept: typing does not push a draft per keystroke; it commits on blur", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  const p2 = page.locator(".cms-section .ProseMirror p", { hasText: "Fixture paragraph two" });
+  await p2.click(); await page.keyboard.press("End"); await page.keyboard.type(" typed while focused", { delay: 30 });
+  await page.waitForTimeout(1800);
+  expect(state.drafts.length === 0, `draft posted while still typing (${state.drafts.length})`);
+  await blur(page);
+  const c = await nextDraft(state, 0);
+  expect(pageMd(c, IS).includes("typed while focused"), "typed text not saved after blur");
+});
+await run("A10", "bug-A", "Untouched section is not marked edited by clicking a photo and leaving (no spurious draft)", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await blur(page);
+  await page.waitForTimeout(1800);
+  expect(state.drafts.length === 0, `spurious draft after click-through (${state.drafts.length})`);
+});
+
 await run("F1e", "1-inline-photos", "Remove photo -> photo gone, surrounding text kept, saved to draft", async ({ page, state, shot }) => {
   await openCanvas(page, "Independent School");
   await clickPhoto(page, "fixture-geese");
@@ -491,15 +589,44 @@ const previewNews = async (page, note) => {
   return { more, picked };
 };
 
-await run("F4d2", "4-edit-this-page", "Preview of /news (seed content HAS a /news page record, kind=archive) opens News tab", async ({ page, note }) => {
+await run("F4d2", "4-edit-this-page", "Preview of /news WITH an unarchived kind=archive page record (seed) opens News tab", async ({ page, state, note }) => {
+  expect(state.editor.draft.pages.some((p) => p.path === "/news"), "fixture should contain a /news page record");
   const { more } = await previewNews(page, note);
   expect(more.startsWith("News"), `Edit this page on /news did not open the News tab (More button: "${more}")`);
 });
 
-await run("F4d3", "4-edit-this-page", "Preview of /news when NO /news page record exists opens News tab", async ({ page, state, note }) => {
+await run("F4d3", "4-edit-this-page", "Preview of /news with NO /news page record opens News tab", async ({ page, state, note }) => {
   state.editor.draft.pages = state.editor.draft.pages.filter((p) => p.path !== "/news");
   const { more } = await previewNews(page, note);
   expect(more.startsWith("News"), `More button: "${more}"`);
+});
+
+await run("F4d4", "4-edit-this-page", "Preview of /news WITH an archived:true /news page record opens News tab", async ({ page, state, note }) => {
+  state.editor.draft.pages = state.editor.draft.pages.map((p) => p.path === "/news" ? { ...p, archived: true } : p);
+  const { more } = await previewNews(page, note);
+  expect(more.startsWith("News"), `More button: "${more}"`);
+});
+
+await run("F4d5", "4-edit-this-page", "Preview of /faq WITH a /faq page record present still opens FAQs tab", async ({ page, state, note }) => {
+  state.editor.draft.pages.push({ path: "/faq", label: "Old FAQ page", title: "Old FAQ", description: "", markdown: "old", kind: "content" });
+  await page.goto(`${BASE}/?tool=site`);
+  await page.waitForSelector(".cms-visual-editor");
+  await openPreview(page);
+  await page.locator('[role="dialog"][aria-label="Private parent preview"] select').selectOption("/faq");
+  await page.click('[data-testid="preview-edit-this-page"]');
+  await page.waitForTimeout(500);
+  const more = (await page.locator('[data-testid="tab-more"]').textContent()).trim();
+  note(`/faq -> More button "${more}"`);
+  expect(more.startsWith("FAQs"), `More button: "${more}"`);
+});
+
+await run("F4d6", "4-edit-this-page", "Ordinary page records still open that page (unchanged behavior)", async ({ page, shot }) => {
+  await openCanvas(page, "Independent School");
+  await page.getByRole("button", { name: "Preview as a parent" }).first().click();
+  await page.waitForSelector('[data-testid="preview-edit-this-page"]');
+  await page.click('[data-testid="preview-edit-this-page"]');
+  await page.waitForSelector('[data-testid="sections-editor"] .ProseMirror');
+  expect((await editorHeadline(page)) === "Independent School", `opened "${await editorHeadline(page)}"`);
 });
 
 await run("F4e", "4-edit-this-page", "Staff-profile and news-article pages reached by clicking inside the preview open that record", async ({ page, state, note }) => {

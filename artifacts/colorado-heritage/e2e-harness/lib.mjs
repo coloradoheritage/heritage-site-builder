@@ -11,7 +11,7 @@ export async function launch() {
 // is aborted (so nothing can reach Replit, Clerk, Google Fonts or the live site), and the
 // /api surface is a pure in-memory mock. `log` records what the app tried to call.
 export async function newSession(browser, { viewport = { width: 1280, height: 900 } } = {}) {
-  const state = { editor: buildFixture(), drafts: [], uploads: [], blocked: [], apiCalls: [] };
+  const state = { editor: buildFixture(), drafts: [], uploads: [], publishes: [], blocked: [], apiCalls: [] };
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   await context.addInitScript(() => { window.__opened = []; window.open = (...args) => { window.__opened.push(args); return null; }; });
@@ -35,6 +35,12 @@ export async function newSession(browser, { viewport = { width: 1280, height: 90
       state.drafts.push(body);
       const revision = state.editor.draft.revision + 1;
       state.editor = { ...state.editor, draft: { ...body.content, revision }, draftBaseRevision: revision };
+      return json(200, state.editor);
+    }
+    if (url.pathname === "/api/site-content/publish" && method === "POST") {
+      const body = JSON.parse(route.request().postData() || "{}");
+      state.publishes.push(body);
+      state.editor = { ...state.editor, published: JSON.parse(JSON.stringify(state.editor.draft)) };
       return json(200, state.editor);
     }
     if (url.pathname === "/api/media/health") return json(200, { configured: true, message: "mock storage (test harness)" });
