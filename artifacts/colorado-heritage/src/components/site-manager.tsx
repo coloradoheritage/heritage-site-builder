@@ -45,7 +45,13 @@ const ALL_TABS: Tab[] = [...PRIMARY_TABS, ...MORE_TABS];
 function resolveEditTarget(path: string, draft: SiteContentState): { key?: string; tab?: Tab } {
   const clean = path.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
   if (clean === "/") return { key: "home" };
-  const page = draft.pages.findIndex((p) => p.path === clean);
+  // The public site resolves these two paths to the news index and FAQ page before it
+  // looks at any page record, so mirror that order: a leftover page record for /news
+  // or /faq (e.g. an old archive page) must not capture the edit.
+  if (clean === "/faq") return { tab: "faqs" };
+  if (clean === "/news") return { tab: "news" };
+  // Archived pages are not shown publicly or listed in the Visual editor, so they can't be a target.
+  const page = draft.pages.findIndex((p) => p.path === clean && !p.archived);
   if (page >= 0) return { key: `page:${page}` };
   const staff = draft.staff.findIndex((s) => staffProfilePath(s) === clean);
   if (staff >= 0) return { key: `staff:${staff}` };
@@ -53,8 +59,6 @@ function resolveEditTarget(path: string, draft: SiteContentState): { key?: strin
   if (news >= 0) return { key: `news:${news}` };
   const ev = draft.events.findIndex((a) => a.path === clean);
   if (ev >= 0) return { key: `events:${ev}` };
-  if (clean === "/faq") return { tab: "faqs" };
-  if (clean === "/news") return { tab: "news" };
   if (clean.startsWith("/parents/calendar")) return { tab: "events" };
   return {};
 }

@@ -275,6 +275,13 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
   autoFocus?: boolean;
 }) {
   const baseline = useRef<string>("");
+  const commitIfChanged = (editor: Editor) => {
+    if (!id) return;
+    const html = editor.getHTML();
+    if (html === baseline.current) return;
+    baseline.current = html;
+    onCommit(id, html);
+  };
   const editor = useEditor({
     extensions: sectionExtensions,
     content: typeof richText === "string" && richText.trim() ? richText : "<p></p>",
@@ -285,13 +292,13 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
     // space bar) go to the text, not to the "Add a text section" button that
     // was just clicked — otherwise every space press re-inserts a section.
     onCreate: ({ editor }) => { baseline.current = editor.getHTML(); if (autoFocus) editor.commands.focus("end"); },
-    onBlur: ({ editor }) => {
-      if (!id) return;
-      const html = editor.getHTML();
-      if (html === baseline.current) return;
-      baseline.current = html;
-      onCommit(id, html);
-    },
+    onBlur: ({ editor }) => commitIfChanged(editor),
+    // Edits made from the photo chip (description, replace) change the document while
+    // focus is in the chip's own fields or uploader, i.e. after the editor already blurred,
+    // so no further blur would ever commit them: Save Draft, preview and publish would keep
+    // the old photo. Commit those changes now. While the editor is focused (typing, toolbar)
+    // the blur commit above still applies, so typing does not push to the draft per keystroke.
+    onUpdate: ({ editor }) => { if (!editor.isFocused) commitIfChanged(editor); },
   });
   if (!editor) return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: String(richText ?? "") }} />;
   return <>
