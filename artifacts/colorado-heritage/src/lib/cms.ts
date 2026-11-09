@@ -55,9 +55,15 @@ export function sortArticles(list: CmsArticle[]) {
   return [...list].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
 
+/** Splits the inside of a markdown image target `src "caption"` into its parts. */
+export function splitImageTarget(target: string): { src: string; caption: string } {
+  const match = target.match(/^(.*?)(?:\s+"([^"]*)")?\s*$/s);
+  return { src: (match?.[1] ?? target).trim(), caption: (match?.[2] ?? "").trim() };
+}
+
 export function excerpt(markdown: string, length = 185) {
   const text = stripSourceTitle(markdown)
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/!\[[^\]]*\]\((?:[^)"]|"[^"]*")+\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/[#*_`>]/g, "")
     .split(/\n\s*\n/)
@@ -219,7 +225,7 @@ export const hasConfirm = (value?: string) => /\[CONFIRM/i.test(value || "");
 
 export function plainText(markdown: string): string {
   return (markdown || "")
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/!\[[^\]]*\]\((?:[^)"]|"[^"]*")+\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/(\*\*|__)(.+?)\1/g, "$2")
     .replace(/(\*|_)(.+?)\1/g, "$2")

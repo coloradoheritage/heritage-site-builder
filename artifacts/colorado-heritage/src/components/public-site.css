@@ -521,3 +521,8 @@ body.cb-menu-open { overflow: hidden; }
 @media (max-width: 899px) { [data-testid="page-gallery"] .chess-prose { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 479px) { [data-testid="page-gallery"] .chess-prose { grid-template-columns: 1fr; } }
 @media (min-width: 1100px) { .cb-page-wide .cb-quote-grid:not(.is-single) { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+
+/* Photo caption under an inline photo (set from the editor's photo chip). */
+.chess-figure { display: block; margin: 1rem 0; }
+.chess-figure > img { display: block; }
+.chess-caption { display: block; margin-top: .4rem; color: #5b6676; font-size: .88rem; line-height: 1.45; font-style: italic; }

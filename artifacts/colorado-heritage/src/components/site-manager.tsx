@@ -782,7 +782,7 @@ export function EditorHome({ onChoose, onSignOut, publicSiteUrl }: { onChoose: (
   return <div className="cms-home">
     <img src={publicAsset("/images/chess-seal.png")} alt="" />
     <span className="section-kicker">Colorado Heritage staff</span>
-    <h1>What would you like to update?</h1>
+    <h1>What do you want to do?</h1>
     <p>Save Draft keeps changes private to staff. Families continue to see the published version until you choose Publish.</p>
     <div className="cms-home-choices">
       {([["visual", "Edit a page", "Change the words, photos, and links on any page."], ["announcements", "Post an announcement", "Add a timed notice to the bar above the menu."], ["events", "Add an event", "Put an event on the school calendar."], ["staff", "Update staff", "Add or edit a faculty or staff profile."], ["documents", "Upload a document", "Add a PDF such as the calendar or tuition policy."]] as const).map(([id, title, text]) =>

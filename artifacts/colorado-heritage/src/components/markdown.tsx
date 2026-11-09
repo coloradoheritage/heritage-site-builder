@@ -64,7 +64,11 @@ export function inlineMarkdown(value: string, keyPrefix = "i"): ReactNode[] {
     const key = `${keyPrefix}-${index++}`;
     if (match[1] !== undefined) tokens.push(<Confirm key={key}>[{match[1]}]</Confirm>);
     else if (match[4] !== undefined) {
-      if (match[2]) tokens.push(<SiteImage key={key} src={resolveHref(match[4])} alt={match[3] || "Colorado Heritage Education School System"} loading="lazy" />);
+      if (match[2]) {
+        const image = <SiteImage key={key} src={resolveHref(match[4])} alt={match[3] || "Colorado Heritage Education School System"} loading="lazy" />;
+        const caption = match[0].match(/\s"([^"]*)"\)$/)?.[1]?.trim();
+        tokens.push(caption ? <span key={key} className="chess-figure">{image}<span className="chess-caption">{caption}</span></span> : image);
+      }
       else if (!match[3].trim()) { /* drop empty imported links like "[\n](" */ }
       else tokens.push(<MdLink key={key} href={match[4]} testId={`link-content-${keyPrefix}-${index}`}>{inlineMarkdown(match[3], `${key}-t`)}</MdLink>);
     } else if (match[5]) tokens.push(<strong key={key}>{inlineMarkdown(match[6], `${key}-b`)}</strong>);

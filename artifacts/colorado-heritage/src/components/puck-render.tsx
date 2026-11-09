@@ -185,7 +185,7 @@ function RichHtml({ value }: { value: string }) {
   const resolve = useResolvedHref();
   const clean = useMemo(() => sanitizeHtml(value, {
     allowedTags: ["p", "br", "strong", "b", "em", "i", "u", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "a", "blockquote", "span", "img", "table", "thead", "tbody", "tr", "th", "td", "hr", "code", "pre"],
-    allowedAttributes: { a: ["href", "target", "rel"], span: ["style"], p: ["style"], h1: ["style"], h2: ["style"], h3: ["style"], h4: ["style"], h5: ["style"], h6: ["style"], img: ["src", "alt", "loading"], th: ["scope", "colspan", "rowspan"], td: ["colspan", "rowspan"] },
+    allowedAttributes: { a: ["href", "target", "rel"], span: ["style"], p: ["style"], h1: ["style"], h2: ["style"], h3: ["style"], h4: ["style"], h5: ["style"], h6: ["style"], img: ["src", "alt", "title", "loading"], th: ["scope", "colspan", "rowspan"], td: ["colspan", "rowspan"] },
     allowedStyles: {
       span: { color: [/^#(?:1A365D|D4AF37|2D3748)$/i], "text-align": [/^(left|center|right)$/] },
       p: { color: [/^#(?:1A365D|D4AF37|2D3748)$/i], "text-align": [/^(left|center|right)$/] },
@@ -198,7 +198,10 @@ function RichHtml({ value }: { value: string }) {
     },
     allowedSchemes: ["http", "https", "mailto", "tel"],
   }), [value]);
-  const resolved = clean.replace(/\shref=(["'])(.*?)\1/gi, (_match, quote: string, href: string) => ` href=${quote}${resolve(href)}${quote}`);
+  // A photo caption is stored as the image title; show it under the photo (nothing when empty).
+  const captioned = clean.replace(/<img\b([^>]*?)\stitle=(["'])(.*?)\2([^>]*)>/gi, (_match, before: string, _quote: string, title: string, after: string) =>
+    title.trim() ? `<span class="chess-figure"><img${before}${after}><span class="chess-caption">${title}</span></span>` : `<img${before}${after}>`);
+  const resolved = captioned.replace(/\shref=(["'])(.*?)\1/gi, (_match, quote: string, href: string) => ` href=${quote}${resolve(href)}${quote}`);
   return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: resolved }} />;
 }
 

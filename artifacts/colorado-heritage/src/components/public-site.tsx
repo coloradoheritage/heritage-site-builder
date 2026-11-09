@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { useGetSiteContent, type CmsArticle, type CmsPage, type CmsStaff } from "@workspace/api-client-react";
 import {
-  articleHref, canonicalInternalPath, excerpt, faqJsonLd, fixText, formatDate, mediaUrl, pageMap, schoolJsonLd, sortArticles,
+  articleHref, canonicalInternalPath, excerpt, splitImageTarget, faqJsonLd, fixText, formatDate, mediaUrl, pageMap, schoolJsonLd, sortArticles,
   setContentRedirects, splitSections, stripSourceTitle, useJsonLd, usePageMeta, useRobots, type SiteContentExt,
 } from "../lib/cms";
 import { cleanFilenameCaptions, isAdministrative, isFilenameCaption, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
@@ -95,7 +95,7 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
     markdown = markdown.replace(/^\[CONFIRM: whether faculty should use this parent portal or a separate staff portal\. Contact the office for staff access\.\]\s*$/mi, "").trim();
   }
   if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
-  const heroImage = path === "/gallery" ? null : markdown.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/m);
+  const heroImage = path === "/gallery" ? null : markdown.match(/^!\[([^\]]*)\]\(((?:[^)"]|"[^"]*")+)\)\s*$/m);
   if (heroImage) markdown = markdown.replace(heroImage[0], "");
   if (path === "/donate") return <DonationPage page={page} markdown={markdown} blocks={page.blocks} />;
   const docUrl = useDocUrl();
@@ -120,7 +120,7 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
       <h1>{fixText(page.label)}</h1>
       {page.description && <p>{fixText(page.description)}</p>}
     </header>
-    {heroImage && <figure className="cb-page-image"><SiteImage src={heroImage[2]} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : ""} loading="lazy" /></figure>}
+    {heroImage && (() => { const target = splitImageTarget(heroImage[2]); return <figure className="cb-page-image"><SiteImage src={target.src} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : ""} loading="lazy" />{target.caption && <figcaption className="chess-caption">{target.caption}</figcaption>}</figure>; })()}
     {page.kind === "protected" && !markdown.trim()
       ? <PraxiBox />
       : page.blocks

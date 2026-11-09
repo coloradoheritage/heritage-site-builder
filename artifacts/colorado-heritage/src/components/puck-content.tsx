@@ -57,8 +57,14 @@ function htmlToMarkdown(html: string) {
     .replace(/<h3\b[^>]*>([\s\S]*?)<\/h3>/gi, "### $1\n\n")
     .replace(/<h[4-6]\b[^>]*>([\s\S]*?)<\/h[4-6]>/gi, "#### $1\n\n")
     .replace(/<a\b[^>]*href=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi, "[$3]($2)")
-    .replace(/<img\b[^>]*alt=(["'])(.*?)\1[^>]*src=(["'])(.*?)\3[^>]*\/?>/gi, "![$2]($4)")
-    .replace(/<img\b[^>]*src=(["'])(.*?)\1[^>]*alt=(["'])(.*?)\3[^>]*\/?>/gi, "![$4]($2)")
+    .replace(/<img\b([^>]*)>/gi, (_match, attrs: string) => {
+      const attr = (name: string) => attrs.match(new RegExp(`(?:^|\\s)${name}=(["'])(.*?)\\1`, "i"))?.[2];
+      const src = attr("src");
+      if (!src) return "";
+      // A photo caption travels as the markdown image title: ![alt](src "caption").
+      const caption = (attr("title") ?? "").replace(/&quot;|"/g, "'").trim();
+      return `![${attr("alt") ?? ""}](${src}${caption ? ` "${caption}"` : ""})`;
+    })
     .replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, "**$2**")
     .replace(/<(em|i)\b[^>]*>([\s\S]*?)<\/\1>/gi, "*$2*")
     .replace(/<u\b[^>]*>([\s\S]*?)<\/u>/gi, "$1")
@@ -244,22 +250,43 @@ function ImageBubble({ editor }: { editor: Editor }) {
   const attrs = editor.getAttributes("image");
   const src = typeof attrs.src === "string" ? attrs.src : "";
   const currentAlt = typeof attrs.alt === "string" ? attrs.alt : "";
+  const currentCaption = typeof attrs.title === "string" ? attrs.title : "";
   const [alt, setAlt] = useState(currentAlt);
+  const [caption, setCaption] = useState(currentCaption);
   const [replacing, setReplacing] = useState(false);
   useEffect(() => { setAlt(currentAlt); }, [currentAlt]);
+  useEffect(() => { setCaption(currentCaption); }, [currentCaption]);
   const keepFocus = (event: ReactMouseEvent) => event.preventDefault();
-  const commitAlt = () => { if (alt !== currentAlt) editor.chain().updateAttributes("image", { alt }).run(); };
+  // Changing a node's attributes drops the node selection, which would close this chip as soon as a
+  // field loses focus (so the description could not be followed by the caption, or Replace). Put the
+  // selection back on the same photo.
+  const setPhotoAttrs = (attrsToSet: Record<string, unknown>) => {
+    const pos = editor.state.selection.from;
+    editor.chain().updateAttributes("image", attrsToSet).setNodeSelection(pos).run();
+  };
+  const commitAlt = () => { if (alt !== currentAlt) setPhotoAttrs({ alt }); };
+  // The caption is stored as a markdown image title ("..."), so a straight double quote would end it early.
+  const commitCaption = () => {
+    const next = caption.replace(/"/g, "'").trim();
+    setCaption(next);
+    if (next !== currentCaption) setPhotoAttrs({ title: next || null });
+  };
   return <div className="cms-imagechip">
     <div className="cms-imagechip-row">
       <label className="cms-imagechip-altfield">Photo description
         <input value={alt} placeholder="Describe this photo for screen readers" onChange={(event) => setAlt(event.target.value)} onBlur={commitAlt} data-testid="imagechip-alt" />
       </label>
+      <label className="cms-imagechip-altfield">Caption
+        <input value={caption} placeholder="Shown under the photo (optional)" onChange={(event) => setCaption(event.target.value)} onBlur={commitCaption} data-testid="imagechip-caption" />
+      </label>
+    </div>
+    <div className="cms-imagechip-row">
       <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => setReplacing((value) => !value)} data-testid="imagechip-replace">{replacing ? "Close" : "Replace photo"}</button>
       <button type="button" className="cms-linkchip-btn" onMouseDown={keepFocus} onClick={() => editor.chain().focus().deleteSelection().run()} data-testid="imagechip-remove">Remove photo</button>
     </div>
     {src && <div className="cms-imagechip-src" title={src}>{src.length > 56 ? `…${src.slice(-54)}` : src}</div>}
     {replacing && <div className="cms-imagechip-uploader">
-      <PhotoUploader label="Replace this photo" defaultAlt={alt} onUploaded={(url, uploadedAlt) => { const nextAlt = uploadedAlt || alt; editor.chain().updateAttributes("image", { src: url, alt: nextAlt }).run(); setAlt(nextAlt); setReplacing(false); }} />
+      <PhotoUploader label="Replace this photo" defaultAlt={alt} onUploaded={(url, uploadedAlt) => { const nextAlt = uploadedAlt || alt; setPhotoAttrs({ src: url, alt: nextAlt }); setAlt(nextAlt); setReplacing(false); }} />
     </div>}
   </div>;
 }
