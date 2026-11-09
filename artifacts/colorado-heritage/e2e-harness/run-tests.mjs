@@ -14,6 +14,7 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 const browser = await launch();
 
 async function run(id, feature, name, fn, opts) {
+  if (process.env.ONLY && !new RegExp(process.env.ONLY).test(id)) return;
   const { context, page, state } = await newSession(browser, opts);
   const notes = [];
   const shot = async (label) => { const file = `${SHOTS}/${id}-${label}.png`; await page.screenshot({ path: file }); notes.push(`screenshot: ${file}`); };
@@ -809,8 +810,7 @@ await run("C10", "caption", "Caption with quotes, ampersand and parentheses roun
   // double quotes are stored as apostrophes (they would end the markdown title); everything else is kept
   const expected = `Our 'best' day & (more) <b>x</b>`;
   expect((await page.locator(".chess-figure .chess-caption").textContent()) === expected, `inline caption: ${await page.locator(".chess-figure .chess-caption").textContent()}`);
-  expect((await page.locator(".cb-page-image .chess-caption").textContent()) === expected, `lead-photo caption: ${await page.locator(".cb-page-image .chess-caption").textContent()}`);
-  expect((await page.locator(".cb-page-image img").getAttribute("src")) === "/api/media/files/fixture-geese.svg", "lead photo src polluted by caption");
+  expect((await page.locator(".chess-caption").count()) === 1 && (await page.locator(".cb-page img[src*=\"fixture-geese\"]").count()) === 1, "caption or photo not rendered exactly once");
   expect((await page.locator(".chess-caption b").count()) === 0, "caption HTML was not escaped");
 });
 
@@ -843,6 +843,127 @@ await run("C11", "caption", "Caption works for a photo inside a stored-markdown 
   await captionInput(page).fill("Edited stored caption"); await captionInput(page).blur();
   const c = await nextDraft(state, 0);
   expect(pageMd(c, "/about/foundation").startsWith('![Fixture captioned photo](/api/media/files/fixture-captioned.svg "Edited stored caption")'), `saved: ${pageMd(c, "/about/foundation")}`);
+});
+
+// ---------------------------------------------------------------- duplicate photo on the public page
+// A page edited in the visual editor stores BOTH `blocks[].props.richText` (rendered by the public page) and a
+// markdown mirror `page.markdown`. The public page also lifts the first stand-alone photo line of the mirror out
+// as a lead photo, so the same photo used to render twice. Each photo must render exactly once.
+const PHOTO = "/api/media/files/fixture-geese.svg";
+const OTHER = "/api/media/files/fixture-other.svg";
+const legacyBlocks = (richHtml, markdown, edited) => ({ root: { props: {} }, zones: {}, content: [{ type: "LegacyMarkdown", props: { id: "legacy-1", markdown, originalMarkdown: markdown, richText: richHtml, richTextEdited: edited } }] });
+const seedSavedPage = (state, path, { mirror, rich, edited = false }) => {
+  for (const side of ["draft", "published"]) {
+    state.editor[side].pages = state.editor[side].pages.map((p) => p.path === path ? { ...p, markdown: mirror, blocks: rich === null ? undefined : legacyBlocks(rich, mirror, edited) } : p);
+  }
+};
+const countPhotos = (page, src = "fixture-geese") => page.locator(`.cb-page img[src*="${src}"]`).count();
+const viewPublic = async (page, path) => { await page.goto(`${BASE}/?view=public&path=${encodeURIComponent(path)}`); await page.waitForSelector(".cb-page"); };
+
+await run("D1", "duplicate-photo", "Page edited in the visual editor and published shows its photo exactly once", async ({ page, state, shot }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  await publishAndView(page, state, IS);
+  const n = await countPhotos(page);
+  await shot("public-after-edit");
+  expect(n === 1, `photo rendered ${n} times on the public page`);
+});
+
+await run("D2", "duplicate-photo", "Captioned photo on an edited page: one photo and one caption on the public page", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill("Only once please");
+  await publishAndView(page, state, IS);
+  const photos = await countPhotos(page), caps = await page.locator(".chess-caption").count();
+  expect(photos === 1 && caps === 1, `photos: ${photos}, captions: ${caps}`);
+});
+
+await run("D3", "duplicate-photo", "Parent preview of an edited page shows the photo exactly once", async ({ page }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  await getPreview(page);
+  const n = await page.locator('.cms-parent-preview-page .cb-page img[src*="fixture-geese"]').count();
+  expect(n === 1, `photo rendered ${n} times in the parent preview`);
+});
+
+await run("D4", "duplicate-photo", "Page never edited in the visual editor (markdown only) shows its photo exactly once", async ({ page }) => {
+  await viewPublic(page, IS);
+  const n = await countPhotos(page);
+  expect(n === 1, `photo rendered ${n} times`);
+});
+
+await run("D5", "duplicate-photo", "ALREADY-SAVED content (mirror + richText both hold the photo, richTextEdited=false) renders it once", async ({ page, state }) => {
+  const mirror = `![Saved](${PHOTO})\n\nSaved body text.`;
+  seedSavedPage(state, IS, { mirror, rich: `<p><img src="${PHOTO}" alt="Saved"></p><p>Saved body text.</p>`, edited: false });
+  await viewPublic(page, IS);
+  expect((await countPhotos(page)) === 1, `photo rendered ${await countPhotos(page)} times`);
+  expect((await page.getByText("Saved body text.").count()) === 1, "body text duplicated or missing");
+});
+
+await run("D6", "duplicate-photo", "ALREADY-SAVED content edited in the editor (richTextEdited=true) renders the photo once", async ({ page, state }) => {
+  const mirror = `![Saved](${PHOTO} "A caption")\n\nEdited body text.`;
+  seedSavedPage(state, IS, { mirror, rich: `<p><img src="${PHOTO}" alt="Saved" title="A caption"></p><p>Edited body text.</p>`, edited: true });
+  await viewPublic(page, IS);
+  const photos = await countPhotos(page), caps = await page.locator(".chess-caption").count();
+  expect(photos === 1 && caps === 1, `photos ${photos}, captions ${caps}`);
+});
+
+await run("D7", "duplicate-photo", "No photo is hidden: photo present only in the markdown mirror (not in richText) still shows once", async ({ page, state }) => {
+  const mirror = `![Only in mirror](${PHOTO})\n\nBody.`;
+  seedSavedPage(state, IS, { mirror, rich: "<p>Body.</p>", edited: false });
+  await viewPublic(page, IS);
+  expect((await countPhotos(page)) === 1, `photo rendered ${await countPhotos(page)} times`);
+});
+
+await run("D8", "duplicate-photo", "Two different photos (lead in mirror, another inline in richText) both show, once each", async ({ page, state }) => {
+  const mirror = `![Lead](${PHOTO})\n\nBody with inline photo ![Inline](${OTHER}) here.`;
+  seedSavedPage(state, IS, { mirror, rich: `<p>Body with inline photo <img src="${OTHER}" alt="Inline"> here.</p>`, edited: true });
+  await viewPublic(page, IS);
+  const a = await countPhotos(page), b = await countPhotos(page, "fixture-other");
+  expect(a === 1 && b === 1, `lead photo ${a}x, inline photo ${b}x`);
+});
+
+await run("D9", "duplicate-photo", "Public page for a photo-less saved page and the Our Beliefs page are unaffected", async ({ page }) => {
+  await viewPublic(page, "/about/beliefs");
+  expect((await countPhotos(page, "fixture-nodesc")) === 1, "beliefs photo count changed");
+});
+
+// Server render / SEO: the same public components render in Node. Needs the SSR bundle from `vite build`.
+const ssrBundle = new URL("../dist/server/entry-server.js", import.meta.url);
+const ssrHtml = async (content, path) => {
+  const { renderSite } = await import(ssrBundle.href + `?t=${Date.now()}`);
+  const { renderPage } = await import("../seo-render.mjs");
+  const out = await renderPage('<html><head><title>x</title></head><body><div id="root"></div></body></html>', path, content, "", renderSite);
+  expect(out.status === 200, `SSR status ${out.status} for ${path}`);
+  return out.html.split('<div id="root">')[1].split('<script id="chess-content"')[0];
+};
+const imgCount = (html, src) => (html.match(new RegExp(`<img[^>]+src="[^"]*${src}`, "g")) ?? []).length;
+
+await run("S1", "duplicate-photo", "SSR/SEO render: edited page (richText + mirror) has its photo exactly once", async ({ state }) => {
+  const mirror = `![Saved](${PHOTO})\n\nSaved body text.`;
+  seedSavedPage(state, IS, { mirror, rich: `<p><img src="${PHOTO}" alt="Saved"></p><p>Saved body text.</p>`, edited: true });
+  const html = await ssrHtml(state.editor.published, IS);
+  expect(imgCount(html, "fixture-geese") === 1, `SSR rendered the photo ${imgCount(html, "fixture-geese")} times`);
+});
+await run("S2", "duplicate-photo", "SSR/SEO render: markdown-only page has its photo exactly once, with caption once", async ({ state }) => {
+  seedSavedPage(state, IS, { mirror: `![Lead](${PHOTO} "SSR caption")\n\nBody.`, rich: null });
+  const html = await ssrHtml(state.editor.published, IS);
+  expect(imgCount(html, "fixture-geese") === 1 && (html.match(/SSR caption/g) ?? []).length === 1, `photos ${imgCount(html, "fixture-geese")}, captions ${(html.match(/SSR caption/g) ?? []).length}`);
+});
+await run("S3", "duplicate-photo", "SSR/SEO render: photo only in the mirror is still rendered once (nothing hidden)", async ({ state }) => {
+  seedSavedPage(state, IS, { mirror: `![Only in mirror](${PHOTO})\n\nBody.`, rich: "<p>Body.</p>", edited: false });
+  const html = await ssrHtml(state.editor.published, IS);
+  expect(imgCount(html, "fixture-geese") === 1, `SSR rendered the photo ${imgCount(html, "fixture-geese")} times`);
+});
+await run("S4", "duplicate-photo", "SSR/SEO render of the draft saved by the real editor flow has the photo once", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  await publishAndView(page, state, IS);
+  const html = await ssrHtml(state.editor.published, IS);
+  expect(imgCount(html, "fixture-geese") === 1, `SSR rendered the photo ${imgCount(html, "fixture-geese")} times`);
 });
 
 // ---------------------------------------------------------------- network hygiene
