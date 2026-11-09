@@ -33,6 +33,13 @@ export function buildFixture() {
     kind: "content",
     markdown: "Beliefs paragraph with a photo that has no description: ![](/api/media/files/fixture-nodesc.svg) and trailing text.",
   });
+  set("/about/foundation", {
+    label: "Our Foundation",
+    title: "Our Foundation | Fixture",
+    description: "Fixture foundation intro.",
+    kind: "content",
+    markdown: "![Fixture captioned photo](/api/media/files/fixture-captioned.svg \"Caption from stored markdown\")\n\nFoundation paragraph.",
+  });
   const home = {
     path: "/", label: "Home", title: "Fixture Home", description: "Fixture home intro sentence.", kind: "content",
     markdown: "Fixture home paragraph linking to [Programs](/programs).",

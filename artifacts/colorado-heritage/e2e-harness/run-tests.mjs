@@ -14,6 +14,7 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 const browser = await launch();
 
 async function run(id, feature, name, fn, opts) {
+  if (process.env.ONLY && !new RegExp(process.env.ONLY).test(id)) return;
   const { context, page, state } = await newSession(browser, opts);
   const notes = [];
   const shot = async (label) => { const file = `${SHOTS}/${id}-${label}.png`; await page.screenshot({ path: file }); notes.push(`screenshot: ${file}`); };
@@ -350,7 +351,10 @@ await run("F1g", "1-inline-photos", "Probe: clearing a photo's description keeps
   const alt = page.locator('[data-testid="imagechip-alt"]');
   await alt.fill(""); await alt.blur();
   // alt edits do not by themselves change text; force a commit with a trailing edit
-  await page.locator(".cms-section .ProseMirror p", { hasText: "Fixture paragraph two" }).click();
+  // the open photo chip can cover either paragraph; click the far right edge of paragraph two, clear of it
+  const p2 = page.locator(".cms-section .ProseMirror p", { hasText: "Fixture paragraph two" });
+  const box = await p2.boundingBox();
+  await page.mouse.click(box.x + box.width - 4, box.y + box.height / 2);
   await page.keyboard.press("End"); await page.keyboard.type("!");
   await blur(page);
   const c = await nextDraft(state, 0);
@@ -510,6 +514,7 @@ await run("F3f", "3-admin-landing", "Deep link ?tab=<more-tab> still works; unkn
 });
 
 // ---------------------------------------------------------------- 4. Edit this page in parent preview
+const getPreview = async (page) => { await page.getByRole("button", { name: "Preview as a parent" }).first().click(); await page.waitForSelector('[data-testid="preview-edit-this-page"]'); };
 const openPreview = async (page) => { await page.getByRole("button", { name: "Preview as a parent" }).first().click(); await page.waitForSelector('[data-testid="preview-edit-this-page"]'); };
 const editorHeadline = async (page) => (await page.locator('h1[aria-label="Page headline"]').textContent());
 
@@ -661,6 +666,304 @@ await run("F4f", "4-edit-this-page", "Back to editing / Escape still close previ
   await dlg.locator("h1", { hasText: "Preview Sees This" }).waitFor({ timeout: 5000 });
   await page.keyboard.press("Escape");
   await dlg.waitFor({ state: "detached", timeout: 3000 });
+});
+
+// ---------------------------------------------------------------- landing heading + photo caption
+await run("H1", "landing-heading", "Admin landing heading is exactly 'What do you want to do?' (old wording gone)", async ({ page, shot }) => {
+  await page.goto(`${BASE}/`);
+  await page.waitForSelector(".cms-home-choices");
+  const h1s = await page.$$eval(".cms-home h1, h1", (els) => els.map((e) => e.textContent));
+  expect(h1s.length === 1 && h1s[0] === "What do you want to do?", `h1: ${JSON.stringify(h1s)}`);
+  expect((await page.getByText("What would you like to update?").count()) === 0, "old heading still present");
+  await shot("landing-heading");
+});
+
+const captionInput = (page) => page.locator('[data-testid="imagechip-caption"]');
+const phase = (md) => md.split("\n\n")[1];
+const GEESE = "(/api/media/files/fixture-geese.svg";
+const publishAndView = async (page, state, path) => {
+  await page.getByRole("button", { name: "Publish changes" }).click();
+  await page.waitForTimeout(1500);
+  expect(state.publishes.length === 1, `publish calls: ${state.publishes.length}`);
+  await page.goto(`${BASE}/?view=public&path=${encodeURIComponent(path)}`);
+  await page.waitForSelector(".cb-page");
+};
+
+await run("C1", "caption", "Photo chip shows Caption next to the description, plus Replace photo and Remove photo", async ({ page, shot }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  const alt = await page.locator('[data-testid="imagechip-alt"]').boundingBox();
+  const cap = await captionInput(page).boundingBox();
+  expect(cap, "caption field missing");
+  expect(Math.abs(alt.y - cap.y) < 4 && cap.x > alt.x, `caption not beside description: alt ${JSON.stringify(alt)} caption ${JSON.stringify(cap)}`);
+  expect((await captionInput(page).inputValue()) === "", "caption should start empty");
+  await page.locator('[data-testid="imagechip-replace"]').waitFor({ state: "visible" });
+  await page.locator('[data-testid="imagechip-remove"]').waitFor({ state: "visible" });
+  await shot("photo-chip-caption");
+});
+
+await run("C2", "caption", "Caption typed then field loses focus -> autosaved to draft as image title", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill("Geese by the pond");
+  await captionInput(page).blur();
+  const c = await nextDraft(state, 0);
+  expect(phase(pageMd(c, IS)) === `![Fixture geese family]${GEESE} "Geese by the pond")`, `saved: ${phase(pageMd(c, IS))}`);
+});
+
+await run("C3", "caption", "Caption typed then Save Draft clicked directly (field still focused) -> saved", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill("Straight to save");
+  await saveDraftClick(page);
+  expect(phase(pageMd(lastDraft(state), IS)).includes('"Straight to save"'), `saved: ${lastDraft(state) ? phase(pageMd(lastDraft(state), IS)) : "no draft"}`);
+});
+
+await run("C4", "caption", "Caption persists: reselect photo, switch page and back, and reload editor after Save Draft", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill("Remember me");
+  await captionInput(page).blur();
+  await blur(page);
+  await clickPhoto(page, "fixture-geese");
+  expect((await captionInput(page).inputValue()) === "Remember me", "caption not shown when photo reselected");
+  await blur(page);
+  await switchPageAndBack(page, "Our Beliefs", "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  expect((await captionInput(page).inputValue()) === "Remember me", "caption lost after switching pages");
+  await saveDraftClick(page);
+  expect(phase(pageMd(lastDraft(state), IS)).includes('"Remember me"'), "not in saved draft");
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  expect((await captionInput(page).inputValue()) === "Remember me", "caption lost after reloading editor from saved draft");
+});
+
+await run("C5", "caption", "Caption survives description edits and photo replacement; clearing it removes the title", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill("Keep this caption"); await captionInput(page).blur();
+  await editAlt(page);
+  await uploadReplace(page);
+  await saveDraftClick(page);
+  expect(phase(pageMd(lastDraft(state), IS)) === '![Uploaded replacement description](/api/media/files/fixture-replacement-1.svg "Keep this caption")', `saved: ${phase(pageMd(lastDraft(state), IS))}`);
+  await captionInput(page).fill(""); await captionInput(page).blur();
+  await saveDraftClick(page);
+  expect(phase(pageMd(lastDraft(state), IS)) === "![Uploaded replacement description](/api/media/files/fixture-replacement-1.svg)", `after clear: ${phase(pageMd(lastDraft(state), IS))}`);
+});
+
+await run("C6", "caption", "Parent preview shows the caption under the photo; no caption element when empty", async ({ page, shot }) => {
+  await openCanvas(page, "Independent School");
+  await getPreview(page);
+  expect((await page.locator(".cms-parent-preview-page .chess-caption").count()) === 0 && (await page.locator(".cms-parent-preview-page .chess-figure").count()) === 0, "caption markup present with no caption");
+  await page.keyboard.press("Escape");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill("Preview caption");
+  await captionInput(page).blur();
+  await getPreview(page);
+  const cap = page.locator(".cms-parent-preview-page .chess-figure .chess-caption");
+  expect((await cap.textContent()) === "Preview caption", "caption not shown in preview");
+  const order = await page.evaluate(() => { const f = document.querySelector(".cms-parent-preview-page .chess-figure"); const i = f.querySelector("img").getBoundingClientRect(); const c = f.querySelector(".chess-caption").getBoundingClientRect(); return { imgBottom: i.bottom, capTop: c.top }; });
+  expect(order.capTop >= order.imgBottom - 1, `caption not under photo: ${JSON.stringify(order)}`);
+  await shot("preview-caption");
+});
+
+await run("C7", "caption", "Public page after Publish shows the caption under the photo (richText path)", async ({ page, state, shot }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill("Public caption text");
+  await publishAndView(page, state, IS);
+  expect((await page.locator(".chess-figure .chess-caption").textContent()) === "Public caption text", "caption not on public page");
+  expect((await page.locator(".chess-figure img").getAttribute("alt")) === "Fixture geese family", "alt lost");
+  expect((await page.locator(".chess-figure img").getAttribute("title")) === null, "raw title attribute leaked as tooltip");
+  await shot("public-caption");
+});
+
+await run("C8", "caption", "Public page with NO caption shows no caption element or wrapper (richText path)", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  await publishAndView(page, state, IS);
+  expect((await page.locator(".chess-prose img[src*='fixture-geese']").count()) === 1, "photo missing on public page");
+  expect((await page.locator(".chess-caption").count()) === 0 && (await page.locator(".chess-figure").count()) === 0, "caption markup rendered for an empty caption");
+});
+
+await run("C9", "caption", "Caption from stored markdown renders on the public page without any editing (markdown path)", async ({ page }) => {
+  await page.goto(`${BASE}/?view=public&path=${encodeURIComponent("/about/foundation")}`);
+  await page.waitForSelector(".cb-page");
+  // A page's first stand-alone photo line is shown as the page's lead photo; its caption goes in a figcaption.
+  expect((await page.locator(".cb-page-image .chess-caption").textContent()) === "Caption from stored markdown", "caption not rendered from markdown title");
+  expect((await page.locator(".cb-page-image img").getAttribute("src")) === "/api/media/files/fixture-captioned.svg", `lead photo src polluted by caption: ${await page.locator(".cb-page-image img").getAttribute("src")}`);
+  await page.goto(`${BASE}/?view=public&path=${encodeURIComponent(IS)}`);
+  await page.waitForSelector(".cb-page");
+  expect((await page.locator(".chess-caption").count()) === 0, "uncaptioned photo shows a caption");
+});
+
+await run("C10", "caption", "Caption with quotes, ampersand and parentheses round-trips and is escaped on the public page", async ({ page, state }) => {
+  const tricky = 'Our "best" day & (more) <b>x</b>';
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill(tricky); await captionInput(page).blur();
+  await saveDraftClick(page);
+  const shown = await captionInput(page).inputValue();
+  expect(shown === `Our 'best' day & (more) <b>x</b>`, `editor field shows: ${shown}`);
+  await publishAndView(page, state, IS);
+  // double quotes are stored as apostrophes (they would end the markdown title); everything else is kept
+  const expected = `Our 'best' day & (more) <b>x</b>`;
+  expect((await page.locator(".chess-figure .chess-caption").textContent()) === expected, `inline caption: ${await page.locator(".chess-figure .chess-caption").textContent()}`);
+  expect((await page.locator(".chess-caption").count()) === 1 && (await page.locator(".cb-page img[src*=\"fixture-geese\"]").count()) === 1, "caption or photo not rendered exactly once");
+  expect((await page.locator(".chess-caption b").count()) === 0, "caption HTML was not escaped");
+});
+
+await run("C12", "caption", "Real clicks: edit description, then click Caption field -> chip stays open; both saved", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await page.locator('[data-testid="imagechip-alt"]').fill("Real click description");
+  await captionInput(page).click();
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))) === "imagechip-caption", "caption field did not receive focus (chip closed after description lost focus)");
+  await page.keyboard.type("Real click caption");
+  await page.locator('[data-testid="imagechip-alt"]').click();
+  expect(await page.locator('[data-testid="imagechip-replace"]').isVisible(), "chip closed after caption lost focus");
+  await saveDraftClick(page);
+  expect(phase(pageMd(lastDraft(state), IS)) === `![Real click description]${GEESE} "Real click caption")`, `saved: ${phase(pageMd(lastDraft(state), IS))}`);
+});
+
+await run("C13", "caption", "Chip stays open after upload-replace so the caption can still be edited", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await uploadReplace(page);
+  await captionInput(page).fill("After replace"); await captionInput(page).blur();
+  await saveDraftClick(page);
+  expect(phase(pageMd(lastDraft(state), IS)).includes('fixture-replacement-1.svg "After replace")'), `saved: ${phase(pageMd(lastDraft(state), IS))}`);
+});
+
+await run("C11", "caption", "Caption works for a photo inside a stored-markdown page opened in the editor (existing title loads into chip)", async ({ page, state }) => {
+  await openCanvas(page, "Our Foundation");
+  await clickPhoto(page, "fixture-captioned");
+  expect((await captionInput(page).inputValue()) === "Caption from stored markdown", "stored caption not loaded into chip");
+  await captionInput(page).fill("Edited stored caption"); await captionInput(page).blur();
+  const c = await nextDraft(state, 0);
+  expect(pageMd(c, "/about/foundation").startsWith('![Fixture captioned photo](/api/media/files/fixture-captioned.svg "Edited stored caption")'), `saved: ${pageMd(c, "/about/foundation")}`);
+});
+
+// ---------------------------------------------------------------- duplicate photo on the public page
+// A page edited in the visual editor stores BOTH `blocks[].props.richText` (rendered by the public page) and a
+// markdown mirror `page.markdown`. The public page also lifts the first stand-alone photo line of the mirror out
+// as a lead photo, so the same photo used to render twice. Each photo must render exactly once.
+const PHOTO = "/api/media/files/fixture-geese.svg";
+const OTHER = "/api/media/files/fixture-other.svg";
+const legacyBlocks = (richHtml, markdown, edited) => ({ root: { props: {} }, zones: {}, content: [{ type: "LegacyMarkdown", props: { id: "legacy-1", markdown, originalMarkdown: markdown, richText: richHtml, richTextEdited: edited } }] });
+const seedSavedPage = (state, path, { mirror, rich, edited = false }) => {
+  for (const side of ["draft", "published"]) {
+    state.editor[side].pages = state.editor[side].pages.map((p) => p.path === path ? { ...p, markdown: mirror, blocks: rich === null ? undefined : legacyBlocks(rich, mirror, edited) } : p);
+  }
+};
+const countPhotos = (page, src = "fixture-geese") => page.locator(`.cb-page img[src*="${src}"]`).count();
+const viewPublic = async (page, path) => { await page.goto(`${BASE}/?view=public&path=${encodeURIComponent(path)}`); await page.waitForSelector(".cb-page"); };
+
+await run("D1", "duplicate-photo", "Page edited in the visual editor and published shows its photo exactly once", async ({ page, state, shot }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  await publishAndView(page, state, IS);
+  const n = await countPhotos(page);
+  await shot("public-after-edit");
+  expect(n === 1, `photo rendered ${n} times on the public page`);
+});
+
+await run("D2", "duplicate-photo", "Captioned photo on an edited page: one photo and one caption on the public page", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await captionInput(page).fill("Only once please");
+  await publishAndView(page, state, IS);
+  const photos = await countPhotos(page), caps = await page.locator(".chess-caption").count();
+  expect(photos === 1 && caps === 1, `photos: ${photos}, captions: ${caps}`);
+});
+
+await run("D3", "duplicate-photo", "Parent preview of an edited page shows the photo exactly once", async ({ page }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  await getPreview(page);
+  const n = await page.locator('.cms-parent-preview-page .cb-page img[src*="fixture-geese"]').count();
+  expect(n === 1, `photo rendered ${n} times in the parent preview`);
+});
+
+await run("D4", "duplicate-photo", "Page never edited in the visual editor (markdown only) shows its photo exactly once", async ({ page }) => {
+  await viewPublic(page, IS);
+  const n = await countPhotos(page);
+  expect(n === 1, `photo rendered ${n} times`);
+});
+
+await run("D5", "duplicate-photo", "ALREADY-SAVED content (mirror + richText both hold the photo, richTextEdited=false) renders it once", async ({ page, state }) => {
+  const mirror = `![Saved](${PHOTO})\n\nSaved body text.`;
+  seedSavedPage(state, IS, { mirror, rich: `<p><img src="${PHOTO}" alt="Saved"></p><p>Saved body text.</p>`, edited: false });
+  await viewPublic(page, IS);
+  expect((await countPhotos(page)) === 1, `photo rendered ${await countPhotos(page)} times`);
+  expect((await page.getByText("Saved body text.").count()) === 1, "body text duplicated or missing");
+});
+
+await run("D6", "duplicate-photo", "ALREADY-SAVED content edited in the editor (richTextEdited=true) renders the photo once", async ({ page, state }) => {
+  const mirror = `![Saved](${PHOTO} "A caption")\n\nEdited body text.`;
+  seedSavedPage(state, IS, { mirror, rich: `<p><img src="${PHOTO}" alt="Saved" title="A caption"></p><p>Edited body text.</p>`, edited: true });
+  await viewPublic(page, IS);
+  const photos = await countPhotos(page), caps = await page.locator(".chess-caption").count();
+  expect(photos === 1 && caps === 1, `photos ${photos}, captions ${caps}`);
+});
+
+await run("D7", "duplicate-photo", "No photo is hidden: photo present only in the markdown mirror (not in richText) still shows once", async ({ page, state }) => {
+  const mirror = `![Only in mirror](${PHOTO})\n\nBody.`;
+  seedSavedPage(state, IS, { mirror, rich: "<p>Body.</p>", edited: false });
+  await viewPublic(page, IS);
+  expect((await countPhotos(page)) === 1, `photo rendered ${await countPhotos(page)} times`);
+});
+
+await run("D8", "duplicate-photo", "Two different photos (lead in mirror, another inline in richText) both show, once each", async ({ page, state }) => {
+  const mirror = `![Lead](${PHOTO})\n\nBody with inline photo ![Inline](${OTHER}) here.`;
+  seedSavedPage(state, IS, { mirror, rich: `<p>Body with inline photo <img src="${OTHER}" alt="Inline"> here.</p>`, edited: true });
+  await viewPublic(page, IS);
+  const a = await countPhotos(page), b = await countPhotos(page, "fixture-other");
+  expect(a === 1 && b === 1, `lead photo ${a}x, inline photo ${b}x`);
+});
+
+await run("D9", "duplicate-photo", "Public page for a photo-less saved page and the Our Beliefs page are unaffected", async ({ page }) => {
+  await viewPublic(page, "/about/beliefs");
+  expect((await countPhotos(page, "fixture-nodesc")) === 1, "beliefs photo count changed");
+});
+
+// Server render / SEO: the same public components render in Node. Needs the SSR bundle from `vite build`.
+const ssrBundle = new URL("../dist/server/entry-server.js", import.meta.url);
+const ssrHtml = async (content, path) => {
+  const { renderSite } = await import(ssrBundle.href + `?t=${Date.now()}`);
+  const { renderPage } = await import("../seo-render.mjs");
+  const out = await renderPage('<html><head><title>x</title></head><body><div id="root"></div></body></html>', path, content, "", renderSite);
+  expect(out.status === 200, `SSR status ${out.status} for ${path}`);
+  return out.html.split('<div id="root">')[1].split('<script id="chess-content"')[0];
+};
+const imgCount = (html, src) => (html.match(new RegExp(`<img[^>]+src="[^"]*${src}`, "g")) ?? []).length;
+
+await run("S1", "duplicate-photo", "SSR/SEO render: edited page (richText + mirror) has its photo exactly once", async ({ state }) => {
+  const mirror = `![Saved](${PHOTO})\n\nSaved body text.`;
+  seedSavedPage(state, IS, { mirror, rich: `<p><img src="${PHOTO}" alt="Saved"></p><p>Saved body text.</p>`, edited: true });
+  const html = await ssrHtml(state.editor.published, IS);
+  expect(imgCount(html, "fixture-geese") === 1, `SSR rendered the photo ${imgCount(html, "fixture-geese")} times`);
+});
+await run("S2", "duplicate-photo", "SSR/SEO render: markdown-only page has its photo exactly once, with caption once", async ({ state }) => {
+  seedSavedPage(state, IS, { mirror: `![Lead](${PHOTO} "SSR caption")\n\nBody.`, rich: null });
+  const html = await ssrHtml(state.editor.published, IS);
+  expect(imgCount(html, "fixture-geese") === 1 && (html.match(/SSR caption/g) ?? []).length === 1, `photos ${imgCount(html, "fixture-geese")}, captions ${(html.match(/SSR caption/g) ?? []).length}`);
+});
+await run("S3", "duplicate-photo", "SSR/SEO render: photo only in the mirror is still rendered once (nothing hidden)", async ({ state }) => {
+  seedSavedPage(state, IS, { mirror: `![Only in mirror](${PHOTO})\n\nBody.`, rich: "<p>Body.</p>", edited: false });
+  const html = await ssrHtml(state.editor.published, IS);
+  expect(imgCount(html, "fixture-geese") === 1, `SSR rendered the photo ${imgCount(html, "fixture-geese")} times`);
+});
+await run("S4", "duplicate-photo", "SSR/SEO render of the draft saved by the real editor flow has the photo once", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await clickPhoto(page, "fixture-geese");
+  await editAlt(page);
+  await publishAndView(page, state, IS);
+  const html = await ssrHtml(state.editor.published, IS);
+  expect(imgCount(html, "fixture-geese") === 1, `SSR rendered the photo ${imgCount(html, "fixture-geese")} times`);
 });
 
 // ---------------------------------------------------------------- network hygiene

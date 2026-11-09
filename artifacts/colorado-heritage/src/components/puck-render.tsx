@@ -185,7 +185,7 @@ function RichHtml({ value }: { value: string }) {
   const resolve = useResolvedHref();
   const clean = useMemo(() => sanitizeHtml(value, {
     allowedTags: ["p", "br", "strong", "b", "em", "i", "u", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "a", "blockquote", "span", "img", "table", "thead", "tbody", "tr", "th", "td", "hr", "code", "pre"],
-    allowedAttributes: { a: ["href", "target", "rel"], span: ["style"], p: ["style"], h1: ["style"], h2: ["style"], h3: ["style"], h4: ["style"], h5: ["style"], h6: ["style"], img: ["src", "alt", "loading"], th: ["scope", "colspan", "rowspan"], td: ["colspan", "rowspan"] },
+    allowedAttributes: { a: ["href", "target", "rel"], span: ["style"], p: ["style"], h1: ["style"], h2: ["style"], h3: ["style"], h4: ["style"], h5: ["style"], h6: ["style"], img: ["src", "alt", "title", "loading"], th: ["scope", "colspan", "rowspan"], td: ["colspan", "rowspan"] },
     allowedStyles: {
       span: { color: [/^#(?:1A365D|D4AF37|2D3748)$/i], "text-align": [/^(left|center|right)$/] },
       p: { color: [/^#(?:1A365D|D4AF37|2D3748)$/i], "text-align": [/^(left|center|right)$/] },
@@ -198,8 +198,28 @@ function RichHtml({ value }: { value: string }) {
     },
     allowedSchemes: ["http", "https", "mailto", "tel"],
   }), [value]);
-  const resolved = clean.replace(/\shref=(["'])(.*?)\1/gi, (_match, quote: string, href: string) => ` href=${quote}${resolve(href)}${quote}`);
+  // A photo caption is stored as the image title; show it under the photo (nothing when empty).
+  const captioned = clean.replace(/<img\b([^>]*?)\stitle=(["'])(.*?)\2([^>]*)>/gi, (_match, before: string, _quote: string, title: string, after: string) =>
+    title.trim() ? `<span class="chess-figure"><img${before}${after}><span class="chess-caption">${title}</span></span>` : `<img${before}${after}>`);
+  const resolved = captioned.replace(/\shref=(["'])(.*?)\1/gi, (_match, quote: string, href: string) => ` href=${quote}${resolve(href)}${quote}`);
   return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: resolved }} />;
+}
+
+/**
+ * Photo sources already present in the rich text of the page's text sections. A page that has been through the
+ * visual editor keeps its photos inline in that rich text AND in the `markdown` mirror; the page template lifts
+ * the first stand-alone photo of the mirror out as a lead photo, so it uses this to avoid showing the same photo twice.
+ */
+export function richTextImageSources(blocks: unknown): Set<string> {
+  const sources = new Set<string>();
+  if (!blocks || typeof blocks !== "object" || !Array.isArray((blocks as PuckPayload).content)) return sources;
+  for (const block of (blocks as PuckPayload).content) {
+    if (block.type !== "LegacyMarkdown" || typeof block.props.richText !== "string") continue;
+    for (const match of block.props.richText.matchAll(/<img\b[^>]*?\ssrc=(["'])(.*?)\1/gi)) {
+      sources.add(match[2].replace(/&amp;/g, "&").trim());
+    }
+  }
+  return sources;
 }
 
 export function blocksFromLegacy(markdown: string): PuckPayload {

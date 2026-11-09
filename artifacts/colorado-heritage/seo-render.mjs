@@ -3,7 +3,7 @@ export const siteOrigin="https://heritage-site-builder.replit.app";
 const apiOrigin=process.env.SITE_API_ORIGIN||"http://127.0.0.1:8080";
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const json=value=>JSON.stringify(value).replace(/</g,"\\u003c").replace(/\u2028/g,"\\u2028").replace(/\u2029/g,"\\u2029");
-const plain=value=>String(value||"").replace(/!\[[^\]]*\]\([^)]+\)/g,"").replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/[#*_`>]/g,"").replace(/\s+/g," ").trim();
+const plain=value=>String(value||"").replace(/!\[[^\]]*\]\((?:[^)"]|"[^"]*")+\)/g,"").replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/[#*_`>]/g,"").replace(/\s+/g," ").trim();
 export function canonicalPath(requested,content={}) {
   let path;
   try{path=decodeURI(requested).replace(/\/+$/,"")||"/";}catch{return requested;}

@@ -243,7 +243,7 @@ export function VisitPage({ page, content }: { page: CmsPage; content: SiteConte
 export function FaqPage({ content }: { content: SiteContentExt }) {
   const page = content.pages.find((item) => item.path === "/faq");
   const intro = stripSourceTitle(page?.markdown ?? "")
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/!\[[^\]]*\]\((?:[^)"]|"[^"]*")+\)/g, "")
     .replace(/^#{1,3}\s*Questions Parents Ask\s*\n?/im, "")
     .trim();
   return <article className="cb-page" data-testid="page-faq">
@@ -270,7 +270,7 @@ export function PeoplePage({ page, content }: { page: CmsPage; content: SiteCont
   let board = boardAt >= 0 ? md.slice(boardAt).replace(/^#{1,3}\s*(our\s+)?board[^\n]*\n/i, "") : "";
   const nextHeading = board.search(/^#{1,2}\s/m);
   if (nextHeading >= 0) board = board.slice(0, nextHeading);
-  board = board.replace(/!\[[^\]]*\]\([^)]+\)/g, "");
+  board = board.replace(/!\[[^\]]*\]\((?:[^)"]|"[^"]*")+\)/g, "");
   if (boardPeople.length) {
     const names = boardPeople.map((p) => p.name.replace(/^(mr|mrs|ms|miss|dr|pastor)\.?\s+/i, "").toLowerCase());
     board = board.split("\n").filter((l) => !names.some((n) => l.toLowerCase().includes(n))).join("\n");

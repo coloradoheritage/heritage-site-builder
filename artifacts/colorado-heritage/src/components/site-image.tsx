@@ -1,6 +1,6 @@
 import type { ImgHTMLAttributes } from "react";
 import schoolPhotos from "../../../api-server/src/data/school-photos.json";
-import { mediaUrl } from "../lib/cms";
+import { mediaUrl, splitImageTarget } from "../lib/cms";
 
 export { schoolPhotos };
 
@@ -13,6 +13,7 @@ export function SiteImage({ src = "", sizes = "(min-width: 900px) 760px, calc(10
 }
 
 export function PagePhoto({ markdown }: { markdown?: string }) {
-  const image = markdown?.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/m);
-  return image ? <figure className="cb-page-image"><SiteImage src={image[2]} alt={image[1]} loading="lazy" /></figure> : null;
+  const image = markdown?.match(/^!\[([^\]]*)\]\(((?:[^)"]|"[^"]*")+)\)\s*$/m);
+  const target = image ? splitImageTarget(image[2]) : null;
+  return image && target ? <figure className="cb-page-image"><SiteImage src={target.src} alt={image[1]} loading="lazy" />{target.caption && <figcaption className="chess-caption">{target.caption}</figcaption>}</figure> : null;
 }
