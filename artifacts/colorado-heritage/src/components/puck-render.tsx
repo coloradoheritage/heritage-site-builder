@@ -205,6 +205,23 @@ function RichHtml({ value }: { value: string }) {
   return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: resolved }} />;
 }
 
+/**
+ * Photo sources already present in the rich text of the page's text sections. A page that has been through the
+ * visual editor keeps its photos inline in that rich text AND in the `markdown` mirror; the page template lifts
+ * the first stand-alone photo of the mirror out as a lead photo, so it uses this to avoid showing the same photo twice.
+ */
+export function richTextImageSources(blocks: unknown): Set<string> {
+  const sources = new Set<string>();
+  if (!blocks || typeof blocks !== "object" || !Array.isArray((blocks as PuckPayload).content)) return sources;
+  for (const block of (blocks as PuckPayload).content) {
+    if (block.type !== "LegacyMarkdown" || typeof block.props.richText !== "string") continue;
+    for (const match of block.props.richText.matchAll(/<img\b[^>]*?\ssrc=(["'])(.*?)\1/gi)) {
+      sources.add(match[2].replace(/&amp;/g, "&").trim());
+    }
+  }
+  return sources;
+}
+
 export function blocksFromLegacy(markdown: string): PuckPayload {
   return { root: { props: {} }, content: [{ type: "LegacyMarkdown", props: { id: "legacy-original", markdown } }], zones: {} } as PuckPayload;
 }

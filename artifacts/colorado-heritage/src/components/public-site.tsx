@@ -16,7 +16,7 @@ import { FaqAccordion, HomePage, SectionBody } from "./home-page";
 import { CalendarPage, ContactPage, FaqPage, NewsIndex, PeoplePage, VisitPage } from "./special-pages";
 import { SiteImage } from "./site-image";
 import { MobileActionBar, PraxiBox, QuietVisit, VisitBand } from "./site-chrome";
-import { PuckAdditionalRenderer, PuckBlockRenderer } from "./puck-render";
+import { PuckAdditionalRenderer, PuckBlockRenderer, richTextImageSources } from "./puck-render";
 
 export { DocumentsContext, resolveDocument, MarkdownContent } from "./markdown";
 export { FacultyGrid } from "./faculty-grid";
@@ -97,6 +97,10 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
   if (markdown.trim() === "Colorado Heritage — Secure") markdown = "";
   const heroImage = path === "/gallery" ? null : markdown.match(/^!\[([^\]]*)\]\(((?:[^)"]|"[^"]*")+)\)\s*$/m);
   if (heroImage) markdown = markdown.replace(heroImage[0], "");
+  // Pages saved from the visual editor render their photos from the rich text of each text section, which already
+  // contains this photo; showing it again as the lead photo would duplicate it. Only a photo that is NOT already in
+  // the rich text is shown as the lead photo, so no photo is ever hidden.
+  const heroInRichText = Boolean(heroImage) && richTextImageSources(page.blocks).has(splitImageTarget(heroImage![2]).src);
   if (path === "/donate") return <DonationPage page={page} markdown={markdown} blocks={page.blocks} />;
   const docUrl = useDocUrl();
   const resourceUrl = page.externalUrl || docUrl(page.documentPath);
@@ -120,7 +124,7 @@ function ContentPage({ page, content }: { page: CmsPage; content: SiteContentExt
       <h1>{fixText(page.label)}</h1>
       {page.description && <p>{fixText(page.description)}</p>}
     </header>
-    {heroImage && (() => { const target = splitImageTarget(heroImage[2]); return <figure className="cb-page-image"><SiteImage src={target.src} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : ""} loading="lazy" />{target.caption && <figcaption className="chess-caption">{target.caption}</figcaption>}</figure>; })()}
+    {heroImage && !heroInRichText && (() => { const target = splitImageTarget(heroImage[2]); return <figure className="cb-page-image"><SiteImage src={target.src} alt={heroImage[1] && !isFilenameCaption(heroImage[1]) ? heroImage[1] : ""} loading="lazy" />{target.caption && <figcaption className="chess-caption">{target.caption}</figcaption>}</figure>; })()}
     {page.kind === "protected" && !markdown.trim()
       ? <PraxiBox />
       : page.blocks
