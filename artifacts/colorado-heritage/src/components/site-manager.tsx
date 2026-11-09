@@ -5,7 +5,7 @@ import {
   useUploadSiteDocument,
   type CmsArticle, type CmsDocument, type CmsPage, type CmsStaff, type SiteContentState, type SiteContentEditorState,
 } from "@workspace/api-client-react";
-import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, Check, Plus, RotateCw, Save, Send, Trash2, History, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, Check, ChevronDown, Plus, RotateCw, Save, Send, Trash2, History, X } from "lucide-react";
 import { DocumentsContext, MarkdownContent, resolveDocument } from "./markdown";
 import { AnnouncementsEditor, FaqEditor, HomeEditor, InquiriesInbox, MediaHealthBanner, PhotoUploader } from "./site-editors";
 export { PhotoUploader } from "./site-editors";
@@ -18,12 +18,51 @@ import { isValidMountainInput, toMountainInput } from "./puck-time";
 type Tab = "visual" | "home" | "faqs" | "announcements" | "inquiries" | "pages" | "staff" | "events" | "news" | "documents" | "menu";
 const VisualPageEditor = lazy(() => import("./puck-content").then((module) => ({ default: module.VisualPageEditor })));
 const DraftParentPreview = lazy(() => import("./draft-parent-preview"));
-const TABS: { id: Tab; label: string }[] = [
-  { id: "visual", label: "Visual editor" },
-  { id: "home", label: "Home page" }, { id: "announcements", label: "Announcements" }, { id: "faqs", label: "FAQs" }, { id: "inquiries", label: "Inquiries" },
-  { id: "pages", label: "Pages" }, { id: "staff", label: "Faculty & staff" }, { id: "events", label: "Events" },
-  { id: "news", label: "News & blog" }, { id: "documents", label: "Documents" }, { id: "menu", label: "Menu links" },
-];
+// One plain-language label + one-line description per tab. The five everyday tasks are
+// the primary tabs; everything else lives under a "More" menu so the bar is not a wall
+// of eleven choices. "Home page" is no longer its own primary tab (its text is edited
+// in Edit pages, in the Visual editor) — only its photo and search settings remain,
+// relabelled and moved under More, so it is not a duplicate of the page editor.
+const TAB_META: Record<Tab, { label: string; desc: string }> = {
+  visual: { label: "Edit pages", desc: "Change the words, photos, and links on any page." },
+  announcements: { label: "Announcements", desc: "Timed notices in the bar above the menu." },
+  events: { label: "Events", desc: "Add and edit school calendar events." },
+  staff: { label: "Faculty & staff", desc: "Add or update staff and faculty profiles." },
+  documents: { label: "Documents", desc: "Upload PDFs such as the calendar or tuition policy." },
+  pages: { label: "Pages", desc: "Create, rename, or remove pages." },
+  news: { label: "News & blog", desc: "Write and edit news and blog posts." },
+  faqs: { label: "FAQs", desc: "Questions parents ask, and which show on the home page." },
+  inquiries: { label: "Inquiries", desc: "Questions families sent from the website." },
+  menu: { label: "Menu links", desc: "Arrange page links in the six navigation groups." },
+  home: { label: "Home photo & settings", desc: "Hero photo and search settings. Edit home text in Edit pages." },
+};
+const PRIMARY_TABS: Tab[] = ["visual", "announcements", "events", "staff", "documents"];
+const MORE_TABS: Tab[] = ["pages", "news", "faqs", "inquiries", "menu", "home"];
+const ALL_TABS: Tab[] = [...PRIMARY_TABS, ...MORE_TABS];
+// Map a public path (the page the staff member is looking at in the parent preview)
+// to where it is edited: a key the Visual editor opens directly, or a management tab.
+// Returns {} when nothing specific matches, so the caller just opens the Visual editor.
+function resolveEditTarget(path: string, draft: SiteContentState): { key?: string; tab?: Tab } {
+  const clean = path.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+  if (clean === "/") return { key: "home" };
+  // The public site resolves these two paths to the news index and FAQ page before it
+  // looks at any page record, so mirror that order: a leftover page record for /news
+  // or /faq (e.g. an old archive page) must not capture the edit.
+  if (clean === "/faq") return { tab: "faqs" };
+  if (clean === "/news") return { tab: "news" };
+  // Archived pages are not shown publicly or listed in the Visual editor, so they can't be a target.
+  const page = draft.pages.findIndex((p) => p.path === clean && !p.archived);
+  if (page >= 0) return { key: `page:${page}` };
+  const staff = draft.staff.findIndex((s) => staffProfilePath(s) === clean);
+  if (staff >= 0) return { key: `staff:${staff}` };
+  const news = draft.news.findIndex((a) => a.path === clean);
+  if (news >= 0) return { key: `news:${news}` };
+  const ev = draft.events.findIndex((a) => a.path === clean);
+  if (ev >= 0) return { key: `events:${ev}` };
+  if (clean.startsWith("/parents/calendar")) return { tab: "events" };
+  return {};
+}
+
 const PAGE_KINDS = ["content", "overview", "contact", "donate", "gallery", "video", "protected", "archive", "sitemap"];
 // Plain-language names for the page layout menu (value stays the internal kind).
 const PAGE_KIND_LABELS: Record<string, string> = {
@@ -495,6 +534,34 @@ function MenuEditor({ draft, update }: { draft: SiteContentState; update: (fn: (
 
 /* ---------------- Shell ---------------- */
 
+// The "More" dropdown that holds the less-frequent tabs. If one of them is the current
+// tab, the button shows that tab's name (and stays highlighted) so staff never lose
+// track of where they are. Each item carries its one-line description.
+function MoreTabsMenu({ current, onPick, counts }: { current: Tab; onPick: (t: Tab) => void; counts: Record<Tab, number | string> }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onEsc); };
+  }, [open]);
+  const activeInMore = MORE_TABS.includes(current);
+  return <div className="cms-tabs-more" ref={ref}>
+    <button type="button" className={`cms-tabs-more-btn${activeInMore ? " is-active" : ""}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} data-testid="tab-more">
+      {activeInMore ? TAB_META[current].label : "More"} <ChevronDown size={14} />
+    </button>
+    {open && <div className="cms-tabs-more-menu" role="menu">
+      {MORE_TABS.map((id) => <button type="button" key={id} role="menuitem" className={current === id ? "is-active" : ""} onClick={() => { onPick(id); setOpen(false); }} data-testid={`tab-${id}`}>
+        <strong>{TAB_META[id].label}{counts[id] !== "" && <span className="cms-more-count">{counts[id]}</span>}</strong>
+        <span>{TAB_META[id].desc}</span>
+      </button>)}
+    </div>}
+  </div>;
+}
+
 export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () => void; onSignOut?: () => void; publicSiteUrl: string }) {
   const query = useGetSiteContentEditor();
   const save = useSaveSiteContentDraft();
@@ -504,7 +571,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
   const [draft, setDraft] = useState<SiteContentState | null>(null);
   const [dirty, setDirty] = useState(false);
   const [draftRevision, setDraftRevision] = useState(1);
-  const [tab, setTab] = useState<Tab>(() => { const t = new URLSearchParams(window.location.search).get("tab"); return (TABS.some((x) => x.id === t) ? t : "visual") as Tab; });
+  const [tab, setTab] = useState<Tab>(() => { const t = new URLSearchParams(window.location.search).get("tab"); return (t && ALL_TABS.includes(t as Tab) ? t : "visual") as Tab; });
   const [parentPreview, setParentPreview] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error" | "conflict"; text: string } | null>(null);
   // Cross-tab coordination: open a page in the canvas, open a page's settings, and
@@ -662,7 +729,14 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
         {onSignOut && <button type="button" className="cms-btn cms-btn-ghost" onClick={() => { if (!dirty || window.confirm("Sign out without saving your changes?")) onSignOut(); }}>Sign out</button>}
       </div>
     </header>
-    {parentPreview && <Suspense fallback={<p role="status">Opening private preview…</p>}><DraftParentPreview draft={draft} initialPath={tab === "visual" || tab === "pages" ? previewPath : tab === "faqs" ? "/faq" : tab === "events" ? "/parents/calendar" : tab === "news" ? "/news" : "/"} onClose={() => setParentPreview(false)} /></Suspense>}
+    {parentPreview && <Suspense fallback={<p role="status">Opening private preview…</p>}><DraftParentPreview draft={draft} initialPath={tab === "visual" || tab === "pages" ? previewPath : tab === "faqs" ? "/faq" : tab === "events" ? "/parents/calendar" : tab === "news" ? "/news" : "/"} onClose={() => setParentPreview(false)}
+      onEditPage={(path) => {
+        const target = resolveEditTarget(path, draft);
+        setParentPreview(false);
+        if (target.key) { setVisualRequest({ key: target.key, nonce: Date.now() }); setTab("visual"); }
+        else if (target.tab) setTab(target.tab);
+        else { setVisualRequest({ key: "home", nonce: Date.now() }); setTab("visual"); }
+      }} /></Suspense>}
     <p className="cms-explainer">Edits are saved privately as a draft. Families see changes only after you choose Publish. The school header, navigation, colors, fonts, and footer remain part of the site design.</p>
     {feedback && <div className={`cms-feedback cms-feedback-${feedback.kind}`} role={feedback.kind === "ok" ? "status" : "alert"}>
       {feedback.kind === "ok" ? <Check size={16} /> : <AlertTriangle size={16} />}<span>{feedback.text}</span>
@@ -670,9 +744,11 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
     </div>}
     {issues.length > 0 && <div className="cms-feedback cms-feedback-error"><AlertTriangle size={16} /><ul>{issues.slice(0, 6).map((t) => <li key={t}>{t}</li>)}{issues.length > 6 && <li>and {issues.length - 6} more</li>}</ul></div>}
     <MediaHealthBanner />
-    <nav className="cms-tabs" aria-label="Content type">
-      {TABS.map((t) => <button type="button" key={t.id} className={tab === t.id ? "is-active" : ""} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}>{t.label}<span>{counts[t.id]}</span></button>)}
+    <nav className="cms-tabs" aria-label="What do you want to do?">
+      {PRIMARY_TABS.map((id) => <button type="button" key={id} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)} data-testid={`tab-${id}`} title={TAB_META[id].desc}>{TAB_META[id].label}{counts[id] !== "" && <span>{counts[id]}</span>}</button>)}
+      <MoreTabsMenu current={tab} onPick={setTab} counts={counts} />
     </nav>
+    <p className="cms-tab-desc">{TAB_META[tab].desc}</p>
     <main className="cms-body">
       {tab === "visual" && <Suspense fallback={<div className="cms-puck-loading" aria-busy="true"><span /><span /><span /></div>}>
         <VisualPageEditor draft={draft} update={update} requestedKey={visualRequest?.key} requestedNonce={visualRequest?.nonce}
@@ -709,9 +785,10 @@ export function EditorHome({ onChoose, onSignOut, publicSiteUrl }: { onChoose: (
     <h1>What would you like to update?</h1>
     <p>Save Draft keeps changes private to staff. Families continue to see the published version until you choose Publish.</p>
     <div className="cms-home-choices">
-      {([["visual", "Edit any page", "Choose a page, staff profile, story, or event and edit it with familiar formatting tools."], ["home", "Homepage details", "Update the homepage headline, photo, and search settings."], ["announcements", "Announcements", "Timed notices in the bar above the menu."], ["faqs", "FAQs", "Questions parents ask, and which show on the home page."], ["inquiries", "Inquiries", "Questions families sent from the website."], ["pages", "Add or remove pages", "Create pages and manage profiles, events, news, and documents."], ["menu", "Menu links", "Arrange page links inside the six fixed navigation groups."]] as const).map(([id, title, text]) =>
+      {([["visual", "Edit a page", "Change the words, photos, and links on any page."], ["announcements", "Post an announcement", "Add a timed notice to the bar above the menu."], ["events", "Add an event", "Put an event on the school calendar."], ["staff", "Update staff", "Add or edit a faculty or staff profile."], ["documents", "Upload a document", "Add a PDF such as the calendar or tuition policy."]] as const).map(([id, title, text]) =>
         <button type="button" key={id} onClick={() => { const u = new URL(window.location.href); u.searchParams.set("tab", id); window.history.replaceState(null, "", u); onChoose("site"); }} data-testid={`choose-${id}`}><strong>{title}</strong><span>{text}</span></button>)}
     </div>
+    <p className="cms-home-more">Looking for pages, news, FAQs, menus, inquiries, or home-page settings? <button type="button" className="cms-linklike" onClick={() => { const u = new URL(window.location.href); u.searchParams.set("tab", "visual"); window.history.replaceState(null, "", u); onChoose("site"); }} data-testid="choose-more">Open the editor</button> and use the <strong>More</strong> menu.</p>
     <p className="cms-legacy-link"><button type="button" className="cms-btn cms-btn-ghost" onClick={() => onChoose("homepage")} data-testid="choose-homepage-editor">Legacy homepage tool (old design)</button></p>
     <div className="cms-home-links"><a href={publicSiteUrl}>Visit the public website</a>{onSignOut && <button type="button" onClick={onSignOut}>Sign out</button>}</div>
   </div>;

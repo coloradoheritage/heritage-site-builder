@@ -1,0 +1,7 @@
+{
+  "name": "editor-e2e-harness",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node run-tests.mjs" },
+  "dependencies": { "playwright-core": "1.56.1" }
+}
