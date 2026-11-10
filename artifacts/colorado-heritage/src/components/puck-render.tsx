@@ -10,7 +10,8 @@ import "./puck-content.css";
 
 export type KnownBlock =
   | "LegacyMarkdown" | "PhotoWithText" | "FamilyStepButton" | "FaqItem" | "StaffCard"
-  | "Testimonial" | "TuitionTable" | "VideoOrMap" | "Announcement";
+  | "Testimonial" | "TuitionTable" | "VideoOrMap" | "Announcement"
+  | "Photo" | "Gallery" | "Divider" | "Callout";
 export type PuckPayload = Data & { content: Array<{ type: KnownBlock; props: Record<string, unknown> }> };
 
 function safeSiteHref(value: unknown): string {
@@ -30,6 +31,28 @@ function safeEmbedUrl(value: unknown): string {
     return "";
   }
 }
+
+/**
+ * Turns anything a person might paste for a YouTube video (watch link, youtu.be short link, shorts, embed link)
+ * into the privacy-friendly embed address the site allows. Returns "" when it is not a YouTube video link.
+ */
+export function youtubeEmbedUrl(input: string): string {
+  const raw = input.trim();
+  if (!raw) return "";
+  let url: URL;
+  try { url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`); } catch { return ""; }
+  const host = url.hostname.replace(/^www\./, "").replace(/^m\./, "");
+  let id = "";
+  if (host === "youtu.be") id = url.pathname.slice(1).split("/")[0];
+  else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    if (url.pathname === "/watch") id = url.searchParams.get("v") ?? "";
+    else { const match = url.pathname.match(/^\/(?:embed|shorts|live|v)\/([A-Za-z0-9_-]+)/); id = match?.[1] ?? ""; }
+  }
+  return /^[A-Za-z0-9_-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : "";
+}
+
+type PostPhoto = { url?: string; alt?: string };
+const PHOTO_ALIGNMENTS = ["wide", "center", "left", "right"] as const;
 
 // Was Puck's built-in "richtext" field, but Puck's <Render> coerces a "richtext"
 // value into a structured object — which turned our stored HTML strings into
@@ -80,7 +103,7 @@ export const chessPuckConfig: Config = {
         const secondLabel = String(secondaryButtonLabel ?? "").trim();
         const secondUrl = safeSiteHref(secondaryHref);
         return <section className="puck-family-step">
-          <h2>{String(title ?? "")}</h2>
+          {String(title ?? "").trim() && <h2>{String(title)}</h2>}
           <RichHtml value={String(richText ?? "")} />
           <div className="puck-family-step-actions">
             <a href={safeSiteHref(href) || "/contact"}>{String(buttonLabel || "Learn more")} <ArrowRight size={16} /></a>
@@ -137,7 +160,7 @@ export const chessPuckConfig: Config = {
         const heads = Array.isArray(columns) ? columns.slice(0, 4) as { label?: string }[] : [];
         const values = Array.isArray(rows) ? rows as Record<string, string>[] : [];
         return <section className="puck-tuition"><div className="cb-table-wrap" role="region" aria-label={String(heading || "Tuition information")} tabIndex={0}>
-          <table><caption>{String(heading ?? "Tuition and fees")}</caption>
+          <table>{String(heading ?? "Tuition and fees").trim() && <caption>{String(heading ?? "Tuition and fees")}</caption>}
             <thead><tr>{heads.map((column, i) => <th scope="col" key={i}>{column.label || `Column ${i + 1}`}</th>)}</tr></thead>
             <tbody>{values.map((row, r) => <tr key={r}>{heads.map((_column, c) => {
               const value = String(row[`cell${c + 1}`] ?? "");
@@ -153,7 +176,56 @@ export const chessPuckConfig: Config = {
       defaultProps: { heading: "Visit CHESS", url: "", description: "" },
       render: ({ heading, url, description }) => {
         const safeUrl = safeEmbedUrl(url);
-        return <section className="puck-embed"><h2>{String(heading ?? "")}</h2>{safeUrl && <iframe src={safeUrl} title={String(heading || "CHESS video or map")} loading="lazy" sandbox="allow-scripts allow-same-origin allow-presentation" referrerPolicy="strict-origin-when-cross-origin" allow="fullscreen; picture-in-picture" />}{description && <p>{String(description)}</p>}</section>;
+        return <section className="puck-embed">{String(heading ?? "").trim() && <h2>{String(heading)}</h2>}{safeUrl && <iframe src={safeUrl} title={String(heading || "CHESS video or map")} loading="lazy" sandbox="allow-scripts allow-same-origin allow-presentation" referrerPolicy="strict-origin-when-cross-origin" allow="fullscreen; picture-in-picture" />}{description && <p>{String(description)}</p>}</section>;
+      },
+    },
+    Photo: {
+      label: "Photo",
+      fields: { image: { type: "custom", label: "Photo", render: () => <span>Use the photo picker in the editor.</span> }, caption: { type: "text", label: "Caption" }, align: { type: "select", label: "Position", options: PHOTO_ALIGNMENTS.map((value) => ({ label: value, value })) } },
+      defaultProps: { image: { url: "", alt: "" }, caption: "", align: "center" },
+      render: ({ image, caption, align }) => {
+        const photo = (image && typeof image === "object" ? image : {}) as PostPhoto;
+        if (!photo.url) return <></>;
+        const position = PHOTO_ALIGNMENTS.includes(align as never) ? String(align) : "center";
+        const text = String(caption ?? "").trim();
+        return <figure className={`puck-photo is-${position}`}>
+          <SiteImage src={photo.url} alt={String(photo.alt ?? "")} loading="lazy" />
+          {text && <figcaption className="chess-caption">{text}</figcaption>}
+        </figure>;
+      },
+    },
+    Gallery: {
+      label: "Photo gallery",
+      fields: { images: { type: "array", label: "Photos", arrayFields: { url: { type: "text", label: "Photo address" }, alt: { type: "text", label: "Photo description" }, caption: { type: "text", label: "Caption" } } } },
+      defaultProps: { images: [] },
+      render: ({ images }) => {
+        const list = (Array.isArray(images) ? images : []).filter((item): item is PostPhoto & { caption?: string } => Boolean(item && typeof item === "object" && (item as PostPhoto).url));
+        if (!list.length) return <></>;
+        return <ul className={`puck-gallery is-${Math.min(list.length, 3)}-up`}>{list.map((item, i) => <li key={`${item.url}-${i}`}>
+          <figure>
+            <SiteImage src={String(item.url)} alt={String(item.alt ?? "")} loading="lazy" sizes="(min-width: 900px) 33vw, 50vw" />
+            {String(item.caption ?? "").trim() && <figcaption className="chess-caption">{String(item.caption)}</figcaption>}
+          </figure>
+        </li>)}</ul>;
+      },
+    },
+    Divider: {
+      label: "Divider",
+      fields: {},
+      defaultProps: {},
+      render: () => <hr className="puck-divider" />,
+    },
+    Callout: {
+      label: "Callout box",
+      fields: { tone: { type: "select", label: "Style", options: [{ label: "Note", value: "note" }, { label: "Highlight", value: "highlight" }] }, heading: { type: "text", label: "Heading" }, text: { type: "textarea", label: "Text" } },
+      defaultProps: { tone: "note", heading: "", text: "" },
+      render: ({ tone, heading, text }) => {
+        const paragraphs = String(text ?? "").split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
+        if (!paragraphs.length && !String(heading ?? "").trim()) return <></>;
+        return <aside className={`puck-callout is-${tone === "highlight" ? "highlight" : "note"}`}>
+          {String(heading ?? "").trim() && <strong>{String(heading)}</strong>}
+          {paragraphs.map((part, i) => <p key={i}>{part}</p>)}
+        </aside>;
       },
     },
     Announcement: {

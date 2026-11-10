@@ -17,6 +17,7 @@ import { mediaStorage, storeDocument, storePhoto } from "../lib/site-media";
 import { restoreImportedPortraits } from "../lib/portrait-content";
 import { migrateSitePlan, SITE_PLAN_VERSION } from "../lib/site-plan";
 import { activeAnnouncements, denverInstant } from "../lib/announcements";
+import { withoutDraftPosts } from "../lib/draft-posts";
 import multer from "multer";
 import { Router as ExpressRouter } from "express";
 
@@ -25,6 +26,7 @@ const router: IRouter = Router();
 const puckBlockTypes = new Set([
   "LegacyMarkdown", "PhotoWithText", "FamilyStepButton", "FaqItem", "StaffCard",
   "Testimonial", "TuitionTable", "VideoOrMap", "Announcement",
+  "Photo", "Gallery", "Divider", "Callout",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -119,6 +121,16 @@ function hasMissingPhotoAlt(blocks: unknown): boolean {
   if (!isRecord(blocks) || !Array.isArray(blocks.content)) return false;
   return blocks.content.some((block) => {
     if (!isRecord(block) || !isRecord(block.props)) return false;
+    if (block.type === "Photo") {
+      const photo = block.props.image;
+      return isRecord(photo) && typeof photo.url === "string" && photo.url.trim().length > 0 &&
+        (typeof photo.alt !== "string" || !photo.alt.trim());
+    }
+    if (block.type === "Gallery") {
+      return Array.isArray(block.props.images) && block.props.images.some((photo) =>
+        isRecord(photo) && typeof photo.url === "string" && photo.url.trim().length > 0 &&
+        (typeof photo.alt !== "string" || !photo.alt.trim()));
+    }
     if (block.type !== "PhotoWithText" && block.type !== "StaffCard") return false;
     const image = block.type === "StaffCard" ? block.props.photo : block.props.imageUrl ?? block.props.image;
     const url = isRecord(image) ? image.url : image;
@@ -188,8 +200,11 @@ function validateContent(content: SiteContent, publishing: boolean): string | nu
   if (publishing && (content.faqs || []).some((faq) => !faq.question.trim() || !faq.answer.trim())) {
     return "Each FAQ needs a question and answer.";
   }
-  if (publishing && [...content.news, ...content.events].some((article) => !article.title.trim())) {
+  if (publishing && [...content.news.filter((article) => !article.draft), ...content.events].some((article) => !article.title.trim())) {
     return "Each news story and event needs a title before publishing.";
+  }
+  if (publishing && content.news.some((article) => !article.draft && article.coverImage && !article.coverAlt?.trim())) {
+    return "Every blog post cover photo needs a photo description (alt text).";
   }
   for (const announcement of content.announcements || []) {
     const dates = [announcement.startsAt, announcement.expiresAt].filter(Boolean) as string[];
@@ -222,7 +237,7 @@ function validateContent(content: SiteContent, publishing: boolean): string | nu
     if (error) return error;
     const valueError = validateBlockValues(article.blocks);
     if (valueError) return valueError;
-    if (publishing && hasMissingPhotoAlt(article.blocks)) return "Every photo block needs a description (alt text).";
+    if (publishing && !article.draft && hasMissingPhotoAlt(article.blocks)) return "Every photo block needs a description (alt text).";
   }
   const homeBlocks = (content.home as unknown as Record<string, unknown> | undefined)?.blocks;
   const homeError = validateBlocks(homeBlocks);
@@ -245,7 +260,8 @@ export async function getSiteContent() {
     const [saved] = await tx.update(siteContentTable).set({content:migrated, revision:current.revision+1,updatedAt:new Date()}).where(eq(siteContentTable.id,1)).returning();
     return saved;
   });
-  const content = restoreImportedPortraits(record.content);
+  // Unpublished blog posts must never be served publicly, even if one reached the published document.
+  const content = withoutDraftPosts(restoreImportedPortraits(record.content));
   return { ...content, activeAnnouncements:activeAnnouncements((content.announcements || []) as any[]), revision: record.revision };
 }
 
@@ -338,10 +354,12 @@ router.post("/site-content/publish", async (req, res) => {
     if (!published || draft.basePublishedRevision !== published.revision) return { kind: "conflict" as const };
     const nextRevision = published.revision + 1;
     const savedContent = withoutRuntimeFields(content.data);
+    // Draft blog posts stay in the private draft document only; the public document never receives them.
+    const publicContent = withoutDraftPosts(savedContent);
     await tx.update(siteContentTable)
-      .set({ content: savedContent, revision: nextRevision, updatedAt: new Date() })
+      .set({ content: publicContent, revision: nextRevision, updatedAt: new Date() })
       .where(and(eq(siteContentTable.id, 1), eq(siteContentTable.revision, published.revision)));
-    await tx.insert(contentBackupsTable).values({ revision: nextRevision, content: savedContent });
+    await tx.insert(contentBackupsTable).values({ revision: nextRevision, content: publicContent });
     await tx.update(siteContentDraftsTable)
       .set({
         content: savedContent,

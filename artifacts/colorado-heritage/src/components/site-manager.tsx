@@ -18,6 +18,7 @@ import { isValidMountainInput, toMountainInput } from "./puck-time";
 type Tab = "visual" | "home" | "faqs" | "announcements" | "inquiries" | "pages" | "staff" | "events" | "news" | "documents" | "menu";
 const VisualPageEditor = lazy(() => import("./puck-content").then((module) => ({ default: module.VisualPageEditor })));
 const DraftParentPreview = lazy(() => import("./draft-parent-preview"));
+const BlogEditor = lazy(() => import("./blog-editor"));
 // One plain-language label + one-line description per tab. The five everyday tasks are
 // the primary tabs; everything else lives under a "More" menu so the bar is not a wall
 // of eleven choices. "Home page" is no longer its own primary tab (its text is edited
@@ -30,19 +31,19 @@ const TAB_META: Record<Tab, { label: string; desc: string }> = {
   staff: { label: "Faculty & staff", desc: "Add or update staff and faculty profiles." },
   documents: { label: "Documents", desc: "Upload PDFs such as the calendar or tuition policy." },
   pages: { label: "Pages", desc: "Create, rename, or remove pages." },
-  news: { label: "News & blog", desc: "Write and edit news and blog posts." },
+  news: { label: "Blog posts", desc: "Write, publish, and manage blog posts for families." },
   faqs: { label: "FAQs", desc: "Questions parents ask, and which show on the home page." },
   inquiries: { label: "Inquiries", desc: "Questions families sent from the website." },
   menu: { label: "Menu links", desc: "Arrange page links in the six navigation groups." },
   home: { label: "Home photo & settings", desc: "Hero photo and search settings. Edit home text in Edit pages." },
 };
-const PRIMARY_TABS: Tab[] = ["visual", "announcements", "events", "staff", "documents"];
-const MORE_TABS: Tab[] = ["pages", "news", "faqs", "inquiries", "menu", "home"];
+const PRIMARY_TABS: Tab[] = ["visual", "news", "announcements", "events", "staff", "documents"];
+const MORE_TABS: Tab[] = ["pages", "faqs", "inquiries", "menu", "home"];
 const ALL_TABS: Tab[] = [...PRIMARY_TABS, ...MORE_TABS];
 // Map a public path (the page the staff member is looking at in the parent preview)
 // to where it is edited: a key the Visual editor opens directly, or a management tab.
 // Returns {} when nothing specific matches, so the caller just opens the Visual editor.
-function resolveEditTarget(path: string, draft: SiteContentState): { key?: string; tab?: Tab } {
+function resolveEditTarget(path: string, draft: SiteContentState): { key?: string; tab?: Tab; post?: string } {
   const clean = path.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
   if (clean === "/") return { key: "home" };
   // The public site resolves these two paths to the news index and FAQ page before it
@@ -55,8 +56,8 @@ function resolveEditTarget(path: string, draft: SiteContentState): { key?: strin
   if (page >= 0) return { key: `page:${page}` };
   const staff = draft.staff.findIndex((s) => staffProfilePath(s) === clean);
   if (staff >= 0) return { key: `staff:${staff}` };
-  const news = draft.news.findIndex((a) => a.path === clean);
-  if (news >= 0) return { key: `news:${news}` };
+  // Blog posts are edited on the Blog posts screen, not in the page editor.
+  if (draft.news.some((a) => a.path === clean)) return { tab: "news", post: clean };
   const ev = draft.events.findIndex((a) => a.path === clean);
   if (ev >= 0) return { key: `events:${ev}` };
   if (clean.startsWith("/parents/calendar")) return { tab: "events" };
@@ -101,7 +102,9 @@ function blockImageIssues(record: { blocks?: unknown }, label: string): string[]
     const image = imageValue && typeof imageValue === "object" ? imageValue as { url?: string; alt?: string } : null;
     const photoUrl = image?.url ?? imageValue;
     const photoAlt = image?.alt ?? block.props?.alt;
-    const hasPhoto = (block.type === "PhotoWithText" || block.type === "StaffCard") && Boolean(photoUrl);
+    const hasPhoto = (block.type === "PhotoWithText" || block.type === "StaffCard" || block.type === "Photo") && Boolean(photoUrl);
+    const galleryMissingAlt = block.type === "Gallery" && Array.isArray(block.props?.images) &&
+      (block.props!.images as Array<{ url?: string; alt?: string }>).some((photo) => photo?.url && !String(photo.alt ?? "").trim());
     const missingAlt = hasPhoto && !String(photoAlt ?? "").trim();
     const timing = block.type === "Announcement" ? {
       rawStart: String(block.props?.startsAt ?? ""),
@@ -112,6 +115,7 @@ function blockImageIssues(record: { blocks?: unknown }, label: string): string[]
     const timingIssue = timing && ((timing.rawStart && (!start || !isValidMountainInput(start))) || (timing.rawEnd && (!end || !isValidMountainInput(end))) || (start && end && end <= start));
     return [
       ...(missingAlt ? [`${label} image block ${index + 1} needs a photo description (alt text).`] : []),
+      ...(galleryMissingAlt ? [`${label} gallery block ${index + 1} has a photo without a description (alt text).`] : []),
       ...(timingIssue ? [`${label} announcement block ${index + 1} needs valid Mountain Time dates, with the end after the start.`] : []),
     ];
   });
@@ -137,6 +141,8 @@ function validateBase(d: SiteContentState): string[] {
     issues.push(...blockImageIssues(s, `Staff profile "${s.name}"`));
   });
   (["events", "news"] as const).forEach((k) => d[k].forEach((a) => {
+    // An unpublished blog draft may be half-written; it is checked when the person publishes it.
+    if (a.draft) { if (!a.path.startsWith("/")) issues.push(`A blog draft needs an address starting with /.`); return; }
     if (!a.title.trim() || !a.path.startsWith("/")) issues.push(`${k === "news" ? "A news story" : "An event"} needs a title and an address starting with /.`);
     issues.push(...blockImageIssues(a, `${k === "news" ? "Story" : "Event"} "${a.title}"`));
   }));
@@ -577,6 +583,10 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
   // Cross-tab coordination: open a page in the canvas, open a page's settings, and
   // track the selected page's path so "Preview as a parent" opens the right page.
   const [visualRequest, setVisualRequest] = useState<{ key: string; nonce: number } | null>(null);
+  const [blogRequest, setBlogRequest] = useState<{ path: string; nonce: number } | null>(null);
+  const [previewStart, setPreviewStart] = useState<string | null>(null);
+  const [startNewPost, setStartNewPost] = useState(() => new URLSearchParams(window.location.search).get("new") === "1");
+  const dirtyRef = useRef(false);
   const [previewPath, setPreviewPath] = useState("/");
   const openInCanvas = (pageIndex: number) => { setVisualRequest({ key: `page:${pageIndex}`, nonce: Date.now() }); setTab("visual"); };
   const initialized = useRef(false);
@@ -617,6 +627,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
     changeCount.current += 1;
     setDraft(next);
     setDirty(true);
+    dirtyRef.current = true;
     setFeedback(null);
   };
 
@@ -634,6 +645,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
         currentDraft.current = response.draft;
         setDraft(response.draft);
         setDirty(false);
+        dirtyRef.current = false;
       }
       qc.setQueryData(query.queryKey, response);
       setFeedback({ kind: "ok", text: explicit ? "Draft saved. Visitors still see the published version." : "Draft saved automatically. Only staff can see these changes." });
@@ -654,15 +666,19 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
   }, [draft, dirty, save.isPending]);
 
   const doSave = () => { if (draft) void saveDraftNow(draft, true); };
-  const doPublish = async () => {
-    if (!draft) return;
-    if (issues.length) { setFeedback({ kind: "error", text: "Fix the items listed below before publishing." }); return; }
+  // Saves the latest draft and publishes it. `mutate` (optional) is applied first, so a screen can change something
+  // (e.g. mark one blog post published) and send it live in one step without waiting for a re-render.
+  const publishLatest = async (mutate?: (d: SiteContentState) => SiteContentState): Promise<boolean> => {
+    if (mutate) update(mutate);
+    const content = currentDraft.current;
+    if (!content) return false;
+    if (validate(content).length) { setFeedback({ kind: "error", text: "Fix the items listed below before publishing." }); return false; }
     try {
       const publishChangeCount = changeCount.current;
-      if (dirty && !await saveDraftNow(draft, true)) return;
+      if ((mutate || dirtyRef.current) && !await saveDraftNow(content, true)) return false;
       if (changeCount.current !== publishChangeCount) {
         setFeedback({ kind: "error", text: "New edits were made while saving. Save the latest draft before publishing." });
-        return;
+        return false;
       }
       const result = await publish.mutateAsync({ data: { expectedDraftRevision: revisionRef.current } });
       const response = result as SiteContentEditorState;
@@ -671,16 +687,21 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
       setDraftRevision(revisionRef.current);
       setDraft(response.draft);
       setDirty(false);
+      dirtyRef.current = false;
       qc.setQueryData(query.queryKey, response);
       qc.setQueryData(getGetSiteContentQueryKey(), response.published);
       setFeedback({ kind: "ok", text: "Published. Families can now see the updated website." });
+      return true;
     } catch (e) {
       const s = errStatus(e);
       setFeedback(s === 409
         ? { kind: "conflict", text: "The draft changed before publishing. Reload the latest version and try again." }
         : { kind: "error", text: `Could not publish: ${errMsg(e)}` });
+      return false;
     }
   };
+  const doPublish = () => { void publishLatest(); };
+  const saveNow = async () => (currentDraft.current ? saveDraftNow(currentDraft.current, true) : false);
   const restoreVersion = async (versionId: number) => {
     if (!window.confirm("Restore this version into the current draft? Your current draft will be replaced, but the published website will not change.")) return;
     try {
@@ -691,6 +712,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
       setDraftRevision(revisionRef.current);
       setDraft(response.draft);
       setDirty(false);
+      dirtyRef.current = false;
       qc.setQueryData(query.queryKey, response);
       setFeedback({ kind: "ok", text: "Version restored to the private draft. Publish when you are ready." });
     } catch (e) {
@@ -704,7 +726,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
       currentDraft.current = res.data.draft;
       revisionRef.current = res.data.draft.revision || res.data.draftBaseRevision || 1;
       setDraftRevision(revisionRef.current);
-      setDraft(res.data.draft); setDirty(false);
+      setDraft(res.data.draft); setDirty(false); dirtyRef.current = false;
       setFeedback({ kind: "ok", text: `Loaded the latest private draft (revision ${revisionRef.current}).` });
     }
     else setFeedback({ kind: "error", text: "Could not reload content. Check your connection." });
@@ -729,11 +751,13 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
         {onSignOut && <button type="button" className="cms-btn cms-btn-ghost" onClick={() => { if (!dirty || window.confirm("Sign out without saving your changes?")) onSignOut(); }}>Sign out</button>}
       </div>
     </header>
-    {parentPreview && <Suspense fallback={<p role="status">Opening private preview…</p>}><DraftParentPreview draft={draft} initialPath={tab === "visual" || tab === "pages" ? previewPath : tab === "faqs" ? "/faq" : tab === "events" ? "/parents/calendar" : tab === "news" ? "/news" : "/"} onClose={() => setParentPreview(false)}
+    {parentPreview && <Suspense fallback={<p role="status">Opening private preview…</p>}><DraftParentPreview draft={draft} initialPath={previewStart ?? (tab === "visual" || tab === "pages" ? previewPath : tab === "faqs" ? "/faq" : tab === "events" ? "/parents/calendar" : tab === "news" ? "/news" : "/")} onClose={() => { setParentPreview(false); setPreviewStart(null); }}
       onEditPage={(path) => {
         const target = resolveEditTarget(path, draft);
         setParentPreview(false);
+        setPreviewStart(null);
         if (target.key) { setVisualRequest({ key: target.key, nonce: Date.now() }); setTab("visual"); }
+        else if (target.post) { setBlogRequest({ path: target.post, nonce: Date.now() }); setTab("news"); }
         else if (target.tab) setTab(target.tab);
         else { setVisualRequest({ key: "home", nonce: Date.now() }); setTab("visual"); }
       }} /></Suspense>}
@@ -764,7 +788,12 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
       {tab === "pages" && <PagesEditor draft={draft} update={update} onEditInCanvas={openInCanvas} onSelectPath={setPreviewPath} />}
       {tab === "staff" && <StaffEditor draft={draft} update={update} />}
       {tab === "events" && <ArticlesEditor key="events" kind="events" draft={draft} update={update} />}
-      {tab === "news" && <ArticlesEditor key="news" kind="news" draft={draft} update={update} />}
+      {tab === "news" && <Suspense fallback={<div className="cms-puck-loading" aria-busy="true"><span /><span /><span /></div>}>
+        <BlogEditor draft={draft} published={query.data?.published} update={update} dirty={dirty} saving={save.isPending}
+          onSaveNow={saveNow} onPublish={publishLatest} onPreview={(path) => { setPreviewStart(path); setParentPreview(true); }}
+          requestedPath={blogRequest?.path} requestedNonce={blogRequest?.nonce}
+          startNew={startNewPost} onStartNewHandled={() => { setStartNewPost(false); const u = new URL(window.location.href); u.searchParams.delete("new"); window.history.replaceState(null, "", u); }} />
+      </Suspense>}
       {tab === "documents" && <DocumentsEditor draft={draft} update={update} />}
       {tab === "menu" && <MenuEditor draft={draft} update={update} />}
       <section className="cms-history" aria-labelledby="cms-history-title">
@@ -785,10 +814,10 @@ export function EditorHome({ onChoose, onSignOut, publicSiteUrl }: { onChoose: (
     <h1>What do you want to do?</h1>
     <p>Save Draft keeps changes private to staff. Families continue to see the published version until you choose Publish.</p>
     <div className="cms-home-choices">
-      {([["visual", "Edit a page", "Change the words, photos, and links on any page."], ["announcements", "Post an announcement", "Add a timed notice to the bar above the menu."], ["events", "Add an event", "Put an event on the school calendar."], ["staff", "Update staff", "Add or edit a faculty or staff profile."], ["documents", "Upload a document", "Add a PDF such as the calendar or tuition policy."]] as const).map(([id, title, text]) =>
-        <button type="button" key={id} onClick={() => { const u = new URL(window.location.href); u.searchParams.set("tab", id); window.history.replaceState(null, "", u); onChoose("site"); }} data-testid={`choose-${id}`}><strong>{title}</strong><span>{text}</span></button>)}
+      {([["news", "Write a blog post", "Share news and stories with families: a title, your words, and a photo."], ["visual", "Edit a page", "Change the words, photos, and links on any page."], ["announcements", "Post an announcement", "Add a timed notice to the bar above the menu."], ["events", "Add an event", "Put an event on the school calendar."], ["staff", "Update staff", "Add or edit a faculty or staff profile."], ["documents", "Upload a document", "Add a PDF such as the calendar or tuition policy."]] as const).map(([id, title, text]) =>
+        <button type="button" key={id} onClick={() => { const u = new URL(window.location.href); u.searchParams.set("tab", id); if (id === "news") u.searchParams.set("new", "1"); window.history.replaceState(null, "", u); onChoose("site"); }} data-testid={`choose-${id}`}><strong>{title}</strong><span>{text}</span></button>)}
     </div>
-    <p className="cms-home-more">Looking for pages, news, FAQs, menus, inquiries, or home-page settings? <button type="button" className="cms-linklike" onClick={() => { const u = new URL(window.location.href); u.searchParams.set("tab", "visual"); window.history.replaceState(null, "", u); onChoose("site"); }} data-testid="choose-more">Open the editor</button> and use the <strong>More</strong> menu.</p>
+    <p className="cms-home-more">Looking for pages, FAQs, menus, inquiries, or home-page settings? <button type="button" className="cms-linklike" onClick={() => { const u = new URL(window.location.href); u.searchParams.set("tab", "visual"); window.history.replaceState(null, "", u); onChoose("site"); }} data-testid="choose-more">Open the editor</button> and use the <strong>More</strong> menu.</p>
     <p className="cms-legacy-link"><button type="button" className="cms-btn cms-btn-ghost" onClick={() => onChoose("homepage")} data-testid="choose-homepage-editor">Legacy homepage tool (old design)</button></p>
     <div className="cms-home-links"><a href={publicSiteUrl}>Visit the public website</a>{onSignOut && <button type="button" onClick={onSignOut}>Sign out</button>}</div>
   </div>;

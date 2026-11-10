@@ -218,16 +218,24 @@ function StaffBio({ person }: { person: CmsStaff }) {
 }
 
 function ArchiveDetail({ entry, kind }: { entry: CmsArticle; kind: "news" | "events" }) {
-  useRobots(entry.archived);
+  useRobots(Boolean(entry.archived || entry.draft));
   const body = stripSourceTitle(entry.markdown).replace(new RegExp(`^#\\s+${entry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "m"), "");
-  return <article className="cb-page" data-testid="page-article">
+  // A cover photo that is also somewhere in the body (older posts) is shown once, in the body.
+  const coverInBody = Boolean(entry.coverImage) && (richTextImageSources(entry.blocks).has(entry.coverImage!) || body.includes(entry.coverImage!));
+  return <article className="cb-page cb-post" data-testid="page-article">
     <nav className="cb-crumbs" aria-label="Breadcrumb"><Link href={kind === "news" ? "/news" : "/parents/calendar"}>{kind === "news" ? "News & Blog" : "Calendar & Events"}</Link></nav>
     <header className="cb-page-head">
       {entry.archived && <span className="cb-archived-tag">Archived — details may no longer apply</span>}
+      {entry.draft && <span className="cb-archived-tag" data-testid="post-draft-tag">Draft — only staff can see this</span>}
       <h1>{fixText(entry.title)}</h1>
-      {entry.date && <p className="cb-muted">{formatDate(entry.date)}</p>}
+      {(entry.date || entry.author) && <p className="cb-muted cb-byline" data-testid="post-byline">{[entry.date ? formatDate(entry.date) : "", entry.author ? `By ${entry.author}` : ""].filter(Boolean).join(" · ")}</p>}
+      {entry.summary && <p className="cb-post-summary" data-testid="post-summary">{fixText(entry.summary)}</p>}
     </header>
-    {entry.blocks ? <PuckBlockRenderer blocks={entry.blocks} legacyMarkdown={body} /> : <MarkdownContent markdown={body} />}
+    {entry.coverImage && !coverInBody && <figure className="cb-post-cover" data-testid="post-cover">
+      <SiteImage src={entry.coverImage} alt={entry.coverAlt ?? ""} loading="eager" />
+      {entry.coverCaption && <figcaption className="chess-caption">{entry.coverCaption}</figcaption>}
+    </figure>}
+    <div className="cb-post-body">{entry.blocks ? <PuckBlockRenderer blocks={entry.blocks} legacyMarkdown={body} /> : <MarkdownContent markdown={body} />}</div>
     {kind === "news"
       ? <QuietVisit text="Curious about CHESS? Schedule a visit with our office." />
       : <p><MoreLink href="/parents/calendar">All upcoming events</MoreLink></p>}
@@ -274,7 +282,7 @@ export function PublicSitePages({ contentOverride, previewPath }: { contentOverr
   let description = DEFAULT_DESC;
   if (resolved?.type === "home") { title = content?.home?.title || "Christian Homeschool Partnership in Greeley, CO | CHESS"; description = (content?.home as { metaDescription?: string } | undefined)?.metaDescription || content?.home?.description || description; }
   else if (resolved?.type === "page") { title = resolved.page.title || `${resolved.page.label} | CHESS`; description = (resolved.page as { metaDescription?: string }).metaDescription || resolved.page.description || description; }
-  else if (resolved?.type === "article") { title = `${resolved.entry.title} | CHESS`; description = excerpt(resolved.entry.markdown) || description; }
+  else if (resolved?.type === "article") { title = `${resolved.entry.title} | CHESS`; description = resolved.entry.summary?.trim() || excerpt(resolved.entry.markdown) || description; }
   else if (resolved?.type === "staff") { title = `${resolved.person.name}, ${resolved.person.role} | CHESS`; description = excerpt(resolved.person.bio) || `${resolved.person.name} serves CHESS as ${resolved.person.role}.`; }
   else if (resolved?.type === "news") title = "News & Blog | CHESS";
   else if (resolved?.type === "faq") { title = "Frequently Asked Questions | CHESS"; description = "Answers about CHESS programs, tuition, the Diploma Program, and how to start."; }
