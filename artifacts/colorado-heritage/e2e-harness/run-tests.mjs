@@ -1186,9 +1186,13 @@ const partTest = async (page, state, label, mutate, expectIds, tab) => {
   }
 };
 await run("T13", "special-blocks", "Pages with built-in parts show a plain note where the part appears, with a button to where it is edited", async ({ page, state, shot }) => {
-  await partTest(page, state, "Contact Us", null, ["contact-auto"], "inquiries");
-  expect((await page.locator(".cms-tabs > button.is-active, .cms-tabs-more-btn.is-active").first().textContent()).startsWith("Inquiries"), "button should open Inquiries");
+  await openCanvas(page, "Contact Us");
+  await page.locator('[data-testid="auto-part-contact-auto"]').scrollIntoViewIfNeeded();
+  expect((await page.locator('[data-testid="auto-part-contact-auto"]').count()) === 1, "missing note for the contact page");
   await shot("contact-note");
+  await page.locator('[data-testid="auto-part-open-inquiries"]').click();
+  await page.waitForSelector(".cms-tabs");
+  expect((await page.locator(".cms-tabs-more-btn.is-active").first().textContent()).startsWith("Inquiries"), "button should open Inquiries");
 });
 await run("T14", "special-blocks", "Notes appear for the calendar, FAQ, staff directory, blog list, visit, overview, tuition and home pages (and not on ordinary pages)", async ({ page, state }) => {
   const addPage = (path, label, extra = {}) => state.editor.draft.pages.push({ path, label, title: label, description: "", markdown: "Some words.", kind: "content", ...extra });
