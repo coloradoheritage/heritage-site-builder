@@ -40,6 +40,65 @@ export function buildFixture() {
     kind: "content",
     markdown: "![Fixture captioned photo](/api/media/files/fixture-captioned.svg \"Caption from stored markdown\")\n\nFoundation paragraph.",
   });
+  // Clearly fictitious figures: only for tests. Real tuition numbers live in the school's own content.
+  set("/admissions/tuition", {
+    label: "Tuition & Fees",
+    title: "Tuition & Fees | Fixture",
+    description: "Fixture tuition intro.",
+    kind: "tuition",
+    markdown: [
+      "## Sample at a glance",
+      "- **Sample program A: $1 per widget**",
+      "",
+      "Pay in sample installments. See the sample policy.",
+      "",
+      "## Sample Academy tuition",
+      "Classes meet for sample semesters.",
+      "",
+      "| Sample class | Sample price |",
+      "| --- | --- |",
+      "| One-day sample class | $1 per sample |",
+      "| Two-day sample class | $2 per sample |",
+      "",
+      "## Sample extra fees",
+      "| Fee | Amount |",
+      "| --- | --- |",
+      "| Sample registration | $3 |",
+      "| Sample materials | $4 |",
+      "",
+      "Closing sample paragraph.",
+    ].join("\n"),
+  });
+  set("/programs/compare", {
+    label: "Compare",
+    title: "Compare | Fixture",
+    description: "Fixture comparison.",
+    kind: "content",
+    markdown: [
+      "## Which sample is right?",
+      "| Sample program | Who | Cost |",
+      "| --- | --- | --- |",
+      "| [Sample school](/programs/independent-school) | **Home** families | [$1 per sample](/admissions/tuition) |",
+      "| [Sample academy](/programs/academy) | *Classroom* families | [$2 per sample](/admissions/tuition) |",
+      "",
+      "Notes under the sample table.",
+    ].join("\n"),
+  });
+  set("/contact", {
+    label: "Contact Us",
+    title: "Contact | Fixture",
+    description: "Fixture contact.",
+    kind: "contact",
+    markdown: [
+      "Fixture contact intro.",
+      "",
+      "## Office hours",
+      "| Season / day | Hours |",
+      "| --- | --- |",
+      "| Sample season: Monday | 1:00 to 2:00 |",
+      "| Sample season: Tuesday | Closed |",
+    ].join("\n"),
+  });
   const home = {
     path: "/", label: "Home", title: "Fixture Home", description: "Fixture home intro sentence.", kind: "content",
     markdown: "Fixture home paragraph linking to [Programs](/programs).",
