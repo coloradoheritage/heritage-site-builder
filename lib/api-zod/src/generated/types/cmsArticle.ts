@@ -14,4 +14,11 @@ export interface CmsArticle {
   markdown: string;
   blocks?: CmsArticleBlocks;
   archived: boolean;
+  /** Blog post that staff have not published yet. Never included in the public site content. */
+  draft?: boolean;
+  summary?: string;
+  author?: string;
+  coverImage?: string;
+  coverAlt?: string;
+  coverCaption?: string;
 }

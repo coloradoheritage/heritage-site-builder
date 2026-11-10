@@ -377,6 +377,14 @@ components:
           type: object
           additionalProperties: true
         archived: { type: boolean }
+        draft:
+          type: boolean
+          description: Blog post that staff have not published yet. Never included in the public site content.
+        summary: { type: string }
+        author: { type: string }
+        coverImage: { type: string }
+        coverAlt: { type: string }
+        coverCaption: { type: string }
     CmsDocument:
       type: object
       required: [id, title, url]

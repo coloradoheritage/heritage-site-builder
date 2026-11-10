@@ -6,7 +6,7 @@ import {
   MapPinIcon, ShieldCheckIcon, UserGroupIcon, UsersIcon,
 } from "@heroicons/react/24/outline";
 import {
-  OFFICE, VISIT_PATH, articleHref, excerpt, fixText, formatDate, mediaUrl, publicAsset, sortArticles, splitSections, type MdSection, type SiteContentExt,
+  OFFICE, VISIT_PATH, articleHref, excerpt, fixText, formatDate, isLivePost, mediaUrl, publicAsset, sortArticles, splitSections, type MdSection, type SiteContentExt,
 } from "../lib/cms";
 import { isAdministrative, portraitPosition, staffProfilePath } from "../../directory-helpers.mjs";
 import { Button, MoreLink, Reveal } from "./brand";
@@ -64,14 +64,14 @@ export function TeacherRow({ staff }: { staff: CmsStaff[] }) {
 /* ---------- Latest news ---------- */
 
 export function LatestNews({ news, count = 3 }: { news: CmsArticle[]; count?: number }) {
-  const latest = sortArticles(news.filter((n) => !n.archived)).slice(0, count);
+  const latest = sortArticles(news.filter(isLivePost)).slice(0, count);
   if (!latest.length) return null;
   return <ul className="cb-card-grid" data-testid="home-latest-news">
     {latest.map((n, i) => <Reveal as="li" key={n.path} delay={i * 80}>
       <article className="cb-card">
         <span className="cb-card-meta">{formatDate(n.date)}</span>
         <h3><Link href={articleHref(n, "news")}>{fixText(n.title)}</Link></h3>
-        <p className="cb-clamp">{excerpt(n.markdown, 160)}</p>
+        <p className="cb-clamp">{n.summary?.trim() || excerpt(n.markdown, 160)}</p>
         <MoreLink href={articleHref(n, "news")}>Read more</MoreLink>
       </article>
     </Reveal>)}
@@ -218,7 +218,7 @@ export function HomeSections({ content }: { content: SiteContentExt }) {
 }
 
 function NewsSection({ news, tone }: { news: CmsArticle[]; tone: number }) {
-  if (!news.some((n) => !n.archived)) return null;
+  if (!news.some(isLivePost)) return null;
   return <section className={`cb-home-section ${tone % 2 ? "is-tint" : ""}`} aria-labelledby="h-latest-news">
     <div className="cb-container">
       <div className="cb-section-head"><span className="cb-rule" aria-hidden="true" /><h2 id="h-latest-news">From the CHESS Blog</h2></div>

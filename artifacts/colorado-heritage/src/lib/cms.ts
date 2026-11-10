@@ -51,6 +51,11 @@ export function formatDate(date: string) {
   return parsed.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 }
 
+/** A post visitors can see in lists: not archived and not an unpublished blog draft. */
+export function isLivePost(article: CmsArticle) {
+  return !article.archived && !article.draft;
+}
+
 export function sortArticles(list: CmsArticle[]) {
   return [...list].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }

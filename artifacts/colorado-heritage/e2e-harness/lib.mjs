@@ -40,7 +40,10 @@ export async function newSession(browser, { viewport = { width: 1280, height: 90
     if (url.pathname === "/api/site-content/publish" && method === "POST") {
       const body = JSON.parse(route.request().postData() || "{}");
       state.publishes.push(body);
-      state.editor = { ...state.editor, published: JSON.parse(JSON.stringify(state.editor.draft)) };
+      // mirrors the server: unpublished blog drafts never become part of the public document
+      const copy = JSON.parse(JSON.stringify(state.editor.draft));
+      copy.news = copy.news.filter((post) => post.draft !== true);
+      state.editor = { ...state.editor, published: copy };
       return json(200, state.editor);
     }
     if (url.pathname === "/api/media/health") return json(200, { configured: true, message: "mock storage (test harness)" });

@@ -164,7 +164,13 @@ export const GetSiteContentResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -172,7 +178,13 @@ export const GetSiteContentResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -272,7 +284,13 @@ export const SaveSiteContentBody = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -280,7 +298,13 @@ export const SaveSiteContentBody = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -387,7 +411,13 @@ export const SaveSiteContentResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -395,7 +425,13 @@ export const SaveSiteContentResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -513,7 +549,13 @@ export const GetSiteContentEditorResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -521,7 +563,13 @@ export const GetSiteContentEditorResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -619,7 +667,13 @@ export const GetSiteContentEditorResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -627,7 +681,13 @@ export const GetSiteContentEditorResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -747,7 +807,13 @@ export const SaveSiteContentDraftBody = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -755,7 +821,13 @@ export const SaveSiteContentDraftBody = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -872,7 +944,13 @@ export const SaveSiteContentDraftResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -880,7 +958,13 @@ export const SaveSiteContentDraftResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -978,7 +1062,13 @@ export const SaveSiteContentDraftResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -986,7 +1076,13 @@ export const SaveSiteContentDraftResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -1118,7 +1214,13 @@ export const PublishSiteContentResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -1126,7 +1228,13 @@ export const PublishSiteContentResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -1224,7 +1332,13 @@ export const PublishSiteContentResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -1232,7 +1346,13 @@ export const PublishSiteContentResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -1366,7 +1486,13 @@ export const RestoreSiteContentVersionResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -1374,7 +1500,13 @@ export const RestoreSiteContentVersionResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
@@ -1472,7 +1604,13 @@ export const RestoreSiteContentVersionResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "news": zod.array(zod.object({
   "path": zod.string(),
@@ -1480,7 +1618,13 @@ export const RestoreSiteContentVersionResponse = zod.object({
   "date": zod.string(),
   "markdown": zod.string(),
   "blocks": zod.record(zod.string(), zod.unknown()).optional(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "draft": zod.boolean().optional().describe('Blog post that staff have not published yet. Never included in the public site content.'),
+  "summary": zod.string().optional(),
+  "author": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "coverAlt": zod.string().optional(),
+  "coverCaption": zod.string().optional()
 })),
   "documents": zod.array(zod.object({
   "id": zod.string(),
