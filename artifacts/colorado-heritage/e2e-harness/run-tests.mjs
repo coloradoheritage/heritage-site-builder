@@ -2,6 +2,7 @@
 // ../src is modified. Requires the harness Vite server (vite.config.ts) on 127.0.0.1:5199.
 import fs from "node:fs";
 import { launch, newSession, BASE } from "./lib.mjs";
+import { buildFixture as buildFixtureForTests } from "./fixture.mjs";
 
 const OUT = process.env.OUT_DIR || "/opt/cursor/artifacts";
 const SHOTS = `${OUT}/screenshots`;
@@ -964,6 +965,250 @@ await run("S4", "duplicate-photo", "SSR/SEO render of the draft saved by the rea
   await publishAndView(page, state, IS);
   const html = await ssrHtml(state.editor.published, IS);
   expect(imgCount(html, "fixture-geese") === 1, `SSR rendered the photo ${imgCount(html, "fixture-geese")} times`);
+});
+
+// ---------------------------------------------------------------- tables in page text
+const TUITION = "/admissions/tuition";
+const waitUntil = async (fn, msg, ms = 9000) => { const t0 = Date.now(); for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t0 > ms) throw new Error(`timed out: ${msg}`); await new Promise((r) => setTimeout(r, 120)); } };
+const pageRecord = (state, path) => state.editor.draft.pages.find((p) => p.path === path);
+const originalMd = (path) => buildFixtureForTests().draft.pages.find((p) => p.path === path).markdown;
+const cell = (page, r, c, scope = null) => (scope ?? page).locator(`input[data-cell="${r}-${c}"]`);
+const tableNth = (page, n) => page.locator('[data-testid="doc-table"]').nth(n);
+const sequence = (root) => root.evaluate((el) => [...el.querySelectorAll("h2, table")].map((n) => (n.tagName === "TABLE" ? "TABLE" : n.textContent.trim())));
+const openPage = async (page, label) => { await openCanvas(page, label); await page.waitForSelector('[data-testid="doc-table"], [data-testid="sections-editor"]'); };
+
+await run("T1", "tables", "Tuition page: both charts appear in the editor, in the same place and order as on the public page, with their cell text", async ({ page, shot }) => {
+  await viewPublic(page, TUITION);
+  const publicOrder = await sequence(page.locator(".cb-page .cb-prose-wrap").first());
+  await openPage(page, "Tuition & Fees");
+  expect((await page.locator('[data-testid="doc-table"]').count()) === 2, "expected two charts in the editor");
+  const editorOrder = await sequence(page.locator('[data-testid="sections-editor"]'));
+  expect(JSON.stringify(editorOrder) === JSON.stringify(publicOrder), `order differs. editor ${JSON.stringify(editorOrder)} vs public ${JSON.stringify(publicOrder)}`);
+  expect((await cell(page, 0, 0, tableNth(page, 0)).inputValue()) === "One-day sample class" && (await cell(page, 1, 1, tableNth(page, 0)).inputValue()) === "$2 per sample", "first chart cells");
+  expect((await tableNth(page, 1).locator('input[data-cell="h-1"]').inputValue()) === "Amount", "second chart header");
+  await shot("tuition-editor");
+});
+
+await run("T2", "tables", "Editing one cell saves the chart: only that cell changes, nothing else in the page is lost or duplicated", async ({ page, state, shot }) => {
+  await openPage(page, "Tuition & Fees");
+  await cell(page, 0, 1, tableNth(page, 0)).fill("$9 per sample");
+  await waitUntil(() => pageRecord(state, TUITION).markdown.includes("$9 per sample"), "edit saved");
+  const saved = pageRecord(state, TUITION).markdown;
+  const norm = (t) => t.replace(/\n{2,}/g, "\n").replace(/^- /gm, "* ").trim();
+  expect(norm(saved).includes(norm("| Sample class | Sample price |\n| --- | --- |\n| One-day sample class | $9 per sample |\n| Two-day sample class | $2 per sample |")), `saved table: ${saved}`);
+  expect(norm(saved).includes(norm("| Fee | Amount |\n| --- | --- |\n| Sample registration | $3 |\n| Sample materials | $4 |")), "other chart changed");
+  expect((saved.match(/\| --- \| --- \|/g) ?? []).length === 2, "chart duplicated or dropped");
+  expect(["Sample at a glance", "Sample Academy tuition", "Sample extra fees", "Classes meet for sample semesters.", "Closing sample paragraph.", "Pay in sample installments."].every((t) => saved.includes(t) && saved.split(t).length === 2), "text lost or duplicated");
+  await shot("tuition-edited");
+});
+
+await run("T3", "tables", "Add a row, remove a row, add a column and remove a column; the saved chart matches what the editor shows", async ({ page, state }) => {
+  await openPage(page, "Tuition & Fees");
+  const t = tableNth(page, 0);
+  await t.getByTestId("table-add-row").click();
+  await cell(page, 2, 0, t).fill("Three-day sample class");
+  await cell(page, 2, 1, t).fill("$3 per sample");
+  await t.getByTestId("table-remove-row-0").click();
+  await t.getByTestId("table-add-col").click();
+  await t.locator('input[data-cell="h-2"]').fill("Sample note");
+  await cell(page, 0, 2, t).fill("busy");
+  await waitUntil(() => pageRecord(state, TUITION).markdown.includes("Sample note"), "saved");
+  let md = pageRecord(state, TUITION).markdown;
+  expect(md.includes("| Sample class | Sample price | Sample note |\n| --- | --- | --- |\n| Two-day sample class | $2 per sample | busy |\n| Three-day sample class | $3 per sample |  |"), `after add/remove: ${md}`);
+  expect(!md.includes("One-day sample class"), "removed row still present");
+  await t.getByTestId("table-remove-col-1").click();
+  await waitUntil(() => !pageRecord(state, TUITION).markdown.includes("Sample price"), "column removed");
+  md = pageRecord(state, TUITION).markdown;
+  expect(md.includes("| Sample class | Sample note |\n| --- | --- |\n| Two-day sample class | busy |\n| Three-day sample class |  |"), `after removing a column: ${md}`);
+});
+
+await run("T4", "tables", "Editing the heading and notes around a chart leaves the chart intact", async ({ page, state }) => {
+  await openPage(page, "Tuition & Fees");
+  const note = page.locator(".cms-section .ProseMirror p", { hasText: "Classes meet for sample semesters." });
+  await note.click(); await page.keyboard.press("End"); await page.keyboard.type(" Updated note.");
+  await page.mouse.click(5, 5);
+  const head = page.locator(".cms-section .ProseMirror h2", { hasText: "Sample extra fees" });
+  await head.click(); await page.keyboard.press("End"); await page.keyboard.type(" (updated)");
+  await page.mouse.click(5, 5);
+  await waitUntil(() => pageRecord(state, TUITION).markdown.includes("Updated note.") && pageRecord(state, TUITION).markdown.includes("(updated)"), "saved");
+  const md = pageRecord(state, TUITION).markdown;
+  expect((md.match(/\| --- \| --- \|/g) ?? []).length === 2, `charts: ${md}`);
+  expect(md.includes("| Sample registration | $3 |") && md.includes("| Two-day sample class | $2 per sample |"), "chart rows changed");
+  expect(md.includes("## Sample extra fees (updated)"), "heading edit");
+});
+
+await run("T5", "tables", "After publishing, the public page and the server render show each chart once, with the edited cell", async ({ page, state }) => {
+  await openPage(page, "Tuition & Fees");
+  await cell(page, 1, 1, tableNth(page, 0)).fill("$7 per sample");
+  await waitUntil(() => pageRecord(state, TUITION).markdown.includes("$7 per sample"), "saved");
+  await page.getByRole("button", { name: "Publish changes" }).click();
+  await waitUntil(() => state.publishes.length === 1, "published");
+  await viewPublic(page, TUITION);
+  expect((await page.locator(".cb-page table").count()) === 2, `public tables: ${await page.locator(".cb-page table").count()}`);
+  expect((await page.locator(".cb-page table td", { hasText: "$7 per sample" }).count()) === 1, "edited cell on the public page");
+  expect((await page.locator('.cb-page .cb-table-wrap[role="region"]').count()) === 2, "tables should keep the scrollable wrapper");
+  expect((await page.locator(".cb-page table th[scope='col']").first().textContent()) === "Sample class", "header cells");
+  const html = await ssrHtml(state.editor.published, TUITION);
+  expect((html.match(/<table\b/g) ?? []).length === 2 && html.includes("$7 per sample"), "SSR/SEO render tables");
+});
+
+await run("T6", "tables", "Pages nobody edits render exactly as before; opening a page in the editor and saving changes nothing", async ({ page, state }) => {
+  await viewPublic(page, TUITION);
+  const before = await page.locator(".cb-page").innerHTML();
+  const beforeRecord = JSON.stringify(pageRecord(state, TUITION));
+  await openPage(page, "Tuition & Fees");
+  await tableNth(page, 0).locator("input").first().click();
+  await page.mouse.click(5, 5);
+  await page.click('[data-testid="button-save-site-content"]');
+  await page.waitForTimeout(1200);
+  expect(JSON.stringify(pageRecord(state, TUITION)) === beforeRecord, "opening and saving changed the page record");
+  // editing a different page leaves the tuition page alone
+  await openCanvas(page, "Independent School");
+  const p = page.locator(".cms-section .ProseMirror p").first();
+  await p.click(); await page.keyboard.press("End"); await page.keyboard.type(" extra");
+  await page.mouse.click(5, 5);
+  await page.waitForTimeout(1500);
+  expect(JSON.stringify(pageRecord(state, TUITION)) === beforeRecord, "editing another page changed the tuition page");
+  await viewPublic(page, TUITION);
+  expect((await page.locator(".cb-page").innerHTML()) === before, "public page HTML changed");
+});
+
+await run("T7", "tables", "Cells with links, bold and italics keep them: shown as written, rendered on the public page, saved back unchanged", async ({ page, state }) => {
+  await openPage(page, "Compare");
+  const t = tableNth(page, 0);
+  expect((await cell(page, 0, 0, t).inputValue()) === "[Sample school](/programs/independent-school)" && (await cell(page, 0, 1, t).inputValue()) === "**Home** families", "cells show their markdown");
+  await cell(page, 1, 2, t).fill("[$5 per sample](/admissions/tuition)");
+  await waitUntil(() => pageRecord(state, "/programs/compare").markdown.includes("$5 per sample"), "saved");
+  const md = pageRecord(state, "/programs/compare").markdown;
+  expect(md.includes("| [Sample school](/programs/independent-school) | **Home** families | [$1 per sample](/admissions/tuition) |"), `row 1 changed: ${md}`);
+  expect(md.includes("| [Sample academy](/programs/academy) | *Classroom* families | [$5 per sample](/admissions/tuition) |"), `row 2: ${md}`);
+  await page.getByRole("button", { name: "Publish changes" }).click();
+  await waitUntil(() => state.publishes.length === 1, "published");
+  await viewPublic(page, "/programs/compare");
+  expect((await page.locator('.cb-page table a[href="/programs/independent-school"]').count()) === 1 && (await page.locator(".cb-page table strong", { hasText: "Home" }).count()) === 1 && (await page.locator(".cb-page table em", { hasText: "Classroom" }).count()) === 1, "links/bold/italics on the public page");
+});
+
+await run("T8", "tables", "A pipe typed in a cell is replaced so it cannot split the cell; keyboard: Tab moves across cells, Enter in the last row adds a row", async ({ page, state }) => {
+  await openPage(page, "Tuition & Fees");
+  const t = tableNth(page, 1);
+  await cell(page, 0, 0, t).fill("A|B");
+  expect((await cell(page, 0, 0, t).inputValue()) === "A/B", "pipe should be replaced");
+  await cell(page, 0, 0, t).focus();
+  await page.keyboard.press("Tab");
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-cell"))) === "0-1", "Tab should move to the next cell");
+  await cell(page, 1, 1, t).focus();
+  await page.keyboard.press("Enter");
+  await waitUntil(async () => (await t.locator("tbody tr").count()) === 3, "Enter in the last row adds a row");
+  await waitUntil(async () => (await page.evaluate(() => document.activeElement?.getAttribute("data-cell"))) === "2-1", "focus should move into the new row");
+});
+
+await run("T9", "tables", "Remove table asks first; removing it deletes only that chart", async ({ page, state }) => {
+  await openPage(page, "Tuition & Fees");
+  await tableNth(page, 1).getByTestId("table-remove").click();
+  await tableNth(page, 1).getByRole("button", { name: "Keep" }).click();
+  expect((await page.locator('[data-testid="doc-table"]').count()) === 2, "Keep should not remove");
+  await tableNth(page, 1).getByTestId("table-remove").click();
+  await tableNth(page, 1).getByTestId("table-remove-confirm").click();
+  await waitUntil(() => !pageRecord(state, TUITION).markdown.includes("Sample registration"), "removed chart saved");
+  const md = pageRecord(state, TUITION).markdown;
+  expect(md.includes("| Two-day sample class | $2 per sample |") && md.includes("Closing sample paragraph."), "other content must remain");
+});
+
+await run("T10", "tables", "A saved page whose chart was flattened by the old editor gets its chart back (only when the flattened text matches exactly)", async ({ page, state }) => {
+  const md = originalMd(TUITION);
+  const sectionMd = md.split("## Sample extra fees")[0].split("## Sample Academy tuition")[1];
+  const section = "## Sample Academy tuition" + sectionMd;
+  const mk = (id, original, richText) => ({ type: "LegacyMarkdown", props: { id, markdown: original, originalMarkdown: original, richText, richTextEdited: true } });
+  const blocks = { root: { props: {} }, zones: {}, content: [
+    mk("section-0", section.trim(), "<h2>Sample Academy tuition</h2><p>Classes meet for sample semesters. Staff added this sentence.</p><p>Sample classSample priceOne-day sample class$1 per sampleTwo-day sample class$2 per sample</p>"),
+  ] };
+  state.editor.draft.pages = state.editor.draft.pages.map((p) => p.path === TUITION ? { ...p, blocks } : p);
+  await openPage(page, "Tuition & Fees");
+  expect((await page.locator('[data-testid="doc-table"]').count()) === 1, "chart should be restored");
+  expect((await page.getByText("Sample classSample price").count()) === 0, "flattened text should be gone");
+  expect((await page.getByText("Staff added this sentence.").count()) === 1, "the staff edit must be kept");
+  expect((await cell(page, 1, 1, tableNth(page, 0)).inputValue()) === "$2 per sample", "restored cells");
+  await cell(page, 0, 1, tableNth(page, 0)).fill("$8 per sample");
+  await waitUntil(() => pageRecord(state, TUITION).markdown.includes("$8 per sample"), "saved");
+  expect(pageRecord(state, TUITION).markdown.includes("Staff added this sentence."), "edit kept after save");
+  // a section that does NOT match is left exactly as saved
+  const odd = { root: { props: {} }, zones: {}, content: [mk("section-0", section.trim(), "<h2>Sample Academy tuition</h2><p>Sample classSample price (staff retyped this)</p>")] };
+  state.editor.draft.pages = state.editor.draft.pages.map((p) => p.path === TUITION ? { ...p, blocks: odd } : p);
+  await openPage(page, "Tuition & Fees");
+  expect((await page.locator('[data-testid="doc-table"]').count()) === 0 && (await page.getByText("staff retyped this").count()) === 1, "non-matching text must be left alone");
+});
+
+await run("T11", "tables", "Office hours table on the Contact page survives an edit in the form the page reads (| Season / day | Hours |)", async ({ page, state }) => {
+  await openPage(page, "Contact Us");
+  await cell(page, 0, 1, tableNth(page, 0)).fill("2:00 to 3:00");
+  await waitUntil(() => pageRecord(state, "/contact").markdown.includes("2:00 to 3:00"), "saved");
+  const md = pageRecord(state, "/contact").markdown;
+  expect(md.includes("## Office hours\n\n| Season / day | Hours |\n| --- | --- |\n| Sample season: Monday | 2:00 to 3:00 |\n| Sample season: Tuesday | Closed |") || md.includes("## Office hours\n| Season / day | Hours |\n| --- | --- |\n| Sample season: Monday | 2:00 to 3:00 |\n| Sample season: Tuesday | Closed |"), `office hours: ${md}`);
+});
+
+await run("T12", "tables", "Audit: for every page, staff bio, story and event, every table in the markdown shows up in the editor", async ({ page, state, note }) => {
+  const d = state.editor.draft;
+  const { marked } = await import("../node_modules/marked/lib/marked.esm.js");
+  const records = [
+    ...d.pages.filter((p) => !p.archived).map((p) => ({ key: `page:${d.pages.indexOf(p)}`, label: p.path, md: p.markdown })),
+    ...d.staff.map((x, i) => ({ key: `staff:${i}`, label: `staff ${x.slug}`, md: x.bio })),
+    ...d.news.filter((a) => !a.archived).map((a) => ({ key: `news:${d.news.indexOf(a)}`, label: a.path, md: a.markdown })),
+    ...d.events.filter((a) => !a.archived).map((a) => ({ key: `events:${d.events.indexOf(a)}`, label: a.path, md: a.markdown })),
+  ];
+  await page.goto(`${BASE}/?tool=site`);
+  await page.waitForSelector(".cms-visual-editor");
+  await page.selectOption('[data-testid="select-visual-content"]', records[0].key);
+  await page.click('[data-testid="toggle-page-settings"]');
+  let withTables = 0; const missing = [];
+  for (const r of records) {
+    const expected = (marked(r.md || "", { async: false, gfm: true }).match(/<table\b/g) ?? []).length;
+    if (!expected) continue;
+    withTables += 1;
+    await page.selectOption('[data-testid="select-visual-content"]', r.key);
+    await page.waitForSelector('[data-testid="sections-editor"]');
+    await page.waitForTimeout(80);
+    const got = await page.locator('[data-testid="doc-table"]').count();
+    if (got !== expected) missing.push(`${r.label}: markdown ${expected} / editor ${got}`);
+  }
+  note(`records with tables: ${withTables} of ${records.length}`);
+  expect(withTables >= 3 && missing.length === 0, `tables missing from the editor: ${missing.join("; ")}`);
+});
+
+// ---------------------------------------------------------------- notes for built-in parts of a page
+const partTest = async (page, state, label, mutate, expectIds, tab) => {
+  if (mutate) mutate(state);
+  await openCanvas(page, label);
+  for (const id of expectIds) expect((await page.locator(`[data-testid="auto-part-${id}"]`).count()) === 1, `missing note for ${id}`);
+  if (tab) {
+    await page.locator(`[data-testid="auto-part-open-${tab}"]`).first().click();
+    await page.waitForSelector(".cms-tabs");
+    return true;
+  }
+};
+await run("T13", "special-blocks", "Pages with built-in parts show a plain note where the part appears, with a button to where it is edited", async ({ page, state, shot }) => {
+  await openCanvas(page, "Contact Us");
+  await page.locator('[data-testid="auto-part-contact-auto"]').scrollIntoViewIfNeeded();
+  expect((await page.locator('[data-testid="auto-part-contact-auto"]').count()) === 1, "missing note for the contact page");
+  await shot("contact-note");
+  await page.locator('[data-testid="auto-part-open-inquiries"]').click();
+  await page.waitForSelector(".cms-tabs");
+  expect((await page.locator(".cms-tabs-more-btn.is-active").first().textContent()).startsWith("Inquiries"), "button should open Inquiries");
+});
+await run("T14", "special-blocks", "Notes appear for the calendar, FAQ, staff directory, blog list, visit, overview, tuition and home pages (and not on ordinary pages)", async ({ page, state }) => {
+  const addPage = (path, label, extra = {}) => state.editor.draft.pages.push({ path, label, title: label, description: "", markdown: "Some words.", kind: "content", ...extra });
+  addPage("/faq", "Fixture FAQ"); addPage("/about/our-people", "Fixture People"); addPage("/parents/calendar", "Fixture Calendar", { documentPath: "x" }); addPage("/admissions/visit", "Fixture Visit");
+  const cases = [["Fixture FAQ", ["faq-auto"]], ["Fixture People", ["people-auto"]], ["Fixture Calendar", ["calendar-events", "calendar-pdf"]], ["Fixture Visit", ["visit-auto"]], ["Tuition & Fees", ["tuition-faqs"]]];
+  for (const [label, ids] of cases) {
+    await openCanvas(page, label);
+    for (const id of ids) expect((await page.locator(`[data-testid="auto-part-${id}"]`).count()) === 1, `${label}: missing note ${id}`);
+  }
+  await page.selectOption('[data-testid="select-visual-content"]', await page.$$eval('[data-testid="select-visual-content"] option', (os) => os.find((o) => o.textContent.includes("/programs —") || o.textContent.startsWith("Programs"))?.value));
+  await page.waitForSelector('[data-testid="auto-part-overview-links"]');
+  await page.selectOption('[data-testid="select-visual-content"]', await page.$$eval('[data-testid="select-visual-content"] option', (os) => os.find((o) => o.textContent.startsWith("Home page"))?.value));
+  await page.waitForSelector('[data-testid="auto-part-home-hero"]');
+  expect((await page.locator('[data-testid="auto-part-home-auto"]').count()) === 1, "home notes");
+  await openCanvas(page, "Independent School");
+  expect((await page.locator('[data-testid^="auto-part-"]').count()) === 0, "ordinary page should have no notes");
 });
 
 // ---------------------------------------------------------------- network hygiene
