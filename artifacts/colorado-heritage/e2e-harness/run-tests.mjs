@@ -1873,6 +1873,73 @@ await run("P3", "portals", "Server render: Faculty/Staff Portal appears once, in
   expect(!headerHtml.includes("Faculty/Staff Portal"), "no staff portal before the footer in the SSR html");
 });
 
+// ---------------------------------------------------------------- combined: blog editor + table grid + page editor
+await run("X1", "combined", "Blog editor: the Table block is the shared grid (add rows and columns, edit cells); it publishes once with the edited cells, and is saved as a markdown table too", async ({ page, state, shot }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Table post"); await page.locator('[data-testid="blog-title"]').blur();
+  await typeBody(page, "Schedule below.");
+  await addBlock(page, "table");
+  const t = page.locator('[data-testid="doc-table"]').first();
+  await t.waitFor();
+  await t.locator('input[data-cell="h-0"]').fill("Day"); await t.locator('input[data-cell="h-1"]').fill("Time");
+  await cell(page, 0, 0, t).fill("Monday"); await cell(page, 0, 1, t).fill("9:00");
+  await t.getByTestId("table-add-row").click();
+  await cell(page, 2, 0, t).fill("Tuesday"); await cell(page, 2, 1, t).fill("10:00");
+  await t.getByTestId("table-add-col").click();
+  await t.locator('input[data-cell="h-2"]').fill("Room"); await cell(page, 0, 2, t).fill("A");
+  await waitFor(() => findPost(state, (p) => p.markdown.includes("| Day | Time | Room |") && p.markdown.includes("| Tuesday | 10:00 |")), "table saved with the post");
+  await shot("blog-table-grid");
+  const post = findPost(state, (p) => p.title === "Table post");
+  expect(post.markdown.includes("Schedule below.") && (post.markdown.match(/\| --- \| --- \| --- \|/g) ?? []).length === 1, `markdown mirror: ${post.markdown}`);
+  await publishAndOpen(page, state, "Table post");
+  expect((await page.locator(".cb-post-body table").count()) === 1 && (await page.locator('.cb-post-body .cb-table-wrap[role="region"]').count()) === 1, "one table on the public post");
+  expect((await page.locator(".cb-post-body table th:text-is('Room')").count()) === 1 && (await page.locator(".cb-post-body table td", { hasText: "10:00" }).count()) === 1, "edited cells on the public post");
+});
+
+await run("X2", "combined", "Page editor: 'Add a table' inserts the same grid; it saves into the page text and renders on the public page", async ({ page, state }) => {
+  await openCanvas(page, "Independent School");
+  await page.getByRole("button", { name: "Add a table" }).last().click();
+  const t = page.locator('[data-testid="doc-table"]').first();
+  await t.waitFor();
+  await t.locator('input[data-cell="h-0"]').fill("Class"); await t.locator('input[data-cell="h-1"]').fill("Price");
+  await cell(page, 0, 0, t).fill("Sample A"); await cell(page, 0, 1, t).fill("$1");
+  await waitUntil(() => pageRecord(state, IS).markdown.includes("| Class | Price |"), "table saved to the page");
+  await page.getByRole("button", { name: "Publish changes" }).click();
+  await waitUntil(() => state.publishes.length === 1, "published");
+  await viewPublic(page, IS);
+  expect((await page.locator(".cb-page table").count()) === 1 && (await page.locator(".cb-page table td", { hasText: "Sample A" }).count()) === 1, "table on the public page");
+  expect((await page.getByText("Fixture paragraph two").count()) === 1, "existing page text must remain once");
+});
+
+await run("X3", "combined", "Text toolbar has no duplicate buttons (one Quote, one of each), and tables or notes do not add any", async ({ page }) => {
+  await openCanvas(page, "Tuition & Fees");
+  const p = page.locator(".cms-section .ProseMirror p", { hasText: "Classes meet for sample semesters." });
+  await p.click({ clickCount: 3 });
+  const bar = page.locator('[role="toolbar"][aria-label="Text formatting"]');
+  await bar.waitFor();
+  const titles = await bar.locator("button[title]").evaluateAll((els) => els.map((e) => e.getAttribute("title")));
+  const dup = titles.filter((t, i) => titles.indexOf(t) !== i);
+  expect(dup.length === 0 && titles.filter((t) => t === "Quote").length === 1, `toolbar titles: ${JSON.stringify(titles)}`);
+  expect((await page.locator('[data-testid="doc-table"]').count()) === 2, "tuition tables still present");
+  expect((await page.locator('[data-testid="auto-part-tuition-faqs"]').count()) === 1, "built-in-part note still present on the tuition page");
+});
+
+await run("X4", "combined", "An existing blog post that contains a table opens in the blog editor with the grid, and keeps its table when the title is edited", async ({ page, state }) => {
+  const legacy = state.editor.draft.news.find((p) => /\|\s*---/.test(p.markdown));
+  expect(legacy, "fixture should contain a story with a table");
+  await openBlog(page);
+  for (let i = 0; i < 6 && (await page.locator('[data-testid="blog-row"]', { hasText: legacy.title }).count()) === 0; i += 1) await page.locator('[data-testid="blog-show-more"]').click();
+  await page.locator('[data-testid="blog-row"]', { hasText: legacy.title }).first().locator('[data-testid="blog-row-edit"]').click();
+  await page.waitForSelector('[data-testid="blog-edit"]');
+  await page.waitForSelector('[data-testid="doc-table"]');
+  const rows = await page.locator('[data-testid="doc-table"]').first().locator("tbody tr").count();
+  await page.fill('[data-testid="blog-summary"]', "Added a summary.");
+  await waitFor(() => state.editor.draft.news.find((p) => p.path === legacy.path)?.summary === "Added a summary.", "summary saved");
+  const after = state.editor.draft.news.find((p) => p.path === legacy.path);
+  expect(/\|\s*---/.test(after.markdown) || blk(after).includes("table"), "table lost after editing a post field");
+  expect(rows >= 1, "table rows should show");
+});
+
 // ---------------------------------------------------------------- network hygiene
 await run("N1", "isolation", "No request left the local harness; no unmocked API calls; no uncaught page errors across a full pass", async ({ page, state }) => {
   await openCanvas(page, "Independent School");
