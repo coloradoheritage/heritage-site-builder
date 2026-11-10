@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, Quote, Plus, Minus, ImagePlus, Table as TableIcon, ArrowUp, ArrowDown, Trash2, Check, X,
 } from "lucide-react";
 import { marked } from "marked";
-import { useEditor, EditorContent, Node, mergeAttributes, type Editor } from "@tiptap/react";
+import { useEditor, EditorContent, Node, NodeViewWrapper, ReactNodeViewRenderer, mergeAttributes, type Editor, type NodeViewProps } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { TextAlign } from "@tiptap/extension-text-align";
@@ -15,9 +15,10 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import type { CmsArticle, CmsPage, CmsStaff, SiteContentState } from "@workspace/api-client-react";
 import { asPuckPayload, PuckBlockRenderer, type PuckPayload } from "./puck-render";
 import {
-  InsertMenu, blockLabel, ButtonBlockEditor, CalloutBlockEditor, DividerBlockEditor, GalleryBlockEditor,
+  InsertMenu, STARTER_TABLE_HTML, blockLabel, ButtonBlockEditor, CalloutBlockEditor, DividerBlockEditor, GalleryBlockEditor,
   PhotoBlockEditor as PostPhotoBlockEditor, PullQuoteBlockEditor, VideoBlockEditor, type BlockChoice,
 } from "./post-blocks";
+import { AutoPartNotice, autoPartsFor } from "./auto-parts";
 import { PhotoUploader } from "./site-editors";
 import { SiteImage } from "./site-image";
 import { AnnouncementBar, PublicSiteFooter, PublicSiteHeader } from "./site-chrome";
@@ -47,8 +48,11 @@ export function htmlToMarkdown(html: string) {
       const rows = [...table.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((row) =>
         [...row[1].matchAll(/<(?:th|td)\b[^>]*>([\s\S]*?)<\/(?:th|td)>/gi)].map((cell) => cell[1]
           .replace(/<a\b[^>]*href=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi, "[$3]($2)")
+          .replace(/<img\b[^>]*?\ssrc=(["'])(.*?)\1[^>]*?(?:\salt=(["'])(.*?)\3)?[^>]*>/gi, "![$4]($2)")
           .replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, "**$2**")
           .replace(/<(em|i)\b[^>]*>([\s\S]*?)<\/\1>/gi, "*$2*")
+          .replace(/<code\b[^>]*>([\s\S]*?)<\/code>/gi, "`$1`")
+          .replace(/<br\s*\/?>/gi, " ")
           .replace(/<[^>]*>/g, "").trim()),
       ).filter((row) => row.length);
       if (!rows.length) return "";
@@ -114,6 +118,126 @@ const InlineImage = Node.create({
   renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) { return ["img", mergeAttributes(HTMLAttributes)]; },
 });
 
+// ---- Tables -----------------------------------------------------------------------------------------------
+// A table in page text (a markdown table such as the tuition chart) is one block in the editor: a small grid whose
+// cells hold the same inline markdown the public page renders (links, bold, italics). It serializes to a real
+// <table>, which the public page shows and htmlToMarkdown turns back into a markdown table, so editing a chart
+// never flattens it into a paragraph and never drops or duplicates rows.
+type TableData = { head: string[]; rows: string[][] };
+const MAX_TABLE_COLUMNS = 8;
+
+function cellToMarkdown(html: string) {
+  return html
+    .replace(/<a\b[^>]*href=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi, "[$3]($2)")
+    .replace(/<img\b[^>]*?\ssrc=(["'])(.*?)\1[^>]*?(?:\salt=(["'])(.*?)\3)?[^>]*>/gi, "![$4]($2)")
+    .replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, "**$2**")
+    .replace(/<(em|i)\b[^>]*>([\s\S]*?)<\/\1>/gi, "*$2*")
+    .replace(/<code\b[^>]*>([\s\S]*?)<\/code>/gi, "`$1`")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, "\"").replace(/&#39;/gi, "'").replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ").trim();
+}
+
+function tableFromElement(table: HTMLTableElement): TableData {
+  const rows = [...table.rows].map((row) => [...row.cells].map((cell) => cellToMarkdown(cell.innerHTML)));
+  const width = Math.max(1, ...rows.map((row) => row.length));
+  const padded = rows.map((row) => [...row, ...Array.from({ length: width - row.length }, () => "")]);
+  return { head: padded[0] ?? [""], rows: padded.slice(1) };
+}
+
+function tableToElement({ head, rows }: TableData): HTMLElement {
+  const table = document.createElement("table");
+  const fill = (tag: "th" | "td", text: string, scope?: string) => {
+    const cell = document.createElement(tag);
+    if (scope) cell.setAttribute("scope", scope);
+    const rendered = marked.parseInline(text, { async: false, gfm: true });
+    cell.innerHTML = typeof rendered === "string" ? rendered : "";
+    return cell;
+  };
+  const headRow = table.createTHead().insertRow();
+  head.forEach((text) => headRow.appendChild(fill("th", text, "col")));
+  const body = table.createTBody();
+  rows.forEach((row) => { const tr = body.insertRow(); head.forEach((_cell, i) => tr.appendChild(fill("td", row[i] ?? ""))); });
+  return table;
+}
+
+// Cells are one line of inline markdown; a pipe would split the cell in the markdown version of the table.
+const cleanCell = (value: string) => value.replace(/[\r\n]+/g, " ").replace(/\|/g, "/");
+
+function TableView({ node, getPos, editor }: NodeViewProps) {
+  const attrs = node.attrs as TableData;
+  const [data, setData] = useState<TableData>({ head: attrs.head, rows: attrs.rows });
+  const [confirming, setConfirming] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (JSON.stringify({ head: attrs.head, rows: attrs.rows }) !== JSON.stringify(data)) setData({ head: attrs.head, rows: attrs.rows });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attrs.head, attrs.rows]);
+  const apply = (next: TableData) => {
+    setData(next);
+    editor.chain().command(({ tr }) => {
+      const pos = getPos();
+      if (typeof pos !== "number") return false;
+      tr.setNodeMarkup(pos, undefined, next);
+      tr.setMeta("chessTableEdit", true);
+      return true;
+    }).run();
+  };
+  const width = data.head.length;
+  const setHead = (i: number, value: string) => apply({ ...data, head: data.head.map((cell, ci) => (ci === i ? cleanCell(value) : cell)) });
+  const setCell = (r: number, c: number, value: string) => apply({ ...data, rows: data.rows.map((row, ri) => (ri === r ? row.map((cell, ci) => (ci === c ? cleanCell(value) : cell)) : row)) });
+  const addRow = () => apply({ ...data, rows: [...data.rows, Array.from({ length: width }, () => "")] });
+  const removeRow = (r: number) => { if (data.rows.length > 1) apply({ ...data, rows: data.rows.filter((_row, ri) => ri !== r) }); };
+  const addColumn = () => { if (width < MAX_TABLE_COLUMNS) apply({ head: [...data.head, ""], rows: data.rows.map((row) => [...row, ""]) }); };
+  const removeColumn = (c: number) => { if (width > 1) apply({ head: data.head.filter((_cell, ci) => ci !== c), rows: data.rows.map((row) => row.filter((_cell, ci) => ci !== c)) }); };
+  // A just-added row may take a moment to appear; keep trying briefly.
+  const focusCell = (r: number, c: number, tries = 20) => {
+    const input = rootRef.current?.querySelector<HTMLInputElement>(`input[data-cell="${r}-${c}"]`);
+    if (input) input.focus(); else if (tries > 0) window.setTimeout(() => focusCell(r, c, tries - 1), 25);
+  };
+  const onKey = (event: ReactKeyboardEvent<HTMLInputElement>, r: number, c: number) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (r + 1 >= data.rows.length) { addRow(); focusCell(r + 1, c); } else focusCell(r + 1, c);
+  };
+  const removeTable = () => { const pos = getPos(); if (typeof pos === "number") editor.chain().deleteRange({ from: pos, to: pos + node.nodeSize }).run(); };
+  return <NodeViewWrapper className="cms-table-block cms-doc-table" contentEditable={false} data-testid="doc-table" ref={rootRef}>
+    <div className="cms-table-scroll"><table className="cms-edit-table">
+      <thead><tr>
+        {data.head.map((cell, c) => <th key={c}>
+          <input value={cell} data-cell={`h-${c}`} placeholder={`Column ${c + 1}`} onChange={(event) => setHead(c, event.target.value)} aria-label={`Column ${c + 1} heading`} />
+          {width > 1 && <button type="button" className="cms-table-colctl" onClick={() => removeColumn(c)} title={`Remove column ${c + 1}`} aria-label={`Remove column ${c + 1}`} data-testid={`table-remove-col-${c}`}><X size={12} /></button>}
+        </th>)}
+        <th className="cms-table-rowctl" aria-hidden="true"></th>
+      </tr></thead>
+      <tbody>{data.rows.map((row, r) => <tr key={r}>
+        {data.head.map((_head, c) => <td key={c}><input value={row[c] ?? ""} data-cell={`${r}-${c}`} onChange={(event) => setCell(r, c, event.target.value)} onKeyDown={(event) => onKey(event, r, c)} aria-label={`Row ${r + 1}, ${data.head[c] || `column ${c + 1}`}`} /></td>)}
+        <td className="cms-table-rowctl"><button type="button" onClick={() => removeRow(r)} disabled={data.rows.length <= 1} title="Remove this row" aria-label={`Remove row ${r + 1}`} data-testid={`table-remove-row-${r}`}><X size={13} /></button></td>
+      </tr>)}</tbody>
+    </table></div>
+    <div className="cms-table-controls">
+      <button type="button" onClick={addRow} data-testid="table-add-row"><Plus size={13} /> Add a row</button>
+      <button type="button" onClick={addColumn} disabled={width >= MAX_TABLE_COLUMNS} data-testid="table-add-col"><Plus size={13} /> Add a column</button>
+      {confirming
+        ? <span className="cms-table-confirm">Remove this whole table? <button type="button" onClick={removeTable} data-testid="table-remove-confirm">Remove</button> <button type="button" onClick={() => setConfirming(false)}>Keep</button></span>
+        : <button type="button" onClick={() => setConfirming(true)} className="cms-table-remove" data-testid="table-remove"><Trash2 size={13} /> Remove table</button>}
+    </div>
+  </NodeViewWrapper>;
+}
+
+const CmsTable = Node.create({
+  name: "cmsTable",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  addAttributes() { return { head: { default: [""] }, rows: { default: [[""]] } }; },
+  parseHTML() { return [{ tag: "table", getAttrs: (element) => ({ ...tableFromElement(element as HTMLTableElement) }) }]; },
+  renderHTML({ node }: { node: { attrs: Record<string, unknown> } }) { return tableToElement(node.attrs as unknown as TableData) as never; },
+  addNodeView() { return ReactNodeViewRenderer(TableView, { stopEvent: () => true, ignoreMutation: () => true }); },
+});
+
 const sectionExtensions = [
   StarterKit.configure({
     heading: { levels: [2, 3] }, // guardrail: no H1 (reserved for the page title)
@@ -123,6 +247,7 @@ const sectionExtensions = [
   Color,
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   InlineImage,
+  CmsTable,
 ];
 
 const SECTION_COLORS: Array<[string, string]> = [["Navy", "#1A365D"], ["Gold", "#D4AF37"], ["Slate", "#2D3748"]];
@@ -299,6 +424,7 @@ function ImageBubble({ editor }: { editor: Editor }) {
 // One Tiptap editor on the page. Commits on blur, but only when the content
 // actually changed from the editor's own baseline — so merely clicking through a
 // section (or a stray teardown blur) never marks an untouched section as edited.
+const withoutTrailingBlank = (html: string) => html.replace(/(?:<p>\s*<\/p>)+$/, "");
 function EditableSection({ id, richText, pages, onCommit, autoFocus, liveCommit, ariaLabel }: {
   id: string;
   richText?: string;
@@ -313,7 +439,9 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus, liveCommit,
   const commitIfChanged = (editor: Editor) => {
     if (!id) return;
     const html = editor.getHTML();
-    if (html === baseline.current) return;
+    // The editor appends an empty paragraph after a final table or list as soon as someone clicks in; that alone
+    // is not an edit, so a section that was only opened and left is never marked as changed.
+    if (withoutTrailingBlank(html) === withoutTrailingBlank(baseline.current)) return;
     baseline.current = html;
     onCommit(id, html);
   };
@@ -337,11 +465,15 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus, liveCommit,
     // so no further blur would ever commit them: Save Draft, preview and publish would keep
     // the old photo. Commit those changes now. While the editor is focused (typing, toolbar)
     // the blur commit above still applies, so typing does not push to the draft per keystroke.
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor, transaction }) => {
       if (!editor.isFocused) { commitIfChanged(editor); return; }
-      if (liveCommit) {
+      // Typing in a table cell happens in an input inside the editor, so it never produces an editor "blur":
+      // commit table edits shortly after the person pauses. Single-document screens (the blog post body)
+      // commit shortly after typing stops.
+      const tableEdit = Boolean(transaction.getMeta("chessTableEdit"));
+      if (liveCommit || tableEdit) {
         window.clearTimeout(liveTimer.current);
-        liveTimer.current = window.setTimeout(() => latestCommit.current(editor), 700);
+        liveTimer.current = window.setTimeout(() => latestCommit.current(editor), tableEdit ? 500 : 700);
       }
     },
   });
@@ -358,7 +490,7 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus, liveCommit,
         shouldShow requires this editor to be focused, so only the active section shows a
         toolbar (no stale second toolbar). */}
     <BubbleMenu editor={editor} className="cms-fmt-pop" options={{ placement: "top", offset: 8, flip: true, shift: { padding: 8 } }}
-      shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && from !== to && !editor.isActive("image")}>
+      shouldShow={({ editor, from, to }) => editor.isEditable && editor.isFocused && from !== to && !editor.isActive("image") && !editor.isActive("cmsTable")}>
       <SectionToolbar editor={editor} pages={pages} />
     </BubbleMenu>
     {/* A separate chip that appears when the caret sits inside an existing link (no
@@ -571,7 +703,7 @@ function SectionsEditor({ initial, base, pages, onChange, variant = "page" }: {
   const insertChoice = (index: number, choice: BlockChoice) => insertAt(index, choice.make(newId(choice.id)) as SectionBlock);
   const textBlock = (): SectionBlock => ({ type: "LegacyMarkdown", props: { id: newId("section"), markdown: "", originalMarkdown: "", richText: "<p></p>", richTextEdited: true } });
   const photoBlock = (url = "", alt = ""): SectionBlock => ({ type: "PhotoWithText", props: { id: newId("photo"), heading: "", richText: "<p></p>", richTextEdited: true, image: { url, alt, focalX: 50, focalY: 50 }, imageSide: "left" } });
-  const tableBlock = (): SectionBlock => ({ type: "TuitionTable", props: { id: newId("table"), heading: "", columns: [{ label: "Column 1" }, { label: "Column 2" }], rows: [{ cell1: "", cell2: "", cell3: "", cell4: "" }, { cell1: "", cell2: "", cell3: "", cell4: "" }] } });
+  const tableBlock = (): SectionBlock => ({ type: "LegacyMarkdown", props: { id: newId("section"), markdown: "", originalMarkdown: "", richText: STARTER_TABLE_HTML, richTextEdited: true } });
   const move = (index: number, dir: -1 | 1) => {
     const target = index + dir;
     if (target < 0 || target >= blocksRef.current.length) return;
@@ -670,6 +802,46 @@ export function PostBodyEditor({ blocks, markdown, pages, onChange }: {
     onChange={(next) => { const { savedBlocks, legacy } = prepareSave(next); onChange({ blocks: savedBlocks, markdown: legacy }); }} />;
 }
 
+// Earlier versions of this editor had no table support: opening a section with a markdown table flattened the table
+// into one paragraph of run-together cell text, and the next edit saved that paragraph. The section still keeps its
+// original markdown, so when a saved section has no table but its original markdown does, put each table back in
+// place of the paragraph that holds exactly its flattened text. Nothing else in the section is touched, and a
+// section that does not match is left exactly as saved.
+function markdownTables(markdown: string): Array<{ html: string; flat: string }> {
+  const lines = markdown.replace(/\r/g, "").split("\n");
+  const found: Array<{ html: string; flat: string }> = [];
+  let group: string[] = [];
+  const flush = () => {
+    if (group.length >= 2 && /^\s*\|?\s*:?-{2,}/.test(group[1])) {
+      const html = marked(group.join("\n"), { async: false, gfm: true });
+      if (typeof html === "string" && /<table/i.test(html)) {
+        const box = new DOMParser().parseFromString(html, "text/html");
+        found.push({ html: box.body.innerHTML, flat: (box.body.textContent ?? "").replace(/\s+/g, "") });
+      }
+    }
+    group = [];
+  };
+  lines.forEach((line) => { if (line.trim().startsWith("|")) group.push(line); else flush(); });
+  flush();
+  return found;
+}
+function recoverFlattenedTables(richText: string, originalMarkdown: string): string {
+  if (/<table\b/i.test(richText) || !originalMarkdown.includes("|")) return richText;
+  let out = richText;
+  for (const table of markdownTables(originalMarkdown)) {
+    if (!table.flat) continue;
+    let done = false;
+    out = out.replace(/<p\b[^>]*>([\s\S]*?)<\/p>/gi, (match, inner: string) => {
+      if (done) return match;
+      const text = new DOMParser().parseFromString(inner, "text/html").body.textContent ?? "";
+      if (text.replace(/\s+/g, "") !== table.flat) return match;
+      done = true;
+      return table.html;
+    });
+  }
+  return out;
+}
+
 function editorPayload(input: unknown, markdown: string): PuckPayload {
   const payload = asPuckPayload(input, markdown);
   // First load of a legacy page: the whole body is one big text block. Split it at
@@ -694,7 +866,7 @@ function editorPayload(input: unknown, markdown: string): PuckPayload {
     if (block.type !== "LegacyMarkdown") return block;
     const original = String(block.props.originalMarkdown ?? block.props.markdown ?? markdown);
     const isEdited = block.props.richTextEdited === true;
-    return { ...block, props: { ...block.props, markdown: original, originalMarkdown: original, richText: isEdited && typeof block.props.richText === "string" ? block.props.richText : markdownToRichText(original), richTextEdited: isEdited } };
+    return { ...block, props: { ...block.props, markdown: original, originalMarkdown: original, richText: isEdited && typeof block.props.richText === "string" ? recoverFlattenedTables(block.props.richText, original) : markdownToRichText(original), richTextEdited: isEdited } };
   }) as SectionBlock[];
   // Drop empty text sections so a brand-new page opens with no lingering blank
   // block between the "Add …" rows (staff just pick what to add first).
@@ -704,7 +876,7 @@ function editorPayload(input: unknown, markdown: string): PuckPayload {
 type Entry = { label: string; subtitle: string; kind: "home" | "page" | "staff" | "news" | "events"; index?: number };
 type ContentState = { home?: CmsPage; pages: CmsPage[]; staff: CmsStaff[]; news: CmsArticle[]; events: CmsArticle[] };
 
-export function VisualPageEditor({ draft, update, renderPhotoUploader, requestedKey, requestedNonce, onSelectionChange, renderSettings }: {
+export function VisualPageEditor({ draft, update, renderPhotoUploader, requestedKey, requestedNonce, onSelectionChange, renderSettings, onOpenTab }: {
   draft: ContentState;
   update: (fn: (d: ContentState) => ContentState) => void;
   renderPhotoUploader?: (onUploaded: (url: string, alt: string) => void) => ReactNode;
@@ -712,6 +884,8 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
   requestedNonce?: number;
   onSelectionChange?: (path: string) => void;
   renderSettings?: (pageIndex: number, onClose: () => void) => ReactNode;
+  /** Opens another editor tab (Events, FAQs, ...) from the notes about built-in page parts. */
+  onOpenTab?: (tab: string) => void;
 }) {
   const [selected, setSelected] = useState(() => requestedKey ?? "home");
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
@@ -741,6 +915,7 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
   if (!entry || !record) return <div className="puck-empty">Add a page, profile, story, or event to begin.</div>;
   const markdown = "markdown" in record ? record.markdown : "bio" in record ? record.bio : "";
   const payload = editorPayload(record.blocks, markdown);
+  const autoParts = entry.kind === "home" ? autoPartsFor("/", record as CmsPage) : entry.kind === "page" ? autoPartsFor((record as CmsPage).path, record as CmsPage) : [];
   const saveBlocks = (next: PuckPayload) => {
     const { savedBlocks, legacy } = prepareSave(next);
     const hasLegacy = legacy !== null;
@@ -785,7 +960,9 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
               : <header className="cb-page-head"><h1>{"label" in record ? record.label : "title" in record ? record.title : "Home page"}</h1>
                   {"description" in record && record.description && <p>{record.description}</p>}
                 </header>}
+            {autoParts.filter((part) => part.place === "before").map((part) => <AutoPartNotice key={part.id} part={part} onOpenTab={onOpenTab} />)}
             <SectionsEditor key={selected} initial={payload.content} base={payload} pages={draft.pages} onChange={saveBlocks} />
+            {autoParts.filter((part) => part.place === "after").map((part) => <AutoPartNotice key={part.id} part={part} onOpenTab={onOpenTab} />)}
           </main>
           <p className="cms-puck-note">Click any text to edit it — a formatting toolbar appears just above your selection. The page headline and intro at the top edit in place too. Hover a section for its move, delete, and “add” controls.</p>
         </div>

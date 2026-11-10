@@ -303,3 +303,20 @@
 .puck-callout p { margin: 0 0 .6rem; color: inherit; }
 .puck-callout p:last-child { margin-bottom: 0; }
 .puck-testimonial { font-style: italic; }
+/* Table inside page text (editable grid) */
+.cms-doc-table { margin: .6rem 0; border: 1px solid #d6dce8; border-radius: 8px; background: #fdfcf8; }
+.cms-doc-table.ProseMirror-selectednode { outline: 2px solid #D4AF37; }
+.cms-edit-table thead th { position: relative; }
+.cms-table-colctl { position: absolute; top: 2px; right: 2px; display: inline-flex; padding: 2px; border: 0; border-radius: 4px; background: rgba(255,255,255,.18); color: #fff; cursor: pointer; opacity: .75; }
+.cms-table-colctl:hover { opacity: 1; background: rgba(255,255,255,.35); }
+.cms-edit-table thead input { padding-right: 1.6rem; }
+.cms-table-controls { flex-wrap: wrap; align-items: center; }
+.cms-table-controls .cms-table-remove { margin-left: auto; color: #9b2c1f; border-color: #e4c3bc; }
+.cms-table-confirm { margin-left: auto; font: 600 .78rem "Lato", sans-serif; color: #7d2417; display: inline-flex; gap: .4rem; align-items: center; }
+
+/* Notes for parts of the page the site builds by itself */
+.cms-auto-part { display: flex; gap: .75rem; align-items: flex-start; margin: .9rem 0; padding: .85rem 1rem; border: 1px dashed #b7c2d3; border-radius: 10px; background: #f3f6fb; color: #2D3748; font: 400 .9rem/1.45 "Lato", sans-serif; }
+.cms-auto-part svg { flex: none; margin-top: .15rem; color: #1A365D; }
+.cms-auto-part strong { display: block; color: #1A365D; margin-bottom: .15rem; }
+.cms-auto-part p { margin: 0 0 .5rem; }
+.cms-auto-part-actions { display: flex; flex-wrap: wrap; gap: .4rem; }

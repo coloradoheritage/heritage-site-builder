@@ -273,7 +273,9 @@ function RichHtml({ value }: { value: string }) {
   // A photo caption is stored as the image title; show it under the photo (nothing when empty).
   const captioned = clean.replace(/<img\b([^>]*?)\stitle=(["'])(.*?)\2([^>]*)>/gi, (_match, before: string, _quote: string, title: string, after: string) =>
     title.trim() ? `<span class="chess-figure"><img${before}${after}><span class="chess-caption">${title}</span></span>` : `<img${before}${after}>`);
-  const resolved = captioned.replace(/\shref=(["'])(.*?)\1/gi, (_match, quote: string, href: string) => ` href=${quote}${resolve(href)}${quote}`);
+  // Tables get the same scrollable, labelled wrapper the markdown renderer gives them.
+  const wrapped = captioned.replace(/<table\b/gi, '<div class="cb-table-wrap" role="region" aria-label="Table" tabindex="0"><table').replace(/<\/table>/gi, "</table></div>");
+  const resolved = wrapped.replace(/\shref=(["'])(.*?)\1/gi, (_match, quote: string, href: string) => ` href=${quote}${resolve(href)}${quote}`);
   return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: resolved }} />;
 }
 

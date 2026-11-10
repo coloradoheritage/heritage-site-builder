@@ -14,7 +14,8 @@ export type PostBlock = PuckPayload["content"][number];
 type Patch = (id: string, patch: Record<string, unknown>) => void;
 
 const text = (id: string, richText: string): PostBlock => ({ type: "LegacyMarkdown", props: { id, markdown: "", originalMarkdown: "", richText, richTextEdited: true } });
-const emptyRow = { cell1: "", cell2: "", cell3: "", cell4: "" };
+/** A new table is a text section holding the same editable grid used for tables in page text (rows and columns can be added or removed). */
+export const STARTER_TABLE_HTML = '<table><thead><tr><th scope="col">Column 1</th><th scope="col">Column 2</th></tr></thead><tbody><tr><td></td><td></td></tr><tr><td></td><td></td></tr></tbody></table>';
 
 export type BlockChoice = { id: string; label: string; description: string; icon: ReactNode; make: (id: string) => PostBlock };
 
@@ -32,7 +33,7 @@ export const BLOCK_CHOICES: BlockChoice[] = [
   { id: "callout", label: "Callout box", description: "A colored box for something families should not miss.", icon: <Info size={18} />, make: (id) => ({ type: "Callout", props: { id, tone: "note", heading: "", text: "" } }) },
   { id: "button", label: "Button", description: "A button that sends families to a page or website.", icon: <MousePointerClick size={18} />, make: (id) => ({ type: "FamilyStepButton", props: { id, title: "", richText: "<p></p>", buttonLabel: "Learn more", href: "/contact" } }) },
   { id: "video", label: "Video (YouTube)", description: "Show a YouTube video right in the post.", icon: <Video size={18} />, make: (id) => ({ type: "VideoOrMap", props: { id, heading: "", url: "", description: "" } }) },
-  { id: "table", label: "Table", description: "Rows and columns, like a schedule or price list.", icon: <TableIcon size={18} />, make: (id) => ({ type: "TuitionTable", props: { id, heading: "", columns: [{ label: "Column 1" }, { label: "Column 2" }], rows: [{ ...emptyRow }, { ...emptyRow }] } }) },
+  { id: "table", label: "Table", description: "Rows and columns, like a schedule or price list.", icon: <TableIcon size={18} />, make: (id) => text(id, STARTER_TABLE_HTML) },
   { id: "divider", label: "Divider", description: "A thin line between two parts of the post.", icon: <Minus size={18} />, make: (id) => ({ type: "Divider", props: { id } }) },
 ];
 

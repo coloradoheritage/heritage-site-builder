@@ -776,7 +776,7 @@ export function SiteManager({ onBack, onSignOut, publicSiteUrl }: { onBack: () =
     <main className="cms-body">
       {tab === "visual" && <Suspense fallback={<div className="cms-puck-loading" aria-busy="true"><span /><span /><span /></div>}>
         <VisualPageEditor draft={draft} update={update} requestedKey={visualRequest?.key} requestedNonce={visualRequest?.nonce}
-          onSelectionChange={setPreviewPath}
+          onSelectionChange={setPreviewPath} onOpenTab={(next) => { if (ALL_TABS.includes(next as Tab)) setTab(next as Tab); }}
           renderSettings={(pageIndex, onClose) => <PagesEditor draft={draft} update={update} settingsOnly requestedIndex={pageIndex} onClose={onClose} />}
           renderPhotoUploader={(onUploaded) =>
           <PhotoUploader label="Add an accessible photo block" onUploaded={onUploaded} defaultAlt="" />} />
