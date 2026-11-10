@@ -148,7 +148,7 @@ export function PublicSiteHeader({ editing = false, contentOverride }: { editing
         <a href={OFFICE.tel} className="cb-utility-link" data-testid="link-header-phone"><PhoneIcon aria-hidden="true" />{OFFICE.phone}</a>
         <span className="cb-utility-right">
           <Link href="/donate" className="cb-utility-link" data-testid="link-donate" onClick={guard}>Donate</Link>
-          {PORTAL_LINKS.map((portal) => <a key={portal.key} href={portal.url} target="_blank" rel="noopener noreferrer" className="cb-utility-link" data-testid={`link-portal-${portal.key}-utility`}>{portal.label}<ArrowUpRightIcon aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a>)}
+          <a href={PORTAL_LINKS[0].url} target="_blank" rel="noopener noreferrer" className="cb-utility-link" data-testid="link-portal-parent-utility">{PORTAL_LINKS[0].label}<ArrowUpRightIcon aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a>
         </span>
       </div>
     </div>
@@ -179,7 +179,7 @@ export function PublicSiteHeader({ editing = false, contentOverride }: { editing
             ? <Button href={PORTAL_LINKS[0].url} onDark testId="button-header-parent-portal">{PORTAL_LINKS[0].label}</Button>
             : <Button href={VISIT_PATH} onDark testId="button-header-visit">Schedule a Visit</Button>}
           <span className="cb-nav-mobile-extras">
-            {PORTAL_LINKS.map((portal) => <Button key={portal.key} href={portal.url} variant="secondary" onDark testId={`button-mobile-portal-${portal.key}`}>{portal.label}</Button>)}
+            <Button href={PORTAL_LINKS[0].url} variant="secondary" onDark testId="button-mobile-portal-parent">{PORTAL_LINKS[0].label}</Button>
             <Link href="/donate" className="cb-nav-donate" onClick={guard}>Donate</Link>
           </span>
         </div>

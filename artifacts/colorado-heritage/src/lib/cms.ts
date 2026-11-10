@@ -4,7 +4,7 @@ import type { CmsArticle, CmsPage, SiteContentState } from "@workspace/api-clien
 
 export const PRAXI_PARENT_PORTAL = "https://app.praxischool.com/parent_login.php?s=1300";
 export const STAFF_PORTAL = "https://app.praxischool.com/";
-/** Login links from the old coloradoheritage.org site. Fixed in code (not page links), so the menu editor does not manage them. */
+/** Login links from the old coloradoheritage.org site. The parent link is in the header, menu and footer; the staff link is footer only. Fixed in code (not page links), so the menu editor does not manage them. */
 export const PORTAL_LINKS = [
   { key: "parent", label: "Payment/Account Portal", url: PRAXI_PARENT_PORTAL },
   { key: "staff", label: "Faculty/Staff Portal", url: STAFF_PORTAL },
