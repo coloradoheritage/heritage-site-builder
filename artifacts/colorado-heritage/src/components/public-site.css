@@ -526,3 +526,5 @@ body.cb-menu-open { overflow: hidden; }
 .chess-figure { display: block; margin: 1rem 0; }
 .chess-figure > img { display: block; }
 .chess-caption { display: block; margin-top: .4rem; color: #5b6676; font-size: .88rem; line-height: 1.45; font-style: italic; }
+
+.cb-footer-portals { display: inline-flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
