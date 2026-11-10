@@ -4,7 +4,7 @@ import { getGetSiteContentQueryKey, useGetSiteContent } from "@workspace/api-cli
 import {
   ArrowUpRightIcon, Bars3Icon, CalendarDaysIcon, ChevronDownIcon, EnvelopeIcon, MapPinIcon, PhoneIcon, XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { MAP_LINK, OFFICE, PRAXI_PARENT_PORTAL, VISIT_PATH, articleHref, denverNow } from "../lib/cms";
+import { MAP_LINK, OFFICE, PORTAL_LINKS, PRAXI_PARENT_PORTAL, VISIT_PATH, articleHref, denverNow } from "../lib/cms";
 import { Button, Logo, Tagline } from "./brand";
 import type { SiteContentState } from "@workspace/api-client-react";
 import { isValidMountainInput, toMountainInput } from "./puck-time";
@@ -148,7 +148,7 @@ export function PublicSiteHeader({ editing = false, contentOverride }: { editing
         <a href={OFFICE.tel} className="cb-utility-link" data-testid="link-header-phone"><PhoneIcon aria-hidden="true" />{OFFICE.phone}</a>
         <span className="cb-utility-right">
           <Link href="/donate" className="cb-utility-link" data-testid="link-donate" onClick={guard}>Donate</Link>
-          <a href={PRAXI_PARENT_PORTAL} target="_blank" rel="noopener noreferrer" className="cb-utility-link" data-testid="link-praxi-portal-utility">Praxi Parent Portal<ArrowUpRightIcon aria-hidden="true" /></a>
+          {PORTAL_LINKS.map((portal) => <a key={portal.key} href={portal.url} target="_blank" rel="noopener noreferrer" className="cb-utility-link" data-testid={`link-portal-${portal.key}-utility`}>{portal.label}<ArrowUpRightIcon aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a>)}
         </span>
       </div>
     </div>
@@ -176,10 +176,10 @@ export function PublicSiteHeader({ editing = false, contentOverride }: { editing
         </ul>
         <div className="cb-nav-actions">
           {isParentsPath(path)
-            ? <Button href={PRAXI_PARENT_PORTAL} onDark testId="button-header-praxi">Praxi Parent Portal</Button>
+            ? <Button href={PORTAL_LINKS[0].url} onDark testId="button-header-parent-portal">{PORTAL_LINKS[0].label}</Button>
             : <Button href={VISIT_PATH} onDark testId="button-header-visit">Schedule a Visit</Button>}
           <span className="cb-nav-mobile-extras">
-            <Button href={PRAXI_PARENT_PORTAL} variant="secondary" onDark testId="button-mobile-praxi">Praxi Parent Portal</Button>
+            {PORTAL_LINKS.map((portal) => <Button key={portal.key} href={portal.url} variant="secondary" onDark testId={`button-mobile-portal-${portal.key}`}>{portal.label}</Button>)}
             <Link href="/donate" className="cb-nav-donate" onClick={guard}>Donate</Link>
           </span>
         </div>
@@ -227,7 +227,7 @@ export function ContactStrip() {
       <a href={MAP_LINK} target="_blank" rel="noopener noreferrer" data-testid="strip-address"><MapPinIcon aria-hidden="true" /><span>{OFFICE.street}, {OFFICE.city}</span></a>
       <a href={OFFICE.tel} data-testid="strip-phone"><PhoneIcon aria-hidden="true" /><span>{OFFICE.phone}</span></a>
       <a href={`mailto:${OFFICE.email}`} data-testid="strip-email"><EnvelopeIcon aria-hidden="true" /><span>{OFFICE.email}</span></a>
-      <a href={PRAXI_PARENT_PORTAL} target="_blank" rel="noopener noreferrer" data-testid="strip-praxi"><ArrowUpRightIcon aria-hidden="true" /><span>Praxi Parent Portal</span></a>
+      <a href={PORTAL_LINKS[0].url} target="_blank" rel="noopener noreferrer" data-testid="strip-parent-portal"><ArrowUpRightIcon aria-hidden="true" /><span>{PORTAL_LINKS[0].label}</span></a>
     </div>
   </section>;
 }
@@ -257,7 +257,7 @@ export function PublicSiteFooter({ editing = false }: { editing?: boolean }) {
       </div>
       <div className="cb-footer-bottom">
         <span>© {new Date().getFullYear()} Colorado Heritage Education School System</span>
-        <a href={PRAXI_PARENT_PORTAL} target="_blank" rel="noopener noreferrer">Praxi Parent Portal</a>
+        <span className="cb-footer-portals">{PORTAL_LINKS.map((portal) => <a key={portal.key} href={portal.url} target="_blank" rel="noopener noreferrer" data-testid={`footer-portal-${portal.key}`}>{portal.label}</a>)}</span>
       </div>
     </footer>
   </>;
