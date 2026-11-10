@@ -1,9 +1,9 @@
 import "@puckeditor/core/puck.css";
-import { useCallback, useEffect, useRef, useState, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import {
   Link as LinkIcon, Unlink, Monitor, Smartphone, PanelLeftOpen, ExternalLink, Settings,
   Bold, Italic, Underline as UnderlineIcon, Heading2, Heading3, List, ListOrdered,
-  AlignLeft, AlignCenter, AlignRight, Plus, Minus, ImagePlus, Table as TableIcon, ArrowUp, ArrowDown, Trash2, Check, X,
+  AlignLeft, AlignCenter, AlignRight, Quote, Plus, Minus, ImagePlus, Table as TableIcon, ArrowUp, ArrowDown, Trash2, Check, X,
 } from "lucide-react";
 import { marked } from "marked";
 import { useEditor, EditorContent, Node, mergeAttributes, type Editor } from "@tiptap/react";
@@ -14,6 +14,10 @@ import Color from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
 import type { CmsArticle, CmsPage, CmsStaff, SiteContentState } from "@workspace/api-client-react";
 import { asPuckPayload, PuckBlockRenderer, type PuckPayload } from "./puck-render";
+import {
+  InsertMenu, blockLabel, ButtonBlockEditor, CalloutBlockEditor, DividerBlockEditor, GalleryBlockEditor,
+  PhotoBlockEditor as PostPhotoBlockEditor, PullQuoteBlockEditor, VideoBlockEditor, type BlockChoice,
+} from "./post-blocks";
 import { PhotoUploader } from "./site-editors";
 import { SiteImage } from "./site-image";
 import { AnnouncementBar, PublicSiteFooter, PublicSiteHeader } from "./site-chrome";
@@ -33,11 +37,11 @@ function safeLinkHref(value: string) {
   return `https://${href}`;
 }
 
-function markdownToRichText(markdown: string) {
+export function markdownToRichText(markdown: string) {
   const result = marked(markdown, { async: false, gfm: true, breaks: false });
   return typeof result === "string" ? result : "";
 }
-function htmlToMarkdown(html: string) {
+export function htmlToMarkdown(html: string) {
   let value = html
     .replace(/<table\b[^>]*>([\s\S]*?)<\/table>/gi, (_match, table: string) => {
       const rows = [...table.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((row) =>
@@ -149,6 +153,7 @@ function SectionToolbar({ editor, pages }: { editor: Editor; pages: CmsPage[] })
     <FmtButton wide active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title="Subheading"><Heading3 size={15} /> Subheading</FmtButton>
     <FmtButton active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bulleted list"><List size={15} /></FmtButton>
     <FmtButton active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered list"><ListOrdered size={15} /></FmtButton>
+    <FmtButton active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Quote"><Quote size={15} /></FmtButton>
     <span className="cms-fmt-sep" />
     <FmtButton active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()} title="Align left"><AlignLeft size={15} /></FmtButton>
     <FmtButton active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()} title="Align center"><AlignCenter size={15} /></FmtButton>
@@ -294,12 +299,15 @@ function ImageBubble({ editor }: { editor: Editor }) {
 // One Tiptap editor on the page. Commits on blur, but only when the content
 // actually changed from the editor's own baseline — so merely clicking through a
 // section (or a stray teardown blur) never marks an untouched section as edited.
-function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
+function EditableSection({ id, richText, pages, onCommit, autoFocus, liveCommit, ariaLabel }: {
   id: string;
   richText?: string;
   pages: CmsPage[];
   onCommit: (id: string, html: string) => void;
   autoFocus?: boolean;
+  /** Also commit shortly after the person stops typing (single-document screens such as the blog post editor). */
+  liveCommit?: boolean;
+  ariaLabel?: string;
 }) {
   const baseline = useRef<string>("");
   const commitIfChanged = (editor: Editor) => {
@@ -309,23 +317,33 @@ function EditableSection({ id, richText, pages, onCommit, autoFocus }: {
     baseline.current = html;
     onCommit(id, html);
   };
+  const latestCommit = useRef(commitIfChanged);
+  latestCommit.current = commitIfChanged;
+  const liveTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(liveTimer.current), []);
   const editor = useEditor({
     extensions: sectionExtensions,
     content: typeof richText === "string" && richText.trim() ? richText : "<p></p>",
     editable: true,
     immediatelyRender: false,
-    editorProps: { attributes: { class: "chess-prose cms-section-editor" } },
+    editorProps: { attributes: { class: "chess-prose cms-section-editor", ...(ariaLabel ? { role: "textbox", "aria-multiline": "true", "aria-label": ariaLabel } : {}) } },
     // Move the caret into a freshly inserted section so the keyboard (and the
     // space bar) go to the text, not to the "Add a text section" button that
     // was just clicked — otherwise every space press re-inserts a section.
     onCreate: ({ editor }) => { baseline.current = editor.getHTML(); if (autoFocus) editor.commands.focus("end"); },
-    onBlur: ({ editor }) => commitIfChanged(editor),
+    onBlur: ({ editor }) => { window.clearTimeout(liveTimer.current); commitIfChanged(editor); },
     // Edits made from the photo chip (description, replace) change the document while
     // focus is in the chip's own fields or uploader, i.e. after the editor already blurred,
     // so no further blur would ever commit them: Save Draft, preview and publish would keep
     // the old photo. Commit those changes now. While the editor is focused (typing, toolbar)
     // the blur commit above still applies, so typing does not push to the draft per keystroke.
-    onUpdate: ({ editor }) => { if (!editor.isFocused) commitIfChanged(editor); },
+    onUpdate: ({ editor }) => {
+      if (!editor.isFocused) { commitIfChanged(editor); return; }
+      if (liveCommit) {
+        window.clearTimeout(liveTimer.current);
+        liveTimer.current = window.setTimeout(() => latestCommit.current(editor), 700);
+      }
+    },
   });
   if (!editor) return <div className="chess-prose" dangerouslySetInnerHTML={{ __html: String(richText ?? "") }} />;
   return <>
@@ -512,12 +530,15 @@ const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(seq++
 // it is persisted up through onChange (the draft/publish pipeline) but never read
 // back into state, so saving never resets a live editor's caret. The parent keys
 // this by the selected page so switching pages remounts with fresh content.
-function SectionsEditor({ initial, base, pages, onChange }: {
+function SectionsEditor({ initial, base, pages, onChange, variant = "page" }: {
   initial: SectionBlock[];
   base: PuckPayload;
   pages: CmsPage[];
   onChange: (next: PuckPayload) => void;
+  /** "post" swaps the three fixed "Add …" buttons for the full "+" block menu used by the blog post editor. */
+  variant?: "page" | "post";
 }) {
+  const post = variant === "post";
   const [blocks, setBlocks] = useState<SectionBlock[]>(initial);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   // Id of a just-inserted section: its editor/first field focuses on mount so the
@@ -547,6 +568,7 @@ function SectionsEditor({ initial, base, pages, onChange }: {
     setFocusId(String(block.props.id ?? ""));
     commit(next);
   };
+  const insertChoice = (index: number, choice: BlockChoice) => insertAt(index, choice.make(newId(choice.id)) as SectionBlock);
   const textBlock = (): SectionBlock => ({ type: "LegacyMarkdown", props: { id: newId("section"), markdown: "", originalMarkdown: "", richText: "<p></p>", richTextEdited: true } });
   const photoBlock = (url = "", alt = ""): SectionBlock => ({ type: "PhotoWithText", props: { id: newId("photo"), heading: "", richText: "<p></p>", richTextEdited: true, image: { url, alt, focalX: 50, focalY: 50 }, imageSide: "left" } });
   const tableBlock = (): SectionBlock => ({ type: "TuitionTable", props: { id: newId("table"), heading: "", columns: [{ label: "Column 1" }, { label: "Column 2" }], rows: [{ cell1: "", cell2: "", cell3: "", cell4: "" }, { cell1: "", cell2: "", cell3: "", cell4: "" }] } });
@@ -563,7 +585,7 @@ function SectionsEditor({ initial, base, pages, onChange }: {
   };
 
   return <div className="cms-sections" data-testid="sections-editor">
-    <InsertRow onText={() => insertAt(0, textBlock())} onPhoto={() => insertAt(0, photoBlock())} onTable={() => insertAt(0, tableBlock())} />
+    {post ? <InsertMenu onPick={(choice) => insertChoice(0, choice)} testId="insert-menu-0" /> : <InsertRow onText={() => insertAt(0, textBlock())} onPhoto={() => insertAt(0, photoBlock())} onTable={() => insertAt(0, tableBlock())} />}
     {blocks.map((block, index) => {
       const id = String(block.props.id ?? `block-${index}`);
       return <div className="cms-section" key={id} data-testid={`section-${index}`} data-block-type={block.type}>
@@ -578,14 +600,22 @@ function SectionsEditor({ initial, base, pages, onChange }: {
               <button type="button" title="Move down" aria-label="Move section down" disabled={index === blocks.length - 1} onClick={() => move(index, 1)}><ArrowDown size={14} /></button>
               <button type="button" title="Remove section" aria-label="Remove section" onClick={() => setConfirmingId(id)} data-testid={`delete-${index}`}><Trash2 size={14} /></button>
             </div>}
+        {blockLabel(block.type) && <span className="cms-block-label" contentEditable={false}>{blockLabel(block.type)}</span>}
         {block.type === "LegacyMarkdown"
-          ? <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : undefined} pages={pages} onCommit={commitText} autoFocus={focusId === id} />
+          ? <EditableSection id={id} richText={typeof block.props.richText === "string" ? block.props.richText : undefined} pages={pages} onCommit={commitText} autoFocus={focusId === id} liveCommit={post} ariaLabel={post ? "Post text" : undefined} />
           : block.type === "PhotoWithText"
             ? <PhotoBlockEditor block={block} pages={pages} onCommit={commitText} onPatch={patchBlock} autoFocus={focusId === id} />
             : block.type === "TuitionTable"
               ? <TableBlockEditor block={block} onPatch={patchBlock} autoFocus={focusId === id} />
+              : block.type === "Photo" ? <PostPhotoBlockEditor block={block} onPatch={patchBlock} />
+              : block.type === "Gallery" ? <GalleryBlockEditor block={block} onPatch={patchBlock} />
+              : block.type === "Divider" ? <DividerBlockEditor />
+              : block.type === "Callout" ? <CalloutBlockEditor block={block} onPatch={patchBlock} />
+              : block.type === "Testimonial" ? <PullQuoteBlockEditor block={block} onPatch={patchBlock} />
+              : block.type === "FamilyStepButton" ? <ButtonBlockEditor block={block} pages={pages} onPatch={patchBlock} />
+              : block.type === "VideoOrMap" ? <VideoBlockEditor block={block} onPatch={patchBlock} />
               : <div className="cms-nontext" contentEditable={false}><PuckBlockRenderer blocks={{ ...base, content: [block] }} /></div>}
-        <InsertRow onText={() => insertAt(index + 1, textBlock())} onPhoto={() => insertAt(index + 1, photoBlock())} onTable={() => insertAt(index + 1, tableBlock())} />
+        {post ? <InsertMenu onPick={(choice) => insertChoice(index + 1, choice)} testId={`insert-menu-${index + 1}`} /> : <InsertRow onText={() => insertAt(index + 1, textBlock())} onPhoto={() => insertAt(index + 1, photoBlock())} onTable={() => insertAt(index + 1, tableBlock())} />}
       </div>;
     })}
   </div>;
@@ -597,6 +627,47 @@ function isBlankTextBlock(block: SectionBlock): boolean {
   return block.type === "LegacyMarkdown"
     && !String(block.props.richText ?? "").replace(/<p>\s*<\/p>/gi, "").replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim()
     && !String(block.props.originalMarkdown ?? block.props.markdown ?? "").trim();
+}
+
+// Turns the editor's block list into what is stored: text sections are normalized, blank text sections are dropped,
+// and the plain-markdown mirror (used for excerpts, search text and as a fallback) is rebuilt from every text section.
+function prepareSave(next: PuckPayload): { savedBlocks: PuckPayload; legacy: string | null } {
+  const normalized = next.content.map((block) => {
+    if (block.type !== "LegacyMarkdown") return block;
+    const base = String(block.props.originalMarkdown ?? block.props.markdown ?? "");
+    const richText = String(block.props.richText ?? "");
+    const edited = block.props.richTextEdited === true || richText !== markdownToRichText(base);
+    return { ...block, props: { ...block.props, markdown: base, originalMarkdown: base, richText, richTextEdited: edited } };
+  });
+  // Drop blank text sections (e.g. the empty starter block a new page begins with, left behind after the real
+  // content is typed into another section) so the stored page never carries an empty section.
+  const savedBlocks = {
+    ...next,
+    content: normalized.filter((block) => !isBlankTextBlock(block as SectionBlock)),
+  } as unknown as PuckPayload;
+  const legacyBlocks = savedBlocks.content.filter((item) => item.type === "LegacyMarkdown");
+  if (!legacyBlocks.length) return { savedBlocks, legacy: null };
+  const legacy = joinSections(legacyBlocks.map((block) => block.props.richTextEdited === true
+    ? htmlToMarkdown(String(block.props.richText ?? ""))
+    : String(block.props.originalMarkdown ?? block.props.markdown ?? "")));
+  return { savedBlocks, legacy };
+}
+
+/**
+ * The body of a blog post: the page editor's block list (same text editor, floating toolbar, link and photo chips)
+ * with the full "+" block menu. `onChange` receives the blocks to store and the text mirror (null when the post has
+ * no text blocks).
+ */
+export function PostBodyEditor({ blocks, markdown, pages, onChange }: {
+  blocks: unknown;
+  markdown: string;
+  pages: CmsPage[];
+  onChange: (result: { blocks: PuckPayload; markdown: string | null }) => void;
+}) {
+  const payload = useMemo(() => editorPayload(blocks, markdown), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const starter = { type: "LegacyMarkdown", props: { id: "post-start", markdown: "", originalMarkdown: "", richText: "<p></p>", richTextEdited: true } } as unknown as SectionBlock;
+  return <SectionsEditor variant="post" initial={payload.content.length ? payload.content : [starter]} base={payload} pages={pages}
+    onChange={(next) => { const { savedBlocks, legacy } = prepareSave(next); onChange({ blocks: savedBlocks, markdown: legacy }); }} />;
 }
 
 function editorPayload(input: unknown, markdown: string): PuckPayload {
@@ -671,28 +742,8 @@ export function VisualPageEditor({ draft, update, renderPhotoUploader, requested
   const markdown = "markdown" in record ? record.markdown : "bio" in record ? record.bio : "";
   const payload = editorPayload(record.blocks, markdown);
   const saveBlocks = (next: PuckPayload) => {
-    const normalized = next.content.map((block) => {
-      if (block.type !== "LegacyMarkdown") return block;
-      const base = String(block.props.originalMarkdown ?? block.props.markdown ?? "");
-      const richText = String(block.props.richText ?? "");
-      const edited = block.props.richTextEdited === true || richText !== markdownToRichText(base);
-      return { ...block, props: { ...block.props, markdown: base, originalMarkdown: base, richText, richTextEdited: edited } };
-    });
-    // Drop blank text sections (e.g. the empty starter block a new page begins
-    // with, left behind after the real content is typed into another section) so
-    // the stored page never carries an empty section.
-    const savedBlocks = {
-      ...next,
-      content: normalized.filter((block) => !isBlankTextBlock(block as SectionBlock)),
-    } as unknown as PuckPayload;
-    // Rebuild the stored markdown mirror from every text section in document order,
-    // so reordered/added/removed sections stay in sync. Media blocks render from
-    // `blocks`; markdown is only the text fallback.
-    const legacyBlocks = savedBlocks.content.filter((item) => item.type === "LegacyMarkdown");
-    const hasLegacy = legacyBlocks.length > 0;
-    const legacy = joinSections(legacyBlocks.map((block) => block.props.richTextEdited === true
-      ? htmlToMarkdown(String(block.props.richText ?? ""))
-      : String(block.props.originalMarkdown ?? block.props.markdown ?? "")));
+    const { savedBlocks, legacy } = prepareSave(next);
+    const hasLegacy = legacy !== null;
     if (entry.kind === "home") update((d) => ({ ...d, home: { ...d.home!, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } }));
     else if (entry.kind === "page") update((d) => ({ ...d, pages: d.pages.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { markdown: legacy } : {}) } : x) }));
     else if (entry.kind === "staff") update((d) => ({ ...d, staff: d.staff.map((x, i) => i === entry.index ? { ...x, blocks: savedBlocks, ...(hasLegacy ? { bio: legacy } : {}) } : x) }));

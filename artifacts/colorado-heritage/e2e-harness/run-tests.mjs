@@ -443,20 +443,20 @@ await run("F2g", "2-links", "Selecting text inside a link shows the format toolb
 });
 
 // ---------------------------------------------------------------- 3. admin landing + More
-await run("F3a", "3-admin-landing", "Landing shows exactly five plain-language tasks with descriptions + More hint", async ({ page, shot }) => {
+await run("F3a", "3-admin-landing", "Landing shows exactly six plain-language tasks (blog post first) with descriptions + More hint", async ({ page, shot }) => {
   await page.goto(`${BASE}/`);
   await page.waitForSelector(".cms-home-choices");
   const cards = await page.$$eval(".cms-home-choices button", (bs) => bs.map((b) => [b.querySelector("strong")?.textContent, b.querySelector("span")?.textContent, b.getAttribute("data-testid")]));
-  const want = ["Edit a page", "Post an announcement", "Add an event", "Update staff", "Upload a document"];
-  expect(cards.length === 5, `expected 5 tasks, got ${cards.length}: ${JSON.stringify(cards)}`);
+  const want = ["Write a blog post", "Edit a page", "Post an announcement", "Add an event", "Update staff", "Upload a document"];
+  expect(cards.length === 6, `expected 6 tasks, got ${cards.length}: ${JSON.stringify(cards)}`);
   expect(JSON.stringify(cards.map((c) => c[0])) === JSON.stringify(want), `task titles: ${JSON.stringify(cards)}`);
   expect(cards.every((c) => c[1] && c[1].length > 15), "a task lacks a description");
   expect((await page.locator('[data-testid="choose-more"]').count()) === 1, "More hint link missing");
   await shot("landing");
 });
 
-await run("F3b", "3-admin-landing", "Each of the five task cards opens the matching editor tab", async ({ page }) => {
-  const map = { visual: "Edit pages", announcements: "Announcements", events: "Events", staff: "Faculty & staff", documents: "Documents" };
+await run("F3b", "3-admin-landing", "Each of the six task cards opens the matching editor tab", async ({ page }) => {
+  const map = { news: "Blog posts", visual: "Edit pages", announcements: "Announcements", events: "Events", staff: "Faculty & staff", documents: "Documents" };
   for (const [id, label] of Object.entries(map)) {
     await page.goto(`${BASE}/`);
     await page.waitForSelector(`[data-testid="choose-${id}"]`);
@@ -474,14 +474,14 @@ await run("F3c", "3-admin-landing", "'Open the editor' More hint opens editor (E
   expect((await page.locator(".cms-tabs > button.is-active").first().textContent()).startsWith("Edit pages"), "did not open Edit pages");
 });
 
-await run("F3d", "3-admin-landing", "Editor tab bar: five primary tabs + More menu with a description per item", async ({ page, shot }) => {
+await run("F3d", "3-admin-landing", "Editor tab bar: six primary tabs + More menu with a description per item", async ({ page, shot }) => {
   await page.goto(`${BASE}/?tool=site`);
   await page.waitForSelector(".cms-tabs");
   const primary = await page.$$eval(".cms-tabs > button", (bs) => bs.map((b) => b.getAttribute("data-testid")));
-  expect(JSON.stringify(primary) === JSON.stringify(["tab-visual", "tab-announcements", "tab-events", "tab-staff", "tab-documents"]), `primary tabs: ${primary}`);
+  expect(JSON.stringify(primary) === JSON.stringify(["tab-visual", "tab-news", "tab-announcements", "tab-events", "tab-staff", "tab-documents"]), `primary tabs: ${primary}`);
   await page.click('[data-testid="tab-more"]');
   const items = await page.$$eval('.cms-tabs-more-menu [role="menuitem"]', (bs) => bs.map((b) => [b.getAttribute("data-testid"), b.querySelector("strong")?.textContent, b.querySelector(":scope > span")?.textContent]));
-  expect(items.length === 6 && items.every((i) => i[2] && i[2].length > 10), `More menu items: ${JSON.stringify(items)}`);
+  expect(items.length === 5 && items.every((i) => i[2] && i[2].length > 10), `More menu items: ${JSON.stringify(items)}`);
   await shot("more-menu-open");
   await page.keyboard.press("Escape");
   expect((await page.locator(".cms-tabs-more-menu").count()) === 0, "Escape did not close More menu");
@@ -490,7 +490,7 @@ await run("F3d", "3-admin-landing", "Editor tab bar: five primary tabs + More me
 });
 
 await run("F3e", "3-admin-landing", "Every More item opens its tab, label shows on More button, tab renders without errors", async ({ page, state }) => {
-  const more = { pages: "Pages", news: "News & blog", faqs: "FAQs", inquiries: "Inquiries", menu: "Menu links", home: "Home photo & settings" };
+  const more = { pages: "Pages", faqs: "FAQs", inquiries: "Inquiries", menu: "Menu links", home: "Home photo & settings" };
   await page.goto(`${BASE}/?tool=site`);
   await page.waitForSelector(".cms-tabs");
   for (const [id, label] of Object.entries(more)) {
@@ -588,28 +588,28 @@ const previewNews = async (page, note) => {
   await dlg.locator("select").selectOption("/news");
   await page.click('[data-testid="preview-edit-this-page"]');
   await page.waitForTimeout(500);
-  const more = (await page.locator('[data-testid="tab-more"]').textContent()).trim();
+  const more = (await page.locator(".cms-tabs > button.is-active").first().textContent()).trim();
   const picked = await page.locator('[data-testid="select-visual-content"] option:checked').count() ? await page.locator('[data-testid="select-visual-content"] option:checked').textContent() : "(visual editor not shown)";
-  note(`/news -> More button "${more}", visual editor picker "${picked}"`);
+  note(`/news -> active tab "${more}", visual editor picker "${picked}"`);
   return { more, picked };
 };
 
 await run("F4d2", "4-edit-this-page", "Preview of /news WITH an unarchived kind=archive page record (seed) opens News tab", async ({ page, state, note }) => {
   expect(state.editor.draft.pages.some((p) => p.path === "/news"), "fixture should contain a /news page record");
   const { more } = await previewNews(page, note);
-  expect(more.startsWith("News"), `Edit this page on /news did not open the News tab (More button: "${more}")`);
+  expect(more.startsWith("Blog posts"), `Edit this page on /news did not open the Blog posts tab (active tab: "${more}")`);
 });
 
 await run("F4d3", "4-edit-this-page", "Preview of /news with NO /news page record opens News tab", async ({ page, state, note }) => {
   state.editor.draft.pages = state.editor.draft.pages.filter((p) => p.path !== "/news");
   const { more } = await previewNews(page, note);
-  expect(more.startsWith("News"), `More button: "${more}"`);
+  expect(more.startsWith("Blog posts"), `active tab: "${more}"`);
 });
 
 await run("F4d4", "4-edit-this-page", "Preview of /news WITH an archived:true /news page record opens News tab", async ({ page, state, note }) => {
   state.editor.draft.pages = state.editor.draft.pages.map((p) => p.path === "/news" ? { ...p, archived: true } : p);
   const { more } = await previewNews(page, note);
-  expect(more.startsWith("News"), `More button: "${more}"`);
+  expect(more.startsWith("Blog posts"), `active tab: "${more}"`);
 });
 
 await run("F4d5", "4-edit-this-page", "Preview of /faq WITH a /faq page record present still opens FAQs tab", async ({ page, state, note }) => {
@@ -649,6 +649,14 @@ await run("F4e", "4-edit-this-page", "Staff-profile and news-article pages reach
     await dlg.locator("#__probe").evaluate((a) => a.click());
     await page.waitForTimeout(300);
     await page.click('[data-testid="preview-edit-this-page"]');
+    if (label === "news") {
+      // blog posts are edited on the Blog posts screen
+      await page.waitForSelector('[data-testid="blog-edit"]');
+      const title = await page.inputValue('[data-testid="blog-title"]');
+      note(`${label}: ${path} -> blog editor title "${title}"`);
+      expect(title.includes(expectText.slice(0, 12)), `${label}: expected "${expectText}", blog editor shows "${title}"`);
+      continue;
+    }
     await page.waitForSelector('[data-testid="sections-editor"] .ProseMirror');
     const picked = await page.locator('[data-testid="select-visual-content"] option:checked').textContent();
     const heading = await page.locator(".cb-page-head h1").first().textContent();
@@ -964,6 +972,595 @@ await run("S4", "duplicate-photo", "SSR/SEO render of the draft saved by the rea
   await publishAndView(page, state, IS);
   const html = await ssrHtml(state.editor.published, IS);
   expect(imgCount(html, "fixture-geese") === 1, `SSR rendered the photo ${imgCount(html, "fixture-geese")} times`);
+});
+
+// ---------------------------------------------------------------- blog posts
+const todayLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const openBlog = async (page) => { await page.goto(`${BASE}/?tool=site&tab=news`); await page.waitForSelector('[data-testid="blog-list"]'); };
+const newPost = async (page) => { await openBlog(page); await page.click('[data-testid="blog-new"]'); await page.waitForSelector('[data-testid="blog-edit"]'); };
+const postsOf = (state) => state.editor.draft.news;
+const blk = (p) => JSON.stringify(p.blocks ?? null);
+const rootHtml = (html) => html.split('<div id="root">')[1].split('<script id="chess-content"')[0];
+const findPost = (state, pred) => postsOf(state).find(pred);
+const waitFor = async (fn, msg, ms = 9000) => { const t0 = Date.now(); for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t0 > ms) throw new Error(`timed out: ${msg}`); await new Promise((r) => setTimeout(r, 120)); } };
+const bodyEditor = (page) => page.locator('[aria-label="Post text"]').first();
+const typeBody = async (page, text) => { await bodyEditor(page).click(); await page.keyboard.type(text, { delay: 5 }); };
+const addBlock = async (page, id, nth = null) => {
+  const menus = page.locator('[data-testid^="insert-menu-"]');
+  const target = nth === null ? menus.last() : menus.nth(nth);
+  await target.click();
+  await page.locator(`[data-testid="insert-${id}"]`).click();
+};
+// A newly added text block takes the keyboard focus once its editor is ready; wait for that before typing.
+const typeInNewBlock = async (page, text, ...more) => {
+  await page.waitForFunction(() => document.activeElement?.classList.contains("ProseMirror") && !(document.activeElement.textContent ?? "").trim(), null, { timeout: 8000 });
+  await page.keyboard.type(text);
+  for (const [key, next] of more) { await page.keyboard.press(key); await page.keyboard.type(next); }
+};
+const writePost = async (page, state, { title = "Spring Open House Recap", summary = "A short look back at the day.", author = "Office Staff", body = "Thank you to every family who joined us." } = {}) => {
+  await page.fill('[data-testid="blog-title"]', title);
+  await page.locator('[data-testid="blog-title"]').blur();
+  if (summary) await page.fill('[data-testid="blog-summary"]', summary);
+  if (author) await page.fill('[data-testid="blog-author"]', author);
+  if (body) await typeBody(page, body);
+  await waitFor(() => findPost(state, (p) => p.title === title && (!body || p.markdown.includes(body))), "post saved to the draft");
+  return findPost(state, (p) => p.title === title);
+};
+const publishPost = async (page, state) => {
+  await page.click('[data-testid="blog-publish"]');
+  await page.click('[data-testid="confirm-publish-confirm"]');
+  await waitFor(() => state.publishes.length > 0 && page.locator('[data-testid="blog-status"]').textContent().then((t) => t.trim() === "Published").catch(() => false), "publish completed");
+};
+const viewPost = async (page, path) => { await viewPublic(page, path); };
+const uploadCover = async (page, alt = "A smiling family at the open house") => {
+  const cover = page.locator('section[aria-label="Cover photo"]');
+  await cover.locator('[data-testid="input-photo-file"]').setInputFiles({ name: "cover.png", mimeType: "image/png", buffer: PNG });
+  await cover.locator('[data-testid="input-photo-alt"]').fill(alt);
+  await cover.locator('[data-testid="button-upload-photo"]').click();
+  await page.waitForSelector('[data-testid="blog-cover-alt"]');
+};
+
+await run("B1", "blog", "Landing 'Write a blog post' opens a brand-new post (title empty, date today, Draft); reload does not make another", async ({ page, state, shot }) => {
+  await page.goto(`${BASE}/`);
+  await page.click('[data-testid="choose-news"]');
+  await page.waitForSelector('[data-testid="blog-edit"]');
+  expect((await page.inputValue('[data-testid="blog-title"]')) === "", "title should start empty");
+  expect((await page.inputValue('[data-testid="blog-date"]')) === todayLocal(), "date should default to today");
+  expect(((await page.locator('[data-testid="blog-status"]').textContent()) ?? "").trim() === "Draft", "should start as Draft");
+  expect(!new URL(page.url()).searchParams.has("new"), "?new=1 should be removed from the address");
+  await waitFor(() => postsOf(state).filter((p) => p.draft).length === 1, "exactly one new draft saved");
+  await shot("new-post");
+  await page.reload();
+  await openBlog(page);
+  await page.waitForTimeout(1500);
+  expect(postsOf(state).filter((p) => p.draft).length <= 1, "reload created another post");
+});
+
+await run("B2", "blog", "Write a post (title, summary, author, body): autosaves to the private draft as a draft post with a generated address", async ({ page, state, shot }) => {
+  await newPost(page);
+  const post = await writePost(page, state);
+  expect(post.draft === true && post.date === todayLocal() && post.summary === "A short look back at the day." && post.author === "Office Staff", `post fields: ${JSON.stringify({ d: post.draft, date: post.date, s: post.summary, a: post.author })}`);
+  expect(post.path === `/news/${todayLocal().split("-")[0]}/${Number(todayLocal().split("-")[1])}/${Number(todayLocal().split("-")[2])}/spring-open-house-recap`, `address: ${post.path}`);
+  expect(JSON.stringify(post.blocks).includes("Thank you to every family"), "body not stored in blocks");
+  expect(((await page.locator('[data-testid="blog-saved"]').textContent()) ?? "").length > 0, "no saved indicator");
+  await shot("writing");
+});
+
+await run("B3", "blog", "A draft post is private: not in the published content, the public list, or reachable on the public site", async ({ page, state }) => {
+  await newPost(page);
+  const post = await writePost(page, state);
+  await page.click('[data-testid="blog-save"]');
+  await page.waitForTimeout(800);
+  expect(!state.editor.published.news.some((p) => p.path === post.path), "draft leaked into the published content");
+  await viewPublic(page, "/news");
+  expect((await page.getByText("Spring Open House Recap").count()) === 0, "draft shown in the public list");
+  await page.goto(`${BASE}/?view=public&path=${encodeURIComponent(post.path)}`);
+  await page.waitForTimeout(800);
+  expect((await page.locator(".cb-post").count()) === 0, "draft reachable on the public post page");
+});
+
+await run("B4", "blog", "Preview as a parent shows the draft post (with draft tag, summary, byline); Edit this page returns to it", async ({ page, state, shot }) => {
+  await newPost(page);
+  const post = await writePost(page, state);
+  await page.click('[data-testid="blog-preview"]');
+  const dlg = page.locator('[role="dialog"][aria-label="Private parent preview"]');
+  await dlg.waitFor();
+  await dlg.locator("h1", { hasText: "Spring Open House Recap" }).waitFor();
+  expect((await dlg.locator('[data-testid="post-summary"]').textContent()) === "A short look back at the day.", "summary missing in preview");
+  expect(((await dlg.locator('[data-testid="post-byline"]').textContent()) ?? "").includes("By Office Staff"), "byline missing");
+  expect((await dlg.locator('[data-testid="post-draft-tag"]').count()) === 1, "draft tag missing");
+  await dlg.getByText("Thank you to every family").first().waitFor();
+  await shot("preview-draft");
+  await page.click('[data-testid="preview-edit-this-page"]');
+  await page.waitForSelector('[data-testid="blog-edit"]');
+  expect((await page.inputValue('[data-testid="blog-title"]')) === "Spring Open House Recap", "did not return to the same post");
+  // the draft post is not listed on the previewed news list
+  await page.click('[data-testid="blog-preview"]');
+  await dlg.locator("select").selectOption("/news");
+  expect((await dlg.getByText("Spring Open House Recap").count()) === 0, "draft post listed in the previewed /news list");
+});
+
+await run("B5", "blog", "Publish is blocked with plain-language reasons: no title, empty post, cover photo without description", async ({ page, state }) => {
+  await newPost(page);
+  await page.click('[data-testid="blog-publish"]');
+  const issues = page.locator('[data-testid="blog-issues"]');
+  await issues.waitFor();
+  const text = (await issues.textContent()) ?? "";
+  expect(text.includes("Give the post a title") && text.includes("Write something"), `issues: ${text}`);
+  expect(state.publishes.length === 0 && (await page.locator('[data-testid="confirm-publish"]').count()) === 0, "should not open the confirmation");
+  await page.fill('[data-testid="blog-title"]', "Needs a description");
+  await typeBody(page, "Some words.");
+  await uploadCover(page, "temporary");
+  await page.fill('[data-testid="blog-cover-alt"]', "");
+  await page.click('[data-testid="blog-publish"]');
+  expect((((await page.locator('[data-testid="blog-issues"]').textContent()) ?? "").includes("Describe the cover photo")), "cover alt issue missing");
+});
+
+await run("B6", "blog", "Publish asks for confirmation; Cancel changes nothing; confirming publishes the post (and warns about other saved changes)", async ({ page, state, shot }) => {
+  state.editor.draft.pages = state.editor.draft.pages.map((p) => p.path === IS ? { ...p, description: "Changed but not published" } : p);
+  await newPost(page);
+  await writePost(page, state);
+  await page.click('[data-testid="blog-publish"]');
+  const dlg = page.locator('[data-testid="confirm-publish"]');
+  await dlg.waitFor();
+  expect(((await dlg.textContent()) ?? "").includes("Spring Open House Recap"), "dialog should name the post");
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))) === "confirm-publish-cancel", "Cancel should have focus first");
+  expect(((await page.locator('[data-testid="confirm-other-changes"]').textContent()) ?? "").includes("pages"), "should warn that other saved changes (pages) are also waiting");
+  await shot("confirm-publish");
+  await page.keyboard.press("Escape");
+  await dlg.waitFor({ state: "detached" });
+  expect(state.publishes.length === 0, "Escape/cancel must not publish");
+  await page.click('[data-testid="blog-publish"]');
+  await page.click('[data-testid="confirm-publish-cancel"]');
+  expect(state.publishes.length === 0, "Cancel must not publish");
+  await page.click('[data-testid="blog-publish"]');
+  await page.click('[data-testid="confirm-publish-confirm"]');
+  await waitFor(() => state.publishes.length === 1, "publish request");
+  const live = state.editor.published.news.find((p) => p.title === "Spring Open House Recap");
+  expect(live && live.draft === false, `published copy: ${JSON.stringify(live && { d: live.draft })}`);
+  await waitFor(async () => ((await page.locator('[data-testid="blog-status"]').textContent()) ?? "").trim() === "Published", "status shows Published");
+});
+
+await run("B7", "blog", "Published post: top of the public /news list (newest first) with summary, and its own page with title, byline, summary, body", async ({ page, state, shot }) => {
+  await newPost(page);
+  const post = await writePost(page, state);
+  await publishPost(page, state);
+  const live = state.editor.published.news.find((p) => p.title === "Spring Open House Recap");
+  await viewPublic(page, "/news");
+  const first = page.locator('[data-testid="link-news-entry-0"]');
+  expect((await first.textContent()) === "Spring Open House Recap", `first card: ${await first.textContent()}`);
+  expect((await page.getByText("A short look back at the day.").count()) === 1, "summary missing from the list card");
+  await shot("public-list");
+  await viewPost(page, live.path);
+  expect((await page.locator("h1").first().textContent()) === "Spring Open House Recap", "title");
+  expect(((await page.locator('[data-testid="post-byline"]').textContent()) ?? "").includes("By Office Staff"), "byline");
+  expect((await page.locator('[data-testid="post-summary"]').textContent()) === "A short look back at the day.", "summary");
+  expect((await page.getByText("Thank you to every family who joined us.").count()) === 1, "body text should appear once");
+  expect((await page.locator('[data-testid="post-draft-tag"]').count()) === 0, "no draft tag on a published post");
+  await shot("public-post");
+});
+
+await run("B8", "blog", "Cover photo: upload (mock) with description and caption; shown once with caption on the public post and as a card thumbnail", async ({ page, state, shot }) => {
+  await newPost(page);
+  await writePost(page, state);
+  await uploadCover(page, "Families at the open house");
+  await page.fill('[data-testid="blog-cover-caption"]', "Our newest families");
+  await waitFor(() => findPost(state, (p) => p.coverImage && p.coverAlt === "Families at the open house" && p.coverCaption === "Our newest families"), "cover saved");
+  await shot("cover-set");
+  await publishPost(page, state);
+  const live = state.editor.published.news.find((p) => p.title === "Spring Open House Recap");
+  await viewPost(page, live.path);
+  expect((await page.locator('[data-testid="post-cover"] img').count()) === 1 && (await page.locator(".cb-page img[src*='fixture-replacement']").count()) === 1, "cover photo should render exactly once");
+  expect((await page.locator('[data-testid="post-cover"] figcaption').textContent()) === "Our newest families", "caption");
+  expect((await page.locator('[data-testid="post-cover"] img').getAttribute("alt")) === "Families at the open house", "alt");
+  await viewPublic(page, "/news");
+  expect((await page.locator(".cb-card-cover img").count()) === 1, "card thumbnail missing");
+});
+
+await run("B9", "blog", "Edit a published post: status shows edits are not live; 'Publish changes' sends them; public updates", async ({ page, state }) => {
+  await newPost(page);
+  await writePost(page, state);
+  await publishPost(page, state);
+  await page.fill('[data-testid="blog-summary"]', "A new summary after publishing.");
+  await waitFor(async () => ((await page.locator('[data-testid="blog-status"]').textContent()) ?? "").includes("edits not live"), "status shows pending edits");
+  expect(state.editor.published.news.find((p) => p.title === "Spring Open House Recap").summary === "A short look back at the day.", "live copy changed before publishing");
+  expect(((await page.locator('[data-testid="blog-publish"]').textContent()) ?? "").includes("Publish changes"), "button should say Publish changes");
+  await page.click('[data-testid="blog-publish"]');
+  await page.click('[data-testid="confirm-publish-confirm"]');
+  await waitFor(() => state.editor.published.news.find((p) => p.title === "Spring Open House Recap")?.summary === "A new summary after publishing.", "live summary updated");
+  const live = state.editor.published.news.find((p) => p.title === "Spring Open House Recap");
+  await viewPost(page, live.path);
+  expect((await page.locator('[data-testid="post-summary"]').textContent()) === "A new summary after publishing.", "public summary");
+});
+
+await run("B10", "blog", "Edit from the list: Edit opens the post with its saved text; list shows Draft / Published status", async ({ page, state }) => {
+  await newPost(page);
+  await writePost(page, state);
+  await publishPost(page, state);
+  await page.click('[data-testid="blog-back"]');
+  await page.waitForSelector('[data-testid="blog-list"]');
+  const row = page.locator('[data-testid="blog-row"]', { hasText: "Spring Open House Recap" });
+  expect((await row.getAttribute("data-status")) === "live", "row should show Published");
+  await row.locator('[data-testid="blog-row-edit"]').click();
+  await page.waitForSelector('[data-testid="blog-edit"]');
+  expect((await page.inputValue('[data-testid="blog-title"]')) === "Spring Open House Recap", "title");
+  await bodyEditor(page).waitFor();
+  expect((((await bodyEditor(page).textContent()) ?? "").includes("Thank you to every family")), "body text did not load");
+});
+
+await run("B11", "blog", "Unpublish (confirmed): removed from the public site and published content, kept as a draft with its text", async ({ page, state }) => {
+  await newPost(page);
+  await writePost(page, state);
+  await publishPost(page, state);
+  const path = state.editor.published.news.find((p) => p.title === "Spring Open House Recap").path;
+  await page.click('[data-testid="blog-unpublish"]');
+  await page.click('[data-testid="confirm-unpublish-cancel"]');
+  expect(state.editor.published.news.some((p) => p.path === path), "cancel must keep the post live");
+  await page.click('[data-testid="blog-unpublish"]');
+  await page.click('[data-testid="confirm-unpublish-confirm"]');
+  await waitFor(() => !state.editor.published.news.some((p) => p.path === path), "removed from published");
+  const kept = findPost(state, (p) => p.path === path);
+  expect(kept && kept.draft === true && kept.markdown.includes("Thank you to every family"), "should remain as a draft with its text");
+  await viewPublic(page, "/news");
+  expect((await page.getByText("Spring Open House Recap").count()) === 0, "still listed publicly");
+  expect(state.publishes.length === 2, `publish calls: ${state.publishes.length}`);
+});
+
+await run("B12", "blog", "Delete a draft (confirmed): gone from the list without publishing; Cancel keeps it", async ({ page, state }) => {
+  await newPost(page);
+  await writePost(page, state);
+  await page.click('[data-testid="blog-back"]');
+  const row = page.locator('[data-testid="blog-row"]', { hasText: "Spring Open House Recap" });
+  await row.locator('[data-testid="blog-row-delete"]').click();
+  await page.click('[data-testid="confirm-delete-cancel"]');
+  expect((await row.count()) === 1, "cancel should keep the post");
+  await row.locator('[data-testid="blog-row-delete"]').click();
+  expect(((await page.locator('[data-testid="confirm-delete"]').textContent()) ?? "").includes("will be deleted"), "dialog text");
+  await page.click('[data-testid="confirm-delete-confirm"]');
+  await waitFor(() => !findPost(state, (p) => p.title === "Spring Open House Recap"), "deleted from the draft");
+  expect((await page.locator('[data-testid="blog-row"]', { hasText: "Spring Open House Recap" }).count()) === 0, "still listed");
+  expect(state.publishes.length === 0, "deleting a draft must not publish");
+});
+
+await run("B13", "blog", "Delete a live post (confirmed) removes it from the website right away", async ({ page, state }) => {
+  await newPost(page);
+  await writePost(page, state);
+  await publishPost(page, state);
+  const path = state.editor.published.news.find((p) => p.title === "Spring Open House Recap").path;
+  await page.click('[data-testid="blog-delete"]');
+  expect(((await page.locator('[data-testid="confirm-delete"]').textContent()) ?? "").includes("disappear from the website"), "dialog should say it leaves the website");
+  await page.click('[data-testid="confirm-delete-confirm"]');
+  await waitFor(() => !state.editor.published.news.some((p) => p.path === path) && !findPost(state, (p) => p.path === path), "deleted everywhere");
+  await page.waitForSelector('[data-testid="blog-list"]');
+});
+
+await run("B14", "blog", "An untouched new post is discarded when you go back; list filters show Drafts and Published", async ({ page, state }) => {
+  await newPost(page);
+  await page.click('[data-testid="blog-back"]');
+  await page.waitForSelector('[data-testid="blog-list"]');
+  expect(postsOf(state).filter((p) => p.draft).length === 0, "blank post should be discarded");
+  await newPost(page); await writePost(page, state, { title: "Draft one" });
+  await page.click('[data-testid="blog-back"]');
+  await page.click('[data-testid="blog-filter-draft"]');
+  expect((await page.locator('[data-testid="blog-row"]').count()) === 1, "drafts filter");
+  await page.click('[data-testid="blog-filter-published"]');
+  expect((await page.locator('[data-testid="blog-row"]', { hasText: "Draft one" }).count()) === 0, "published filter must hide drafts");
+  expect((await page.locator('[data-testid="blog-row"]').count()) > 0, "imported published posts should list");
+  await page.click('[data-testid="blog-filter-all"]');
+  await page.locator('[data-testid="blog-show-more"]').click();
+});
+
+// ---- blocks
+await run("B15", "blog-blocks", "The '+' menu lists every block by friendly name, works by keyboard, and Escape closes it", async ({ page, shot }) => {
+  await newPost(page);
+  const trigger = page.locator('[data-testid="insert-menu-1"]');
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  const menu = page.locator('[role="menu"][aria-label="Choose what to add"]');
+  await menu.waitFor();
+  const names = await menu.locator("strong").allTextContents();
+  const want = ["Text", "Heading", "Bulleted list", "Numbered list", "Quote", "Photo", "Photo with text", "Photo gallery", "Pull quote", "Callout box", "Button", "Video (YouTube)", "Table", "Divider"];
+  expect(JSON.stringify(names) === JSON.stringify(want), `menu names: ${JSON.stringify(names)}`);
+  expect((await menu.locator("small").count()) === want.length, "each item needs a description");
+  await menu.scrollIntoViewIfNeeded();
+  await shot("plus-menu");
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))) === "insert-text", "first item should have focus");
+  await page.keyboard.press("ArrowDown");
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))) === "insert-heading", "ArrowDown should move");
+  await page.keyboard.press("Escape");
+  await menu.waitFor({ state: "detached" });
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))) === "insert-menu-1", "focus should return to the + button");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await page.waitForSelector('[data-testid="sections-editor"] [data-block-type="LegacyMarkdown"] h2');
+});
+
+const publishAndOpen = async (page, state, title) => {
+  await publishPost(page, state);
+  const live = state.editor.published.news.find((p) => p.title === title);
+  await viewPost(page, live.path);
+  return live;
+};
+
+await run("B16", "blog-blocks", "Text blocks: heading, bulleted list, numbered list, quote, bold/italic/underline render nicely on the public post", async ({ page, state, shot }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Text blocks"); await page.locator('[data-testid="blog-title"]').blur();
+  await typeBody(page, "Plain paragraph with ");
+  await page.keyboard.press("Control+b"); await page.keyboard.type("bold"); await page.keyboard.press("Control+b");
+  await page.keyboard.type(" and "); await page.keyboard.press("Control+i"); await page.keyboard.type("italic"); await page.keyboard.press("Control+i");
+  await page.keyboard.type(" and "); await page.keyboard.press("Control+u"); await page.keyboard.type("underlined"); await page.keyboard.press("Control+u");
+  await addBlock(page, "heading"); await typeInNewBlock(page, "A big heading");
+  await addBlock(page, "bullets"); await typeInNewBlock(page, "First bullet", ["Enter", "Second bullet"]);
+  await addBlock(page, "numbers"); await typeInNewBlock(page, "Step one", ["Enter", "Step two"]);
+  await addBlock(page, "quote"); await typeInNewBlock(page, "Wise words here");
+  await waitFor(() => findPost(state, (p) => blk(p).includes("Wise words here")), "all text blocks saved");
+  await shot("text-blocks-editor");
+  await publishAndOpen(page, state, "Text blocks");
+  const body = page.locator(".cb-post-body");
+  const checks = { bold: await body.locator("strong", { hasText: "bold" }).count(), italic: await body.locator("em", { hasText: "italic" }).count(), under: await body.locator("u", { hasText: "underlined" }).count(),
+    h2: await body.locator("h2", { hasText: "A big heading" }).count(), ul: await body.locator("ul li").count(), ol: await body.locator("ol li").count(), quote: await body.locator("blockquote", { hasText: "Wise words here" }).count() };
+  expect(checks.bold === 1 && checks.italic === 1 && checks.under === 1 && checks.h2 === 1 && checks.ul === 2 && checks.ol === 2 && checks.quote === 1, `public render: ${JSON.stringify(checks)}`);
+  await shot("text-blocks-public");
+});
+
+await run("B16b", "blog-blocks", "Links in the post body: select words, add a link to a school page via the toolbar; it renders as a link on the public post", async ({ page, state }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Link post"); await page.locator('[data-testid="blog-title"]').blur();
+  await typeBody(page, "Visit our programs page today.");
+  await bodyEditor(page).click({ clickCount: 3 });
+  await page.locator('[role="toolbar"][aria-label="Text formatting"] button[title="Add or edit link"]').click();
+  await page.selectOption('[data-testid="section-link-page"]', "/programs/academy");
+  await page.getByRole("button", { name: "Add link" }).click();
+  await waitFor(() => findPost(state, (p) => p.markdown.includes("](/programs/academy)")), "link saved");
+  await publishAndOpen(page, state, "Link post");
+  expect((await page.locator('.cb-post-body a[href="/programs/academy"]').count()) === 1, "link on public post");
+});
+
+await run("B17", "blog-blocks", "Photo block: upload, description + caption + position; renders once with caption and alignment class", async ({ page, state, shot }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Photo post"); await page.locator('[data-testid="blog-title"]').blur();
+  await typeBody(page, "Words before the photo.");
+  await addBlock(page, "photo");
+  const block = page.locator('[data-testid="post-block-photo"]');
+  await block.locator('[data-testid="input-photo-file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
+  await block.locator('[data-testid="input-photo-alt"]').fill("Children reading outside");
+  await block.locator('[data-testid="button-upload-photo"]').click();
+  await block.locator('[data-testid="post-photo-caption"]').fill("Reading time");
+  await block.locator('[data-testid="post-photo-align"]').selectOption("right");
+  await waitFor(() => findPost(state, (p) => blk(p).includes('"align":"right"') && blk(p).includes("Reading time")), "photo block saved");
+  await shot("photo-block-editor");
+  await publishAndOpen(page, state, "Photo post");
+  const fig = page.locator(".cb-post-body figure.puck-photo");
+  expect((await fig.count()) === 1 && (await fig.getAttribute("class")).includes("is-right"), "figure with alignment class");
+  expect((await fig.locator("figcaption").textContent()) === "Reading time" && (await fig.locator("img").getAttribute("alt")) === "Children reading outside", "caption/alt");
+  expect((await page.locator(".cb-post img[src*='fixture-replacement']").count()) === 1, "photo should show once");
+});
+
+await run("B18", "blog-blocks", "Photo gallery: add two photos with descriptions and captions; grid renders each photo once", async ({ page, state, shot }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Gallery post"); await page.locator('[data-testid="blog-title"]').blur();
+  await typeBody(page, "Gallery below.");
+  await addBlock(page, "gallery");
+  const block = page.locator('[data-testid="post-block-gallery"]');
+  for (const [n, alt] of [[0, "First picture"], [1, "Second picture"]]) {
+    await block.locator('[data-testid="input-photo-file"]').setInputFiles({ name: `g${n}.png`, mimeType: "image/png", buffer: PNG });
+    await block.locator('[data-testid="input-photo-alt"]').fill(alt);
+    await block.locator('[data-testid="button-upload-photo"]').click();
+    await block.locator(`[data-testid="gallery-alt-${n}"]`).waitFor();
+  }
+  await block.locator('[data-testid="gallery-caption-1"]').fill("Second caption");
+  await waitFor(() => findPost(state, (p) => blk(p).includes("Second caption")), "gallery saved");
+  await shot("gallery-editor");
+  await publishAndOpen(page, state, "Gallery post");
+  expect((await page.locator(".cb-post-body ul.puck-gallery li").count()) === 2, "two gallery items");
+  expect((await page.locator(".cb-post-body ul.puck-gallery figcaption").allTextContents()).join("|") === "Second caption", "captions only where set");
+  expect((await page.locator(".cb-post img[src*='fixture-replacement']").count()) === 2, "each gallery photo once");
+  await shot("gallery-public");
+});
+
+await run("B19", "blog-blocks", "Photo with text, callout, button, pull quote, table, divider all render on the public post", async ({ page, state, shot }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Mixed blocks"); await page.locator('[data-testid="blog-title"]').blur();
+  await typeBody(page, "Intro words.");
+  await addBlock(page, "callout");
+  await page.fill('[data-testid="callout-heading"]', "Don't miss this"); await page.fill('[data-testid="callout-text"]', "Open house is Friday.\n\nBring a friend.");
+  await page.selectOption('[data-testid="callout-tone"]', "highlight");
+  await addBlock(page, "button");
+  await page.fill('[data-testid="button-heading"]', "Ready to visit?"); await page.fill('[data-testid="button-label"]', "Schedule a visit");
+  await page.selectOption('[data-testid="button-page"]', "__web"); await page.fill('[data-testid="button-url"]', "https://example.org/visit");
+  await addBlock(page, "pullquote");
+  await page.fill('[data-testid="pullquote-text"]', "Best decision we made."); await page.fill('[data-testid="pullquote-attribution"]', "A CHESS parent");
+  await addBlock(page, "table");
+  const table = page.locator(".cms-table-block");
+  await table.locator('input[aria-label="Column 1 heading"]').fill("Day"); await table.locator('input[aria-label="Column 2 heading"]').fill("Time");
+  await table.locator('input[aria-label^="Row 1,"]').first().fill("Monday"); await table.locator('input[aria-label^="Row 1,"]').nth(1).fill("9:00");
+  await addBlock(page, "divider");
+  await addBlock(page, "photoText");
+  const pt = page.locator(".cms-photo-block");
+  await pt.locator('[data-testid="input-photo-file"]').setInputFiles({ name: "pt.png", mimeType: "image/png", buffer: PNG });
+  await pt.locator('[data-testid="input-photo-alt"]').fill("A classroom");
+  await pt.locator('[data-testid="button-upload-photo"]').click();
+  await waitFor(() => findPost(state, (p) => { const j = blk(p); return j.includes("A classroom") && j.includes("Monday") && j.includes("A CHESS parent") && j.includes("example.org/visit") && j.includes("Bring a friend"); }), "all blocks saved");
+  await shot("mixed-editor");
+  await publishAndOpen(page, state, "Mixed blocks");
+  const body = page.locator(".cb-post-body");
+  const got = {
+    callout: await body.locator("aside.puck-callout.is-highlight strong", { hasText: "Don't miss this" }).count(), calloutParas: await body.locator("aside.puck-callout p").count(),
+    button: await body.locator('.puck-family-step-actions a[href="https://example.org/visit"]', { hasText: "Schedule a visit" }).count(),
+    quote: await body.locator("blockquote.puck-testimonial cite", { hasText: "A CHESS parent" }).count(),
+    table: await body.locator("table th:text-is(\"Day\")").count(), cell: await body.locator("table td", { hasText: "9:00" }).count(),
+    hr: await body.locator("hr.puck-divider").count(), photoText: await body.locator("section.puck-photo-text img[alt='A classroom']").count(),
+  };
+  expect(got.callout === 1 && got.calloutParas === 2 && got.button === 1 && got.quote === 1 && got.table === 1 && got.cell === 1 && got.hr === 1 && got.photoText === 1, `public render: ${JSON.stringify(got)}`);
+  expect((await page.locator(".cb-post img[src*='fixture-replacement']").count()) === 1, "photo-with-text photo once");
+  await shot("mixed-public");
+});
+
+await run("B20", "blog-blocks", "YouTube video: watch / short / embed links convert to the safe embed; bad links show a message; renders as one iframe", async ({ page, state, shot }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Video post"); await page.locator('[data-testid="blog-title"]').blur();
+  await typeBody(page, "Watch this.");
+  await addBlock(page, "video");
+  const url = page.locator('[data-testid="video-url"]');
+  await url.fill("not a video");
+  await page.locator('[data-testid="video-error"]').waitFor();
+  for (const input of ["https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10", "https://youtu.be/dQw4w9WgXcQ", "https://www.youtube.com/shorts/dQw4w9WgXcQ", "https://www.youtube.com/embed/dQw4w9WgXcQ"]) {
+    await url.fill(input);
+    await waitFor(() => findPost(state, (p) => blk(p).includes('"url":"https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"')), `converted ${input}`);
+    expect((await page.locator('[data-testid="video-error"]').count()) === 0, `error shown for ${input}`);
+  }
+  await page.fill('[data-testid="video-caption"]', "Our tour video");
+  await shot("video-editor");
+  await waitFor(() => findPost(state, (p) => blk(p).includes("Our tour video")), "caption saved");
+  await publishAndOpen(page, state, "Video post");
+  const frames = page.locator(".cb-post-body iframe");
+  expect((await frames.count()) === 1 && (await frames.getAttribute("src")) === "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ", "one safe iframe");
+  expect((await page.getByText("Our tour video").count()) === 1, "caption");
+});
+
+await run("B21", "blog-blocks", "Blocks can be moved and removed (with confirmation), and a post with only blocks still publishes", async ({ page, state }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Blocks only"); await page.locator('[data-testid="blog-title"]').blur();
+  await addBlock(page, "divider", 1);
+  await addBlock(page, "callout");
+  await page.fill('[data-testid="callout-heading"]', "Callout heading");
+  await waitFor(() => findPost(state, (p) => blk(p).includes("Callout heading")), "saved");
+  const order = async () => (await page.locator('[data-testid="sections-editor"] > .cms-section').evaluateAll((els) => els.map((e) => e.getAttribute("data-block-type"))));
+  const before = await order();
+  const calloutIndex = before.indexOf("Callout");
+  await page.locator(`[data-testid="section-${calloutIndex}"] button[aria-label="Move section up"]`).click();
+  expect((await order()).indexOf("Callout") === calloutIndex - 1, `move up: ${JSON.stringify(await order())}`);
+  await page.locator(`[data-testid="delete-${calloutIndex - 1}"]`).click();
+  await page.locator('[data-testid^="confirm-delete-"]').click();
+  expect(!(await order()).includes("Callout"), "callout should be removed");
+  await addBlock(page, "callout"); await page.fill('[data-testid="callout-heading"]', "Final callout");
+  await waitFor(() => findPost(state, (p) => blk(p).includes("Final callout")), "saved again");
+  await publishPost(page, state);
+});
+
+await run("B22", "blog-blocks", "Photo blocks need descriptions before publishing", async ({ page, state }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "Alt required"); await page.locator('[data-testid="blog-title"]').blur();
+  await typeBody(page, "Words.");
+  await addBlock(page, "photo");
+  const block = page.locator('[data-testid="post-block-photo"]');
+  await block.locator('[data-testid="input-photo-file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
+  await block.locator('[data-testid="input-photo-alt"]').fill("temp");
+  await block.locator('[data-testid="button-upload-photo"]').click();
+  await block.locator('[data-testid="post-photo-alt"]').fill("");
+  await page.click('[data-testid="blog-publish"]');
+  expect((((await page.locator('[data-testid="blog-issues"]').textContent()) ?? "").includes("Describe every photo")), "alt issue");
+  expect(state.publishes.length === 0, "must not publish");
+});
+
+await run("B23", "blog", "Existing imported blog posts open in the editor with their text, and render once on the public site", async ({ page, state }) => {
+  const legacy = state.editor.draft.news.find((p) => !p.archived && p.markdown.trim());
+  await openBlog(page);
+  await page.locator('[data-testid="blog-row"]', { hasText: legacy.title }).first().locator('[data-testid="blog-row-edit"]').click();
+  await page.waitForSelector('[data-testid="blog-edit"]');
+  expect((await page.inputValue('[data-testid="blog-title"]')) === legacy.title, "title");
+  expect(((await page.locator('[data-testid="sections-editor"]').textContent()) ?? "").trim().length > 0 || (await page.locator('[data-testid="sections-editor"] img').count()) > 0, "legacy body should load into the editor");
+  await viewPublic(page, legacy.path);
+  expect((await page.locator(".cb-post h1").count()) === 1, "legacy post page renders");
+});
+
+await run("B24", "blog", "Mobile (phone width): list and editor fit the screen, with Publish reachable", async ({ page, state, shot }) => {
+  await newPost(page);
+  await writePost(page, state);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow <= 1, `editor overflows horizontally by ${overflow}px`);
+  expect(await page.locator('[data-testid="blog-publish"]').isVisible(), "publish button hidden");
+  await shot("mobile-editor");
+  await page.click('[data-testid="blog-back"]');
+  const overflow2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow2 <= 1, `list overflows horizontally by ${overflow2}px`);
+  await shot("mobile-list");
+}, { viewport: { width: 390, height: 800 } });
+
+await run("B25", "blog", "Confirmation dialog is keyboard friendly: focus starts on Cancel, Tab stays inside, Escape closes", async ({ page, state }) => {
+  await newPost(page);
+  await writePost(page, state);
+  await page.click('[data-testid="blog-delete"]');
+  const dlg = page.locator('[data-testid="confirm-delete"]');
+  await dlg.waitFor();
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))) === "confirm-delete-cancel", "focus on Cancel");
+  await page.keyboard.press("Tab");
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))) === "confirm-delete-confirm", "Tab to the confirm button");
+  await page.keyboard.press("Tab");
+  expect((await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))) === "confirm-delete-cancel", "Tab wraps inside the dialog");
+  await page.keyboard.press("Escape");
+  await dlg.waitFor({ state: "detached" });
+});
+
+// ---- SSR / SEO and server
+const blogSsr = async (state, path) => {
+  const { renderSite } = await import(ssrBundle.href + `?t=${Date.now()}`);
+  const { renderPage, renderSitemap } = await import("../seo-render.mjs");
+  const out = await renderPage('<html><head><title>x</title></head><body><div id="root"></div></body></html>', path, state.editor.published, "", renderSite);
+  return { out, renderSitemap, content: state.editor.published };
+};
+
+await run("S5", "blog-ssr", "SSR/SEO: published post page has title, summary as description, canonical, indexable, every block once; sitemap lists it; list page lists it", async ({ page, state }) => {
+  await newPost(page);
+  await page.fill('[data-testid="blog-title"]', "SSR post"); await page.locator('[data-testid="blog-title"]').blur();
+  await page.fill('[data-testid="blog-summary"]', "SSR summary for search engines.");
+  await typeBody(page, "SSR body text.");
+  await addBlock(page, "photo");
+  const block = page.locator('[data-testid="post-block-photo"]');
+  await block.locator('[data-testid="input-photo-file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
+  await block.locator('[data-testid="input-photo-alt"]').fill("SSR photo");
+  await block.locator('[data-testid="button-upload-photo"]').click();
+  await block.locator('[data-testid="post-photo-caption"]').fill("SSR caption");
+  await addBlock(page, "callout"); await page.fill('[data-testid="callout-heading"]', "SSR callout");
+  await addBlock(page, "video"); await page.fill('[data-testid="video-url"]', "https://youtu.be/dQw4w9WgXcQ");
+  await addBlock(page, "divider");
+  await waitFor(() => findPost(state, (p) => { const j = blk(p); return j.includes("SSR caption") && j.includes("SSR callout") && j.includes("youtube-nocookie") && j.includes("Divider"); }), "saved");
+  await uploadCover(page, "SSR cover");
+  await publishPost(page, state);
+  const live = state.editor.published.news.find((p) => p.title === "SSR post");
+  const { out, renderSitemap, content } = await blogSsr(state, live.path);
+  expect(out.status === 200, `status ${out.status}`);
+  const html = out.html;
+  expect(html.includes("<title>SSR post | CHESS Blog</title>") && html.includes('content="SSR summary for search engines."') && html.includes(`rel="canonical" href="https://heritage-site-builder.replit.app${live.path}"`) && html.includes('content="index,follow"'), "title/description/canonical/robots");
+  const root = html.split('<div id="root">')[1].split('<script id="chess-content"')[0];
+  const count = (re) => (root.match(re) ?? []).length;
+  expect(count(/SSR body text\./g) === 1 && count(/SSR caption/g) === 1 && count(/SSR callout/g) === 1 && count(/puck-divider/g) === 1 && count(/youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/g) === 1, `block counts in SSR html`);
+  expect(count(/<img[^>]+fixture-replacement-1/g) === 1 && count(/<img[^>]+fixture-replacement-2/g) === 1, "cover and block photo each once in SSR");
+  expect(renderSitemap(content).includes(`<loc>https://heritage-site-builder.replit.app${live.path}</loc>`), "sitemap should list the post");
+  const list = await blogSsr(state, "/news");
+  expect(list.out.html.includes("SSR post") && list.out.html.includes("SSR summary for search engines."), "news list page SSR lists the post with its summary");
+});
+
+await run("S6", "blog-ssr", "SSR/SEO: a draft post never renders (404) and is not in the sitemap, even if it were present in the content", async ({ page, state }) => {
+  await newPost(page);
+  await writePost(page, state, { title: "Secret draft" });
+  const draftPost = findPost(state, (p) => p.title === "Secret draft");
+  // worst case: a draft somehow present in the content handed to the renderer
+  const leaked = { ...state.editor.published, news: [...state.editor.published.news, draftPost] };
+  const { renderSite } = await import(ssrBundle.href + `?t=${Date.now()}`);
+  const { renderPage, renderSitemap } = await import("../seo-render.mjs");
+  const out = await renderPage('<html><head><title>x</title></head><body><div id="root"></div></body></html>', draftPost.path, leaked, "", renderSite);
+  expect(out.status === 404, `draft status ${out.status}`);
+  expect(!renderSitemap(leaked).includes(draftPost.path), "draft in sitemap");
+  const list = await renderPage('<html><head><title>x</title></head><body><div id="root"></div></body></html>', "/news", leaked, "", renderSite);
+  expect(!rootHtml(list.html).includes("Secret draft"), "draft in the SSR news list");
+});
+
+await run("S7", "blog-server", "Server helper withoutDraftPosts drops drafts, keeps everything else, and is a no-op without drafts (run under node)", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const script = `
+    import { withoutDraftPosts } from ${JSON.stringify(new URL("../../api-server/src/lib/draft-posts.ts", import.meta.url).href)};
+    const a = { x: 1, news: [{ path: "/a", draft: true }, { path: "/b" }, { path: "/c", draft: false }] };
+    const r = withoutDraftPosts(a);
+    if (JSON.stringify(r.news.map((p) => p.path)) !== '["/b","/c"]') throw new Error("filter: " + JSON.stringify(r));
+    if (r.x !== 1 || a.news.length !== 3) throw new Error("must not mutate or lose fields");
+    const none = { news: [{ path: "/b" }] };
+    if (withoutDraftPosts(none) !== none) throw new Error("no-op should return the same object");
+    if (withoutDraftPosts({ pages: [] }).pages.length !== 0) throw new Error("no news key");
+    console.log("ok");`;
+  const output = execFileSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", script], { encoding: "utf8" });
+  expect(output.trim().endsWith("ok"), `helper output: ${output}`);
 });
 
 // ---------------------------------------------------------------- network hygiene

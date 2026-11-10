@@ -30,7 +30,7 @@ export async function loadContent() {
 }
 export function renderSitemap(content) {
   const paths=["/",...content.pages.filter(p=>!p.archived).map(p=>p.path),...content.staff.map(p=>`/about/our-people/${p.slug}`),
-    ...content.news.filter(a=>!a.archived).map(a=>a.path),...content.events.filter(a=>!a.archived && canonicalPath(a.path,content)===a.path).map(a=>a.path)];
+    ...content.news.filter(a=>!a.archived && !a.draft).map(a=>a.path),...content.events.filter(a=>!a.archived && canonicalPath(a.path,content)===a.path).map(a=>a.path)];
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${[...new Set(paths)].map(p=>`<url><loc>${esc(siteOrigin+p)}</loc></url>`).join("")}</urlset>`;
 }
 export function redirectLocation(target,search=""){
@@ -43,11 +43,11 @@ export async function renderPage(template,requestedPath,content,search="",render
   const path=canonical.split("#")[0];
   const page=path==="/"?content.home:content.pages.find(p=>p.path===path);
   const staff=content.staff.find(p=>path===`/about/our-people/${p.slug}`);
-  const article=[...content.news,...content.events].find(a=>a.path===path);
+  const article=[...content.news.filter(a=>!a.draft),...content.events].find(a=>a.path===path);
   const admin=/^\/admin(?:\/|$)/.test(path);
   const found=Boolean(page||staff||article||path==="/"||admin);
   const title=admin?"Staff Website Editor | CHESS":staff?`${staff.name} | CHESS`:article?`${article.title} | CHESS ${path.startsWith("/news/")?"Blog":"Events"}`:page?.title||"Page not found | CHESS";
-  const description=(page?.metaDescription|| (article?plain(article.markdown).slice(0,150):staff?plain(staff.bio).slice(0,150):page?.description)||"Colorado Heritage Education School System — Christian K–12 education for homeschooling families in Greeley, Colorado since 1991.").slice(0,155);
+  const description=(page?.metaDescription|| (article?(article.summary?.trim()||plain(article.markdown)).slice(0,150):staff?plain(staff.bio).slice(0,150):page?.description)||"Colorado Heritage Education School System — Christian K–12 education for homeschooling families in Greeley, Colorado since 1991.").slice(0,155);
   const noindex=admin||!found||article?.archived||page?.archived;
   const absolute=siteOrigin+path;
   const bundle="./dist/server/entry-server.js";

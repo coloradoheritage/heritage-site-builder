@@ -526,3 +526,14 @@ body.cb-menu-open { overflow: hidden; }
 .chess-figure { display: block; margin: 1rem 0; }
 .chess-figure > img { display: block; }
 .chess-caption { display: block; margin-top: .4rem; color: #5b6676; font-size: .88rem; line-height: 1.45; font-style: italic; }
+
+/* Blog post page and list */
+.cb-post-summary { margin: .75rem 0 0; font-size: 1.15rem; line-height: 1.55; color: var(--slate); }
+.cb-byline { margin: .5rem 0 0; }
+.cb-post-cover { margin: 0 0 1.75rem; }
+.cb-post-cover img { display: block; width: 100%; height: auto; max-height: 520px; object-fit: cover; border-radius: 12px; }
+.cb-post-cover .chess-caption { margin-top: .5rem; }
+.cb-post-body { max-width: 760px; }
+.cb-post-body .chess-puck-content { gap: 1.1rem; }
+.cb-card-cover { display: block; margin: -1.6rem -1.6rem 1rem; overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; }
+.cb-card-cover img { display: block; width: 100%; height: 190px; object-fit: cover; }

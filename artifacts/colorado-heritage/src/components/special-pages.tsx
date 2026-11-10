@@ -5,7 +5,7 @@ import {
   ArrowDownTrayIcon, CalendarDaysIcon, CheckCircleIcon, ClockIcon, EnvelopeIcon, MapPinIcon, PhoneIcon, UserIcon,
 } from "@heroicons/react/24/outline";
 import {
-  MAP_EMBED, MAP_LINK, OFFICE, articleHref, excerpt, fixText, formatDate, sortArticles, stripSourceTitle, type SiteContentExt,
+  MAP_EMBED, MAP_LINK, OFFICE, articleHref, excerpt, fixText, formatDate, isLivePost, sortArticles, stripSourceTitle, type SiteContentExt,
 } from "../lib/cms";
 import { administrativeStaff, isAdministrative } from "../../directory-helpers.mjs";
 import { Button, Confirm, Eyebrow, MoreLink, Reveal } from "./brand";
@@ -13,6 +13,7 @@ import { MarkdownContent, useDocUrl, useResolvedHref } from "./markdown";
 import { FaqAccordion } from "./home-page";
 import { FacultyGrid } from "./faculty-grid";
 import { PraxiBox, QuietVisit, VisitBand } from "./site-chrome";
+import { SiteImage } from "./site-image";
 import { PagePhoto } from "./site-image";
 import { PuckAdditionalRenderer } from "./puck-render";
 
@@ -333,7 +334,7 @@ export function NewsIndex({ content }: { content: SiteContentExt }) {
   const [count, setCount] = useState(12);
   const list = archive
     ? sortArticles([...content.news, ...content.events].filter((a) => a.archived))
-    : sortArticles(content.news.filter((a) => !a.archived));
+    : sortArticles(content.news.filter(isLivePost));
   const byYear = useMemo(() => {
     const map = new Map<string, CmsArticle[]>();
     if (archive) list.forEach((a) => { const y = (a.date || "").slice(0, 4) || "Undated"; map.set(y, [...(map.get(y) ?? []), a]); });
@@ -356,9 +357,10 @@ export function NewsIndex({ content }: { content: SiteContentExt }) {
       : <>
         <ul className="cb-card-grid">{list.slice(0, count).map((a, i) => <Reveal as="li" key={a.path} delay={(i % 3) * 60}>
           <article className="cb-card">
-            <span className="cb-card-meta">{formatDate(a.date)}</span>
+            {a.coverImage && <Link href={articleHref(a, "news")} className="cb-card-cover" tabIndex={-1} aria-hidden="true"><SiteImage src={a.coverImage} alt="" loading="lazy" sizes="(min-width: 900px) 33vw, 100vw" /></Link>}
+            <span className="cb-card-meta">{formatDate(a.date)}{a.author ? ` · ${a.author}` : ""}</span>
             <h2 className="cb-card-title"><Link href={articleHref(a, "news")} data-testid={`link-news-entry-${i}`}>{fixText(a.title)}</Link></h2>
-            <p className="cb-clamp">{excerpt(a.markdown, 170) || "Read the full post."}</p>
+            <p className="cb-clamp">{a.summary?.trim() || excerpt(a.markdown, 170) || "Read the full post."}</p>
             <MoreLink href={articleHref(a, "news")}>Read more</MoreLink>
           </article>
         </Reveal>)}</ul>
