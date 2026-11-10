@@ -1808,6 +1808,71 @@ await run("T14", "special-blocks", "Notes appear for the calendar, FAQ, staff di
   expect((await page.locator('[data-testid^="auto-part-"]').count()) === 0, "ordinary page should have no notes");
 });
 
+// ---------------------------------------------------------------- portal links (header, mobile menu, footer)
+const PARENT_PORTAL = { label: "Payment/Account Portal", url: "https://app.praxischool.com/parent_login.php?s=1300" };
+const STAFF_PORTAL = { label: "Faculty/Staff Portal", url: "https://app.praxischool.com/" };
+const portalLink = (scope, portal) => scope.locator(`a[href="${portal.url}"]`, { hasText: portal.label });
+const expectNewTab = async (link, what) => {
+  expect((await link.getAttribute("target")) === "_blank", `${what}: should open in a new tab`);
+  expect((((await link.getAttribute("rel")) ?? "").split(/\s+/).includes("noopener")), `${what}: rel should include noopener`);
+};
+const openChrome = async (page, path = "/") => { await page.goto(`${BASE}/?view=public&chrome=1&path=${encodeURIComponent(path)}`); await page.waitForSelector(".cb-footer"); };
+
+await run("P1", "portals", "Desktop: 'Payment/Account Portal' is in the header utility bar and footer; 'Faculty/Staff Portal' is in the footer ONLY; exact addresses, new tab", async ({ page }) => {
+  await openChrome(page);
+  const head = page.locator('.cb-utility [data-testid="link-portal-parent-utility"]');
+  expect((await head.count()) === 1 && (await head.isVisible()) && (await head.getAttribute("href")) === PARENT_PORTAL.url && ((await head.textContent()) ?? "").includes(PARENT_PORTAL.label), "parent portal in the header utility bar");
+  await expectNewTab(head, "Payment/Account Portal (header)");
+  for (const [name, portal] of [["parent", PARENT_PORTAL], ["staff", STAFF_PORTAL]]) {
+    const foot = page.locator(`.cb-footer [data-testid="footer-portal-${name}"]`);
+    expect((await foot.count()) === 1 && (await foot.isVisible()) && (await foot.getAttribute("href")) === portal.url && (await foot.textContent()) === portal.label, `${portal.label}: footer link`);
+    await expectNewTab(foot, `${portal.label} (footer)`);
+  }
+  // the staff portal must not appear anywhere in the header, utility bar or menu
+  expect((await page.locator(`header.cb-header a[href="${STAFF_PORTAL.url}"]`).count()) === 0, "Faculty/Staff Portal must not be in the header");
+  expect((await page.locator("header.cb-header").getByText("Faculty/Staff Portal").count()) === 0, "Faculty/Staff Portal label must not be in the header");
+  expect((await page.locator(".cb-contact-strip").getByText("Faculty/Staff Portal").count()) === 0, "not in the contact strip");
+  expect((await page.locator(`a[href="${STAFF_PORTAL.url}"]`).count()) === 1, "exactly one Faculty/Staff Portal link on the page, in the footer");
+  expect((await page.locator(".cb-utility, .cb-nav-actions, .cb-nav-mobile-extras, .cb-footer, .cb-contact-strip").getByText("Praxi Parent Portal").count()) === 0, "the old 'Praxi Parent Portal' label should be gone from the utility bar, menu buttons and footer (the Parents menu still lists the Praxi page by its own name)");
+  await page.locator(".cb-header").screenshot({ path: `${SHOTS}/P1-header-desktop.png` });
+  await page.locator("footer.cb-footer").scrollIntoViewIfNeeded();
+  await page.locator("footer.cb-footer").screenshot({ path: `${SHOTS}/P1-footer-desktop.png` });
+  await page.locator(".cb-contact-strip").screenshot({ path: `${SHOTS}/P1-contact-strip-desktop.png` });
+});
+
+await run("P2", "portals", "Mobile: 'Payment/Account Portal' is in the open menu and footer; 'Faculty/Staff Portal' is in the footer only", async ({ page }) => {
+  await openChrome(page);
+  expect(!(await page.locator(".cb-utility").isVisible()), "utility bar is hidden on phones");
+  await page.click('[data-testid="button-mobile-navigation"]');
+  const menuParent = page.locator('[data-testid="button-mobile-portal-parent"]');
+  await menuParent.waitFor({ state: "visible" });
+  expect((await menuParent.getAttribute("href")) === PARENT_PORTAL.url && ((await menuParent.textContent()) ?? "").includes(PARENT_PORTAL.label), "parent portal in the mobile menu");
+  await expectNewTab(menuParent, "Payment/Account Portal (mobile menu)");
+  expect((await page.locator('#cb-main-navigation').getByText("Faculty/Staff Portal").count()) === 0 && (await page.locator(`#cb-main-navigation a[href="${STAFF_PORTAL.url}"]`).count()) === 0, "Faculty/Staff Portal must not be in the mobile menu");
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: `${SHOTS}/P2-menu-mobile.png` });
+  await page.click('[data-testid="button-mobile-navigation"]');
+  for (const [name, portal] of [["parent", PARENT_PORTAL], ["staff", STAFF_PORTAL]]) {
+    const foot = page.locator(`.cb-footer [data-testid="footer-portal-${name}"]`);
+    await foot.scrollIntoViewIfNeeded();
+    expect((await foot.isVisible()) && (await foot.getAttribute("href")) === portal.url, `${portal.label}: footer link on mobile`);
+    await expectNewTab(foot, `${portal.label} (footer, mobile)`);
+  }
+  await page.locator("footer.cb-footer").screenshot({ path: `${SHOTS}/P2-footer-mobile.png` });
+  await page.locator(".cb-contact-strip").screenshot({ path: `${SHOTS}/P2-contact-strip-mobile.png` });
+}, { viewport: { width: 390, height: 800 } });
+
+await run("P3", "portals", "Server render: Faculty/Staff Portal appears once, in the footer; Payment/Account Portal in header, menu and footer; all new-tab with noopener", async ({ state }) => {
+  const html = await ssrHtml(state.editor.published, "/");
+  const anchorsFor = (portal) => [...html.matchAll(new RegExp(`<a[^>]*href="${portal.url.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&")}"[^>]*>`, "g"))].map((m) => m[0]);
+  const staff = anchorsFor(STAFF_PORTAL), parent = anchorsFor(PARENT_PORTAL);
+  expect(staff.length === 1 && staff[0].includes('data-testid="footer-portal-staff"'), `staff portal links in SSR: ${JSON.stringify(staff)}`);
+  expect(parent.length >= 3, `parent portal links in SSR: ${parent.length}`);
+  expect([...staff, ...parent].every((a) => a.includes('target="_blank"') && /rel="[^"]*noopener/.test(a)), "every portal link should open in a new tab with noopener");
+  const headerHtml = html.split("<footer")[0];
+  expect(!headerHtml.includes("Faculty/Staff Portal"), "no staff portal before the footer in the SSR html");
+});
+
 // ---------------------------------------------------------------- network hygiene
 await run("N1", "isolation", "No request left the local harness; no unmocked API calls; no uncaught page errors across a full pass", async ({ page, state }) => {
   await openCanvas(page, "Independent School");

@@ -7,19 +7,19 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router as WouterRouter } from "wouter";
 import { EditorHome, SiteManager } from "../src/components/site-manager";
-import { PublicSitePages } from "../src/components/public-site";
+import { PublicSiteFooter, PublicSiteHeader, PublicSitePages } from "../src/components/public-site";
 import "../src/index.css";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 // ?view=public&path=/x renders the real public page component against the mocked PUBLISHED content.
-function PublicView({ path }: { path: string }) {
-  return <div className="cb-site"><PublicSitePages previewPath={path} /></div>;
+function PublicView({ path, chrome }: { path: string; chrome: boolean }) {
+  return <div className="cb-site">{chrome && <PublicSiteHeader />}<PublicSitePages previewPath={path} />{chrome && <PublicSiteFooter />}</div>;
 }
 
 function Harness() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get("view") === "public") return <PublicView path={params.get("path") || "/"} />;
+  if (params.get("view") === "public") return <PublicView path={params.get("path") || "/"} chrome={params.get("chrome") === "1"} />;
   const [tool, setTool] = useState<"home" | "site">(() => (new URLSearchParams(window.location.search).get("tool") === "site" ? "site" : "home"));
   const publicSiteUrl = `${window.location.origin}/`;
   const choose = (next: string) => setTool(next === "site" ? "site" : "home");

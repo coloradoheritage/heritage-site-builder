@@ -3,6 +3,12 @@ import { sitePages, legacyRouteAliases } from "../data/siteSitemap";
 import type { CmsArticle, CmsPage, SiteContentState } from "@workspace/api-client-react";
 
 export const PRAXI_PARENT_PORTAL = "https://app.praxischool.com/parent_login.php?s=1300";
+export const STAFF_PORTAL = "https://app.praxischool.com/";
+/** Login links from the old coloradoheritage.org site. The parent link is in the header, menu and footer; the staff link is footer only. Fixed in code (not page links), so the menu editor does not manage them. */
+export const PORTAL_LINKS = [
+  { key: "parent", label: "Payment/Account Portal", url: PRAXI_PARENT_PORTAL },
+  { key: "staff", label: "Faculty/Staff Portal", url: STAFF_PORTAL },
+] as const;
 export const SITE_ORIGIN = "https://heritage-site-builder.replit.app";
 
 export const publicAsset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
